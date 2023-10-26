@@ -260,7 +260,7 @@ CarpetX/WaveToyX
 SpacetimeX/Cowling
 SpacetimeX/Punctures
 SpacetimeX/StaticTrumpet
-SpacetimeX/TwoPunctures
+SpacetimeX/TwoPuncturesX
 SpacetimeX/Weyl
 SpacetimeX/Z4c
 
@@ -276,4 +276,4 @@ AsterX/AsterX
 AsterX/Con2PrimFactory
 AsterX/EOSX
 AsterX/ReconX
-AsterX/TOVSolver
+AsterX/TOVSolverX
