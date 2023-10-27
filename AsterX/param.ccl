@@ -39,16 +39,6 @@ CCTK_STRING regrid_groups "Groups used for calculating regrid error" STEERABLE=a
   .* :: "List of full group names"
 } "HydroBaseX::rho"
 
-CCTK_REAL rho_abs_min "atmosphere density" STEERABLE=never
-{
-  0:* :: "Larger than zero"
-} 1E-13
-
-CCTK_REAL atmo_tol "atmosphere density tolerance factor" STEERABLE=never
-{
-  0:* :: "Larger than zero"
-} 1E-3
-
 BOOLEAN debug_mode "Print debug information if set to yes"
 {
 } no
@@ -64,18 +54,6 @@ CCTK_INT unit_test_repetitions "Number of times each unit test should be repeate
 
 restricted:
 
-# Parameters for the recovery of primitive variables
-
-CCTK_INT max_iter "Maximum allowed number of iterations for root finding" STEERABLE=never
-{
-  1:* :: "Must be no smaller than 1"
-} 30
-
-CCTK_REAL c2p_tol "c2p torelance for root finding" STEERABLE=never
-{
-  0:* :: "Larger than zero"
-} 1E-10
-
 BOOLEAN interpolate_failed_c2p "Interpolate those grid points where c2p failed."
 {
 } no
@@ -87,8 +65,8 @@ CCTK_INT local_spatial_order "Order of spatial finite differencing" STEERABLE=ne
 } 2
 
 SHARES: EOSX
-USES KEYWORD id_eos_name
-USES KEYWORD evol_eos_name
+USES KEYWORD initial_data_eos
+USES KEYWORD evolution_eos
 USES CCTK_REAL poly_gamma
 USES CCTK_REAL poly_k
 USES CCTK_REAL gl_gamma
@@ -103,9 +81,19 @@ USES CCTK_STRING EOSTable_filename
 USES CCTK_REAL gamma_th
 
 SHARES: Con2PrimFactory
+USES KEYWORD c2p_prime
+USES KEYWORD c2p_second
+USES CCTK_REAL rho_abs_min
+USES CCTK_REAL atmo_tol
 USES CCTK_REAL eps_atmo
-USES CCTK_REAL Ye_atmo
 USES CCTK_REAL p_atmo
+USES CCTK_REAL Ye_atmo
+USES CCTK_REAL B_lim
+USES CCTK_REAL vw_lim
+USES CCTK_REAL rho_strict
+USES BOOLEAN Ye_lenient
+USES CCTK_INT max_iter
+USES CCTK_REAL c2p_tol
 
 SHARES: ReconX
 USES KEYWORD reconstruction_method

@@ -2,17 +2,17 @@
 
 restricted:
 
-KEYWORD id_eos_name "Name of active EOS for initial data"
+KEYWORD initial_data_eos "Name of active EOS for initial data"
 {
   "Polytropic" :: ""
   "PWPolytropic" :: ""
   "none" :: "No EOS available"
 } "Polytropic"
 
-KEYWORD evol_eos_name "Name of active EOS for evolution"
-{
+KEYWORD evolution_eos "Equation of state employed during evolution" STEERABLE=never
+{ 
   "IdealGas" :: "Ideal Gas"
-  "Hybrid" :: ""
+  "Hybrid" :: "" 
   "Tabulated3d" :: "EOS Tabulated in (rho, T, Ye)"
   "none" :: "No EOS available"
 } "IdealGas"

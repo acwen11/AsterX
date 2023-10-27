@@ -26,9 +26,9 @@ AMREX_GPU_MANAGED eos_tabulated3d *eos_tab3d = nullptr;
 extern "C" void EOSX_Setup_EOSID(CCTK_ARGUMENTS) {
   DECLARE_CCTK_PARAMETERS;
   eos_id eos_id_type;
-  if (CCTK_EQUALS(id_eos_name, "Polytropic")) {
+  if (CCTK_EQUALS(initial_data_eos, "Polytropic")) {
     eos_id_type = eos_id::Polytropic;
-  } else if (CCTK_EQUALS(id_eos_name, "PWPolytropic")) {
+  } else if (CCTK_EQUALS(initial_data_eos, "PWPolytropic")) {
     eos_id_type = eos_id::PWPolytropic;
   } else {
     CCTK_ERROR("Unknown value for parameter \"initial_data_eos\"");
@@ -58,11 +58,11 @@ extern "C" void EOSX_Setup_EOS(CCTK_ARGUMENTS) {
   eos::range rgeps(eps_min, eps_max), rgrho(rho_min, rho_max),
       rgye(ye_min, ye_max);
 
-  if (CCTK_EQUALS(evol_eos_name, "IdealGas")) {
+  if (CCTK_EQUALS(evolution_eos, "IdealGas")) {
     eos_evol_type = eos_evol::IdealGas;
-  } else if (CCTK_EQUALS(evol_eos_name, "Hybrid")) {
+  } else if (CCTK_EQUALS(evolution_eos, "Hybrid")) {
     eos_evol_type = eos_evol::Hybrid;
-  } else if (CCTK_EQUALS(evol_eos_name, "Tabulated3d")) {
+  } else if (CCTK_EQUALS(evolution_eos, "Tabulated3d")) {
     eos_evol_type = eos_evol::Tabulated;
   } else {
     CCTK_ERROR("Unknown value for parameter \"evolution_eos\"");
