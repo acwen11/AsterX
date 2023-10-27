@@ -7,8 +7,7 @@
 #include "c2p.hxx"
 #include "c2p_1DPalenzuela.hxx"
 #include "c2p_2DNoble.hxx"
-#include <eos.hxx>
-#include <eos_idealgas.hxx>
+#include <setup_eos.hxx>
 
 namespace Con2PrimFactory {
 
