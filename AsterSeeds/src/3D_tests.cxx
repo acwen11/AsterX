@@ -18,9 +18,9 @@ extern "C" void Tests3D_Initialize(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_Tests3D_Initialize;
   DECLARE_CCTK_PARAMETERS;
 
-  if (not CCTK_EQUALS(evol_eos_name, "IdealGas")) {
-    CCTK_VERROR("Invalid evolution EOS type '%s'. Please, set EOSX::evol_eos_name = \"IdealGas\" in your parameter file.",
-                evol_eos_name);
+  if (not CCTK_EQUALS(evolution_eos, "IdealGas")) {
+    CCTK_VERROR("Invalid evolution EOS type '%s'. Please, set EOSX::evolution_eos = \"IdealGas\" in your parameter file.",
+                evolution_eos);
   }
 
   const CCTK_REAL dummy_ye = 0.5;
