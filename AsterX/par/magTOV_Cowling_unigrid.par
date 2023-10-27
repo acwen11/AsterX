@@ -90,23 +90,32 @@ AsterSeeds::Avec_kappa = 2.0
 #AsterSeeds::B0 = 1e-7
 #AsterSeeds::r0 = 5.0
 
-AsterX::rho_abs_min = 1e-11
-AsterX::atmo_tol = 1e-3
-ReconX::reconstruction_method = "ppm"
-ReconX::ppm_zone_flattening = "yes"
-ReconX::ppm_shock_detection = "no"
+AsterX::debug_mode = "yes"
 AsterX::flux_type = "HLLE"
-AsterX::max_iter = 100
-AsterX::c2p_tol = 1e-8
 AsterX::vector_potential_gauge = "algebraic"
 
-AsterX::debug_mode = "no"
-Con2PrimFactory::unit_test = "no"
+ReconX::reconstruction_method = "PPM"
+ReconX::ppm_zone_flattening = "yes"
+ReconX::ppm_shock_detection = "no"
 
-EOSX::evol_eos_name = "IdealGas"
-EOSX::gl_gamma = 2
+Con2PrimFactory::c2p_prime = "Noble"
+Con2PrimFactory::c2p_second = "Palenzuela"
+Con2PrimFactory::c2p_tol = 1e-8
+Con2PrimFactory::max_iter = 100
+Con2PrimFactory::rho_abs_min = 1e-11
+Con2PrimFactory::atmo_tol = 1e-3
+Con2PrimFactory::unit_test = "yes"
+Con2PrimFactory::B_lim = 1e8
+Con2PrimFactory::vw_lim = 1e8
+Con2PrimFactory::Ye_lenient = "yes"
+Con2PrimFactory::rho_strict = 6.4e-05
+
+EOSX::evolution_eos = "IdealGas"
+EOSX::gl_gamma = 2.0
 EOSX::poly_gamma = 2.0
 EOSX::poly_k = 100
+EOSX::rho_max = 1e8
+EOSX::eps_max = 1e8
 
 Cactus::terminate = "iteration"
 Cactus::cctk_itlast = 10000000
