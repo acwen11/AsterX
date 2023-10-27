@@ -44,7 +44,7 @@ extern "C" void Con2PrimFactory_Test(CCTK_ARGUMENTS) {
 
   // Testing C2P Noble
   CCTK_VINFO("Testing C2P Noble...");
-  c2p_Noble.solve(eos_th, pv, pv_seeds, cv, g, rep_Noble);
+  c2p_Noble.solve(*eos_ig, pv, pv_seeds, cv, g, rep_Noble);
 
   printf("pv_seeds, pv: \n"
          "rho: %f, %f \n"
@@ -85,7 +85,7 @@ extern "C" void Con2PrimFactory_Test(CCTK_ARGUMENTS) {
 
   // Testing C2P Palenzuela
   CCTK_VINFO("Testing C2P Palenzuela...");
-  c2p_Pal.solve(eos_th, pv, pv_seeds, cv, g, rep_Pal);
+  c2p_Pal.solve(*eos_ig, pv, pv_seeds, cv, g, rep_Pal);
 
   printf("pv_seeds, pv: \n"
          "rho: %f, %f \n"
