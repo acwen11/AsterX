@@ -17,10 +17,6 @@ using namespace EOSX;
 extern "C" void Con2PrimFactory_Test(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTS;
 
-  // Initializing the IG EOS
-  eos::range rgeps(0, 100), rgrho(1e-13, 20), rgye(0.5, 0.5);
-  const eos_idealgas eos_th(2.0, 938.985, rgeps, rgrho, rgye);
-
   // Setting up atmosphere
   atmosphere atmo(1e-10, 1e-8, 0.5, 1e-8, 0.001);
 
