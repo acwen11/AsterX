@@ -35,6 +35,19 @@ calc_avg_v2c(const GF3D2<const T> &gf, const PointDesc &p) {
   return gf_avg / 8.0;
 }
 
+// Second-order average of cell-centered grid functions to face-centered
+template <typename T>
+CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
+calc_avg_c2f(const GF3D2<const T> &gf, const PointDesc &p, const int dir) {
+  T gf_avg = 0.0;
+  const vect<T, 4> wt = {-1.0/16, 9.0/16, 9.0/16, -1.0/16};
+
+  for (int di = 0; di < 4; ++di) {
+    gf_avg += gf(p.I + p.DI[dir] * (di - 2)) * wt[di];
+  }
+  return gf_avg;
+}
+
 // Second-order average of edge-centered grid functions to vertex-centered
 template <typename T>
 CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
