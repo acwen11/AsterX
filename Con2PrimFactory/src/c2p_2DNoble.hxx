@@ -285,7 +285,7 @@ c2p_2DNoble::solve(EOSType &eos_th, prim_vars &pv, prim_vars &pv_seeds,
 
   /* Start Recovery with 2D NR Solver */
   const CCTK_INT n = 2;
-  //const CCTK_REAL dv = (1. - 1.e-15);
+  const CCTK_REAL dv = (1. - 1.e-15);
   CCTK_REAL dx[n];
   CCTK_REAL fjac[n][n];
   CCTK_REAL resid[n];
@@ -356,13 +356,11 @@ c2p_2DNoble::solve(EOSType &eos_th, prim_vars &pv, prim_vars &pv_seeds,
       x[1] = 0.0;
     }
 
-    /*
-        else {
-          if (x[1] >= 1.0) {
-            x[1] = dv;
-          }
-        }
-    */
+    else {
+      if (x[1] >= 1.0) {
+        x[1] = dv;
+      }
+    }
   }
 
   // storing number of iterations taken to find the root
@@ -401,16 +399,20 @@ c2p_2DNoble::solve(EOSType &eos_th, prim_vars &pv, prim_vars &pv_seeds,
   // check the validity of the computed eps
   auto rgeps = eos_th.range_eps_from_valid_rho_ye(pv.rho, pv.Ye);
   if (pv.eps > rgeps.max) {
-    printf("(pv.eps > rgeps.max) is true, adjusting cons..");
+    printf("(pv.eps > rgeps.max) is true, adjusting cons.. \n");
     rep.adjust_cons = true;
     if (pv.rho >= rho_strict) {
-      rep.set_range_eps(pv.eps);
+      rep.set_range_eps(pv.eps); // sets adjust_cons to false by default
+      rep.adjust_cons = true;
       set_to_nan(pv, cv);
       return;
     }
   } else if (pv.eps < rgeps.min) {
-    printf("(pv.eps < rgeps.min) is true, adjusting cons..");
-    rep.adjust_cons = true;
+    printf(
+        "(pv.eps < rgeps.min) is true! pv.eps, rgeps.min: %26.16e, %26.16e \n",
+        pv.eps, rgeps.min);
+    printf(" Not adjusting cons.. \n");
+    rep.set_range_eps(pv.eps); // sets adjust_cons to false by default
   }
 
   // TODO: check validity for Ye
@@ -418,8 +420,8 @@ c2p_2DNoble::solve(EOSType &eos_th, prim_vars &pv, prim_vars &pv_seeds,
   // check if computed velocities are within the specified limit
   CCTK_REAL sol_v = sqrt(vsq_Sol);
   if (sol_v > v_lim) {
-    printf("(sol_v > v_lim) is true!");
-    printf("sol_v, v_lim: %26.16e, %26.16e", sol_v, v_lim);
+    printf("(sol_v > v_lim) is true! \n");
+    printf("sol_v, v_lim: %26.16e, %26.16e \n", sol_v, v_lim);
     pv.rho = cv.dens / w_lim;
     if (pv.rho >= rho_strict) {
       rep.set_speed_limit({sol_v, sol_v, sol_v});

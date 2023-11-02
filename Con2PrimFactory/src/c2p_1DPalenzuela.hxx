@@ -26,8 +26,8 @@ public:
       get_BiSi_Exact(vec<CCTK_REAL, 3> &Bvec, vec<CCTK_REAL, 3> &mom) const;
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline vec<CCTK_REAL, 3>
       get_WLorentz_vsq_bsq_Seeds(vec<CCTK_REAL, 3> &B_up,
-                                        vec<CCTK_REAL, 3> &v_up,
-                                        const smat<CCTK_REAL, 3> &glo) const;
+                                 vec<CCTK_REAL, 3> &v_up,
+                                 const smat<CCTK_REAL, 3> &glo) const;
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
   set_to_nan(prim_vars &pv, cons_vars &cv) const;
   /* Called by 1DPalenzuela */
@@ -104,11 +104,10 @@ c2p_1DPalenzuela::get_BiSi_Exact(vec<CCTK_REAL, 3> &Bvec,
   return Bvec(X) * mom(X) + Bvec(Y) * mom(Y) + Bvec(Z) * mom(Z); // BiSi
 }
 
-
 CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline vec<CCTK_REAL, 3>
-c2p_1DPalenzuela::get_WLorentz_vsq_bsq_Seeds(vec<CCTK_REAL, 3> &B_up,
-                                        vec<CCTK_REAL, 3> &v_up,
-                                        const smat<CCTK_REAL, 3> &glo) const {
+c2p_1DPalenzuela::get_WLorentz_vsq_bsq_Seeds(
+    vec<CCTK_REAL, 3> &B_up, vec<CCTK_REAL, 3> &v_up,
+    const smat<CCTK_REAL, 3> &glo) const {
   vec<CCTK_REAL, 3> v_low = calc_contraction(glo, v_up);
   CCTK_REAL vsq = calc_contraction(v_low, v_up);
   CCTK_REAL VdotB = calc_contraction(v_low, B_up);
@@ -277,7 +276,6 @@ c2p_1DPalenzuela::solve(EOSType &eos_th, prim_vars &pv, prim_vars &pv_seeds,
   // CCTK_REAL vsq_seed = w_vsq_bsq(1);
   // const CCTK_REAL bsq = w_vsq_bsq(2);
 
-
   if ((!isfinite(cv.dens)) || (!isfinite(Ssq)) || (!isfinite(Bsq)) ||
       (!isfinite(BiSi)) || (!isfinite(cv.dYe))) {
     rep.set_nans_in_cons(cv.dens, Ssq, Bsq, BiSi, cv.dYe);
@@ -301,7 +299,6 @@ c2p_1DPalenzuela::solve(EOSType &eos_th, prim_vars &pv, prim_vars &pv_seeds,
   // rho consistent with cv.rho should be better guess than rho from last
   // timestep
   pv_seeds.rho = cv.dens / pv_seeds.w_lor;
-
 
   // Find x, this is the recovery process
   const CCTK_INT minbits = std::numeric_limits<CCTK_REAL>::digits - 4;
@@ -338,7 +335,7 @@ c2p_1DPalenzuela::solve(EOSType &eos_th, prim_vars &pv, prim_vars &pv_seeds,
   }
 
   xPalenzuelaToPrim(xPalenzuela_Sol, Ssq, Bsq, BiSi, eos_th, pv, cv, gup, glo);
-  
+
   // set to atmo if computed rho is below floor density
   if (pv.rho < atmo.rho_cut) {
     rep.set_atmo_set();
@@ -349,16 +346,20 @@ c2p_1DPalenzuela::solve(EOSType &eos_th, prim_vars &pv, prim_vars &pv_seeds,
   // check the validity of the computed eps
   auto rgeps = eos_th.range_eps_from_valid_rho_ye(pv.rho, pv.Ye);
   if (pv.eps > rgeps.max) {
-    printf("(pv.eps > rgeps.max) is true, adjusting cons..");
+    printf("(pv.eps > rgeps.max) is true, adjusting cons.. \n");
     rep.adjust_cons = true;
     if (pv.rho >= rho_strict) {
-      rep.set_range_eps(pv.eps);
+      rep.set_range_eps(pv.eps); // sets adjust_cons to false by default
+      rep.adjust_cons = true;
       set_to_nan(pv, cv);
       return;
     }
   } else if (pv.eps < rgeps.min) {
-    printf("(pv.eps < rgeps.min) is true, adjusting cons..");
-    rep.adjust_cons = true;
+    printf(
+        "(pv.eps < rgeps.min) is true! pv.eps, rgeps.min: %26.16e, %26.16e \n",
+        pv.eps, rgeps.min);
+    printf(" Not adjusting cons.. \n");
+    rep.set_range_eps(pv.eps); // sets adjust_cons to false by default
   }
 
   // TODO: check validity for Ye
@@ -368,8 +369,8 @@ c2p_1DPalenzuela::solve(EOSType &eos_th, prim_vars &pv, prim_vars &pv_seeds,
   CCTK_REAL vsq_Sol = calc_contraction(v_low, pv.vel);
   CCTK_REAL sol_v = sqrt(vsq_Sol);
   if (sol_v > v_lim) {
-    printf("(sol_v > v_lim) is true!");
-    printf("sol_v, v_lim: %26.16e, %26.16e", sol_v, v_lim);
+    printf("(sol_v > v_lim) is true! \n");
+    printf("sol_v, v_lim: %26.16e, %26.16e \n", sol_v, v_lim);
     pv.rho = cv.dens / w_lim;
     if (pv.rho >= rho_strict) {
       rep.set_speed_limit({sol_v, sol_v, sol_v});
@@ -383,12 +384,11 @@ c2p_1DPalenzuela::solve(EOSType &eos_th, prim_vars &pv, prim_vars &pv_seeds,
 
     rep.adjust_cons = true;
   }
-  
+
   // Recompute cons if prims have been adjusted
   if (rep.adjust_cons) {
     cv.from_prim(pv, glo);
   }
- 
 }
 
 CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void

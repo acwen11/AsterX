@@ -51,7 +51,10 @@ public:
   /**
   @return If the input was invalid according to the error policy.
   **/
-  CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline bool failed() const { return status != SUCCESS; }
+  CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline bool
+  failed() const {
+    return status != SUCCESS;
+  }
 
   /// SUCCESS or reason for failure.
   err_code status{ERR_CODE_NOT_SET};
@@ -146,7 +149,7 @@ public:
   set_range_eps(CCTK_REAL eps_) {
     status = RANGE_EPS;
     set_atmo = false;
-    adjust_cons = true;
+    adjust_cons = false; // we do not adjust cons in this case!
     eps = eps_;
   }
 
@@ -206,57 +209,57 @@ public:
   debug_message() const {
     switch (status) {
     case SUCCESS:
-      printf("Con2Prim succeeded.");
+      printf("Con2Prim succeeded. \n");
       if (set_atmo) {
-        printf("Artificial atmosphere has been enforced.");
+        printf("Artificial atmosphere has been enforced. \n");
       }
       if (adjust_cons) {
-        printf("Conserved variables have been changed.");
+        printf("Conserved variables have been changed. \n");
       }
       break;
     case INVALID_DETG:
-      printf("Invalid metric determinant: detg = %16.8e ", detg);
+      printf("Invalid metric determinant: detg = %16.8e \n", detg);
       break;
     case NEG_BSQR:
-      printf("3-metric not positive, negative B^2: Bsq = %16.8e ", Bsq);
+      printf("3-metric not positive, negative B^2: Bsq = %16.8e \n", Bsq);
       break;
     case NANS_IN_CONS:
       printf("NAN in conserved variables,"
              "dens = %16.8e, Ssq = %16.8e, Bsq = %16.8e, BiSi = %16.8e,"
-             "Ye = %16.8e",
+             "Ye = %16.8e \n",
              dens, Ssq, Bsq, BiSi, Ye);
       break;
     case RANGE_RHO:
-      printf("Density out of range, dens = %16.8e, rho = %16.8e", dens, rho);
+      printf("Density out of range, dens = %16.8e, rho = %16.8e \n", dens, rho);
       break;
     case RANGE_EPS:
-      printf("Specific energy out of range, eps = %16.8e", eps);
+      printf("Specific energy out of range, eps = %16.8e \n", eps);
       break;
     case SPEED_LIMIT:
-      printf("Speed limit exceeded, vx, vy, vz = %16.8e, %16.8e, %16.8e",
+      printf("Speed limit exceeded, vx, vy, vz = %16.8e, %16.8e, %16.8e \n",
              vel(0), vel(1), vel(2));
       break;
     case B_LIMIT:
-      printf("Limit for magnetic field exceeded, B = %16.8e", sqrt(Bsq));
+      printf("Limit for magnetic field exceeded, B = %16.8e \n", sqrt(Bsq));
       break;
     case RANGE_YE:
-      printf("Electron fraction out of range, Y_e = %16.8e", Ye);
+      printf("Electron fraction out of range, Y_e = %16.8e \n", Ye);
       break;
     case ROOT_FAIL_CONV:
-      printf("Root finding failed (not converged after %i steps)", iters);
+      printf("Root finding failed (not converged after %i steps) \n", iters);
       break;
     case ROOT_FAIL_BRACKET:
-      printf("Root finding failed (faulty bracketing)");
+      printf("Root finding failed (faulty bracketing) \n");
       break;
     case PREP_ROOT_FAIL_CONV:
-      printf("Preparatory root finding failed (not converged)");
+      printf("Preparatory root finding failed (not converged) \n");
       break;
     case PREP_ROOT_FAIL_BRACKET:
-      printf("Preparatory root finding failed (faulty bracketing)");
+      printf("Preparatory root finding failed (faulty bracketing) \n");
       break;
     default:
       assert(false);
-      printf("Invalid error type. Should never happen. Code is messed up.");
+      printf("Invalid error type. Should never happen. Code is messed up. \n");
       break;
     }
   }

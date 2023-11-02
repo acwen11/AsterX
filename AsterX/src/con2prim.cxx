@@ -132,7 +132,9 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType &eos_cold,
     }
 
     if (rep_first.failed()) {
-      printf("First C2P failed, calling the back up C2P");
+      printf("First C2P failed :( \n");
+      rep_first.debug_message();
+      printf("Calling the back up C2P.. \n");
       // Calling the second C2P
       switch (c2p_sec) {
       case c2p_second_t::Noble: {
@@ -149,16 +151,13 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType &eos_cold,
     }
 
     if (rep_first.failed() && rep_second.failed()) {
-      printf("First C2P failed :(");
-      rep_first.debug_message();
-      printf("Second C2P failed too :( :(");
+      printf("Second C2P failed too :( :( \n");
       rep_second.debug_message();
       con2prim_flag(p.I) = 0;
 
       if (debug_mode) {
-        // need to fix pv to computed values like pv.rho instead of rho(p.I)
         printf(
-            "WARNING: "
+            "WARNING: \n"
             "C2P failed. Printing cons and saved prims before set to "
             "atmo: \n"
             "cctk_iteration = %i \n "
