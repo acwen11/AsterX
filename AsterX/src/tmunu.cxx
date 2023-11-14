@@ -4,11 +4,11 @@
 #include <cctk_Arguments.h>
 #include <cctk_Parameters.h>
 
+#include "utils.hxx"
 #include <algorithm>
 #include <array>
 #include <cassert>
 #include <cmath>
-#include "utils.hxx"
 
 namespace AsterX {
 using namespace std;
@@ -42,13 +42,15 @@ extern "C" void AsterX_Tmunu(CCTK_ARGUMENTS) {
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         /* Interpolating mhd quantities to vertices */
 
-        const CCTK_REAL rho_avg = calc_avg_c2v(rho, p);
-        const vec<CCTK_REAL, 3> vup_avg(
-            [&](int i) ARITH_INLINE { return calc_avg_c2v(gf_vels(i), p); });
-        const CCTK_REAL eps_avg = calc_avg_c2v(eps, p);
-        const CCTK_REAL press_avg = calc_avg_c2v(press, p);
-        const vec<CCTK_REAL, 3> Bup_avg(
-            [&](int i) ARITH_INLINE { return calc_avg_c2v(gf_Bvecs(i), p); });
+        const CCTK_REAL rho_avg = calc_avg_c2v_4th(rho, p);
+        const vec<CCTK_REAL, 3> vup_avg([&](int i) ARITH_INLINE {
+          return calc_avg_c2v_4th(gf_vels(i), p);
+        });
+        const CCTK_REAL eps_avg = calc_avg_c2v_4th(eps, p);
+        const CCTK_REAL press_avg = calc_avg_c2v_4th(press, p);
+        const vec<CCTK_REAL, 3> Bup_avg([&](int i) ARITH_INLINE {
+          return calc_avg_c2v_4th(gf_Bvecs(i), p);
+        });
 
         const smat<CCTK_REAL, 3> g_low{gxx(p.I), gxy(p.I), gxz(p.I),
                                        gyy(p.I), gyz(p.I), gzz(p.I)};
@@ -76,7 +78,8 @@ extern "C" void AsterX_Tmunu(CCTK_ARGUMENTS) {
             -alp(p.I) + calc_contraction(beta_low, vup_avg);
         const vec<CCTK_REAL, 3> ui_low = vlow_avg;
 
-        /* Computing upper components of 4-velocity (without the Lorentz factor) */
+        /* Computing upper components of 4-velocity (without the Lorentz factor)
+         */
         // utup = 1/alp(p.I); //not used
         const vec<CCTK_REAL, 3> ui_up = vup_avg - beta_up / alp(p.I);
 

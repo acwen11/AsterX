@@ -101,9 +101,11 @@ AsterSeeds::Avec_kappa = 2.0
 #AsterSeeds::B0 = 1e-7
 #AsterSeeds::r0 = 5.0
 
-AsterX::debug_mode = "yes"
+AsterX::debug_mode = "no"
 AsterX::flux_type = "HLLE"
 AsterX::vector_potential_gauge = "algebraic"
+AsterX::local_spatial_order = 4
+AsterX::local_estimate_error = "no"
 
 ReconX::reconstruction_method = "PPM"
 ReconX::ppm_zone_flattening = "yes"
@@ -128,7 +130,7 @@ EOSX::poly_k = 100
 EOSX::rho_max = 1e8
 EOSX::eps_max = 1e8
 
-Cactus::terminate = "iteration"
+Cactus::terminate = "never"
 #Cactus::cctk_itlast = 10000000
 Cactus::cctk_final_time = 3000
 ODESolvers::method = "RK4"
