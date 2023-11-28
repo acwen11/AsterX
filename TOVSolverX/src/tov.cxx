@@ -67,7 +67,7 @@ extern "C" void TOVX_C_Exact(CCTK_ARGUMENTS) {
 
   /* clear initial data */
   if (TOV_Clear_Initial_Data > 0 && !(TOV_Use_Old_Initial_Data)) {
-    grid.loop_all<1, 1, 1>(
+    grid.loop_int<1, 1, 1>(
         grid.nghostzones,
         [=] CCTK_HOST(const Loop::PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
           alp_cell(p.I) = 1.0;
@@ -93,7 +93,7 @@ extern "C" void TOVX_C_Exact(CCTK_ARGUMENTS) {
   }
 
   if (!TOV_Use_Old_Matter_Initial_Data) {
-    grid.loop_all<1, 1, 1>(grid.nghostzones,
+    grid.loop_int<1, 1, 1>(grid.nghostzones,
                            [=] CCTK_HOST(const Loop::PointDesc &p)
                                CCTK_ATTRIBUTE_ALWAYS_INLINE {
                                  rho(p.I) = 0.0;
@@ -104,17 +104,17 @@ extern "C" void TOVX_C_Exact(CCTK_ARGUMENTS) {
                                  velz(p.I) = 0.0;
                                });
 
-    grid.loop_all<1, 0, 0>(
+    grid.loop_int<1, 0, 0>(
         grid.nghostzones,
         [=] CCTK_HOST(const Loop::PointDesc &p)
             CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_x(p.I) = 0.0; });
 
-    grid.loop_all<0, 1, 0>(
+    grid.loop_int<0, 1, 0>(
         grid.nghostzones,
         [=] CCTK_HOST(const Loop::PointDesc &p)
             CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_y(p.I) = 0.0; });
 
-    grid.loop_all<0, 0, 1>(
+    grid.loop_int<0, 0, 1>(
         grid.nghostzones,
         [=] CCTK_HOST(const Loop::PointDesc &p)
             CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_z(p.I) = 0.0; });
@@ -139,7 +139,7 @@ extern "C" void TOVX_C_Exact(CCTK_ARGUMENTS) {
   auto TOV_Surface_local = TOV_Surface;
   auto TOV_R_Surface_local = TOV_R_Surface;
 
-  grid.loop_all<1, 1, 1>(
+  grid.loop_int<1, 1, 1>(
       grid.nghostzones,
       [=] CCTK_HOST(const Loop::PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         CCTK_INT star;
@@ -319,6 +319,20 @@ extern "C" void TOVX_C_Exact(CCTK_ARGUMENTS) {
         }
       });
 
+  /* free local arrays */
+  free(r_to_star);
+  free(press_point);
+  free(rho_point);
+  free(eps_point);
+  free(mu_point);
+  free(phi_point);
+  free(r_point);
+} // TOVX_C_Exact
+
+extern "C" void TOVX_C_Exact_Interpolation_C2V(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_TOVX_C_Exact_Interpolation_C2V;
+  DECLARE_CCTK_PARAMETERS;
+
   grid.loop_int<0, 0, 0>(grid.nghostzones,
                          [=] CCTK_HOST(const Loop::PointDesc &p)
                              CCTK_ATTRIBUTE_ALWAYS_INLINE {
@@ -349,15 +363,7 @@ extern "C" void TOVX_C_Exact(CCTK_ARGUMENTS) {
 
   CCTK_INFO("Done interpolation for TOV hydro initial data.");
 
-  /* free local arrays */
-  free(r_to_star);
-  free(press_point);
-  free(rho_point);
-  free(eps_point);
-  free(mu_point);
-  free(phi_point);
-  free(r_point);
-} // TOV_Exact_Hydro
+} // TOVX_C_Exact_Interpolation_C2V
 
 /*@@
    @routine    TOVX_Exact_ADM
@@ -395,7 +401,7 @@ extern "C" void TOVX_C_Exact_ADM(CCTK_ARGUMENTS) {
 
   /* clear initial data */
   if (TOV_Clear_Initial_Data > 0 && !(TOV_Use_Old_Initial_Data)) {
-    grid.loop_all<1, 1, 1>(
+    grid.loop_int<1, 1, 1>(
         grid.nghostzones,
         [=] CCTK_HOST(const Loop::PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
           alp_cell(p.I) = 1.0;
@@ -439,7 +445,7 @@ extern "C" void TOVX_C_Exact_ADM(CCTK_ARGUMENTS) {
   auto TOV_Surface_local = TOV_Surface;
   auto TOV_R_Surface_local = TOV_R_Surface;
 
-  grid.loop_all<1, 1, 1>(
+  grid.loop_int<1, 1, 1>(
       grid.nghostzones,
       [=] CCTK_HOST(const Loop::PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         CCTK_INT star;
@@ -562,6 +568,20 @@ extern "C" void TOVX_C_Exact_ADM(CCTK_ARGUMENTS) {
         }
       });
 
+  /* free local arrays */
+  free(r_to_star);
+  free(press_point);
+  free(rho_point);
+  free(eps_point);
+  free(mu_point);
+  free(phi_point);
+  free(r_point);
+} // TOV_Exact_ADM
+
+extern "C" void TOVX_C_Exact_ADM_Interpolation_C2V(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_TOVX_C_Exact_ADM_Interpolation_C2V;
+  DECLARE_CCTK_PARAMETERS;
+
   grid.loop_int<0, 0, 0>(grid.nghostzones,
                          [=] CCTK_HOST(const Loop::PointDesc &p)
                              CCTK_ATTRIBUTE_ALWAYS_INLINE {
@@ -592,15 +612,7 @@ extern "C" void TOVX_C_Exact_ADM(CCTK_ARGUMENTS) {
 
   CCTK_INFO("Done interpolation for TOV ADM variables.");
 
-  /* free local arrays */
-  free(r_to_star);
-  free(press_point);
-  free(rho_point);
-  free(eps_point);
-  free(mu_point);
-  free(phi_point);
-  free(r_point);
-} // TOV_Exact_ADM
+} // TOV_Exact_ADM_Interpolation_C2V
 
 /*@@
    @routine    TOVX_Integrate_RHS
@@ -691,17 +703,17 @@ extern "C" void TOVX_C_Integrate_RHS(CCTK_ARGUMENTS) {
       RKLOOP k1[rk] = TOV_dr[star] * source_data[rk];
       RKLOOP in_data[rk] = old_data[rk] + 0.5 * k1[rk];
       TOVX_C_Source_RHS(TOV_r_1d[i] + 0.5 * TOV_dr[star], TOV_K, TOV_Gamma,
-                       in_data, source_data);
+                        in_data, source_data);
 
       RKLOOP k2[rk] = TOV_dr[star] * source_data[rk];
       RKLOOP in_data[rk] = old_data[rk] + 0.5 * k2[rk];
       TOVX_C_Source_RHS(TOV_r_1d[i] + 0.5 * TOV_dr[star], TOV_K, TOV_Gamma,
-                       in_data, source_data);
+                        in_data, source_data);
 
       RKLOOP k3[rk] = TOV_dr[star] * source_data[rk];
       RKLOOP in_data[rk] = old_data[rk] + k3[rk];
       TOVX_C_Source_RHS(TOV_r_1d[i] + TOV_dr[star], TOV_K, TOV_Gamma, in_data,
-                       source_data);
+                        source_data);
       RKLOOP k4[rk] = TOV_dr[star] * source_data[rk];
       RKLOOP new_data[rk] =
           old_data[rk] + (k1[rk] + k4[rk] + 2.0 * (k2[rk] + k3[rk])) / 6.0;

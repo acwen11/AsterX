@@ -17,10 +17,9 @@ void TOVX_Copy(CCTK_INT size, CCTK_REAL *var_p, CCTK_REAL *var) {
 }
 
 template <typename T>
-CCTK_DEVICE CCTK_HOST T calc_avg_c2v(const GF3D2<T> &gf,
-                                     const PointDesc &p) {
-//  constexpr auto DI = PointDesc::DI;
-  T gf_avg = 0.0;
+CCTK_DEVICE CCTK_HOST T calc_avg_c2v(const GF3D2<T> &gf, const PointDesc &p) {
+  //  constexpr auto DI = PointDesc::DI;
+  CCTK_REAL gf_avg = 0.0;
   for (int dk = 0; dk < 2; ++dk) {
     for (int dj = 0; dj < 2; ++dj) {
       for (int di = 0; di < 2; ++di) {
