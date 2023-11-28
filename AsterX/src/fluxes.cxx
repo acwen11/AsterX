@@ -437,7 +437,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
 
     // Update correction grid functions:
 
-    if ( (correction_order != 2) || (correction_order != 4) || (correction_order != 6))
+    if ( (correction_order != 2) && (correction_order != 4) && (correction_order != 6))
     { 
        printf("Incorrect correction order for the fluxes! \n");
        assert(0);
