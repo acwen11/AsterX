@@ -46,6 +46,27 @@ CCTK_REAL flux_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
   fzBx fzBy fzBz
 } "Fluxes in z direction"
 
+CCTK_REAL flux_x_HO TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'
+{
+  fxdens_HO
+  fxmomx_HO fxmomy_HO fxmomz_HO
+  fxtau_HO
+} "Higher order flux corrections in x direction"
+
+CCTK_REAL flux_y_HO TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"'
+{
+  fydens_HO
+  fymomx_HO fymomy_HO fymomz_HO
+  fytau_HO
+} "Higher order flux corrections in y direction"
+
+CCTK_REAL flux_z_HO TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
+{
+  fzdens_HO
+  fzmomx_HO fzmomy_HO fzmomz_HO
+  fztau_HO
+} "Higher order flux corrections in z direction"
+
 CCTK_REAL densrhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved rest mass density RHS"
 
 CCTK_REAL momrhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'

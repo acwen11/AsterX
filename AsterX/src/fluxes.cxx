@@ -43,6 +43,12 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
   const vec<GF3D2<CCTK_REAL>, dim> fluxBxs{fxBx, fyBx, fzBx};
   const vec<GF3D2<CCTK_REAL>, dim> fluxBys{fxBy, fyBy, fzBy};
   const vec<GF3D2<CCTK_REAL>, dim> fluxBzs{fxBz, fyBz, fzBz};
+  
+  const vec<GF3D2<CCTK_REAL>, dim> fluxdenss_HO{fxdens_HO, fydens_HO, fzdens_HO};
+  const vec<GF3D2<CCTK_REAL>, dim> fluxmomxs_HO{fxmomx_HO, fymomx_HO, fzmomx_HO};
+  const vec<GF3D2<CCTK_REAL>, dim> fluxmomys_HO{fxmomy_HO, fymomy_HO, fzmomy_HO};
+  const vec<GF3D2<CCTK_REAL>, dim> fluxmomzs_HO{fxmomz_HO, fymomz_HO, fzmomz_HO};
+  const vec<GF3D2<CCTK_REAL>, dim> fluxtaus_HO{fxtau_HO, fytau_HO, fztau_HO};
   /* grid functions */
   const vec<GF3D2<const CCTK_REAL>, dim> gf_vels{velx, vely, velz};
   const vec<GF3D2<const CCTK_REAL>, dim> gf_Bvecs{Bvecx, Bvecy, Bvecz};
@@ -428,6 +434,36 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
       printf("  vtilde_rc = %16.8e, %16.8e.\n", vtilde_rc(0), vtilde_rc(1));
       assert(0);
     }
+
+    // Update correction grid functions:
+
+    if ( (correction_order != 2) || (correction_order != 4) || (correction_order != 6))
+    { 
+       printf("Incorrect correction order for the fluxes! \n");
+       assert(0);
+    }
+
+    fluxdenss_HO(dir)(p.I) = higher_order_correction(fluxdenss(dir), p, dir, correction_order);
+    fluxmomxs_HO(dir)(p.I) = higher_order_correction(fluxmomxs(dir), p, dir, correction_order);
+    fluxmomys_HO(dir)(p.I) = higher_order_correction(fluxmomys(dir), p, dir, correction_order);
+    fluxmomzs_HO(dir)(p.I) = higher_order_correction(fluxmomzs(dir), p, dir, correction_order);
+    fluxtaus_HO(dir)(p.I) = higher_order_correction(fluxtaus(dir), p, dir, correction_order);
+    
+  });
+
+  grid.loop_int_device<
+      face_centred[0], face_centred[1],
+      face_centred
+          [2]>(grid.nghostzones, [=] CCTK_DEVICE(
+                                     const PointDesc
+                                         &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {  
+
+    fluxdenss(dir)(p.I) += fluxdenss_HO(dir)(p.I);
+    fluxmomxs(dir)(p.I) += fluxmomxs_HO(dir)(p.I);
+    fluxmomys(dir)(p.I) += fluxmomys_HO(dir)(p.I);
+    fluxmomzs(dir)(p.I) += fluxmomzs_HO(dir)(p.I);
+    fluxtaus(dir)(p.I) += fluxtaus_HO(dir)(p.I);    
+   
   });
 }
 
