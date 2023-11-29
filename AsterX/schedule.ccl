@@ -156,11 +156,20 @@ SCHEDULE AsterX_Fluxes IN ODESolvers_RHS
   READS: HydroBaseX::Bvec(everywhere)
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere) Psi(everywhere)
   WRITES: flux_x(interior) flux_y(interior) flux_z(interior)
-  WRITES: flux_x_HO(interior) flux_y_HO(interior) flux_z_HO(interior)
   WRITES: Aux_in_RHSof_A_Psi(interior)
   SYNC: Aux_in_RHSof_A_Psi
   SYNC: flux_x flux_y flux_z
 } "Calculate the hydro fluxes"
+
+SCHEDULE AsterX_Flux_Corrections IN ODESolvers_RHS AFTER AsterX_Fluxes
+{
+  LANG: C
+  READS: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
+  WRITES: flux_x_HO(interior) flux_y_HO(interior) flux_z_HO(interior)
+  WRITES: flux_x(interior) flux_y(interior) flux_z(interior)
+  SYNC: flux_x flux_y flux_z
+  SYNC: flux_x_HO flux_y_HO flux_z_HO
+} "Computes the higher order corrections to fluxes and updates them"
 
 SCHEDULE AsterX_SourceTerms IN ODESolvers_RHS AFTER AsterX_Fluxes 
 {
