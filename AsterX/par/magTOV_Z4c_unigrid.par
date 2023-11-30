@@ -76,7 +76,7 @@ Z4c::calc_constraints = yes
 Z4c::chi_floor = 1.0e-6
 Z4c::alphaG_floor = 1.0e-8
 Z4c::epsdiss = 0.32
-#Z4c::boundary_conditions = "radiative"
+Z4c::boundary_conditions = "NewRadX"
 
 ActiveThorns = "TOVSolverX"
 TOVSolverX::TOV_Rho_Central[0] = 1.28e-3
