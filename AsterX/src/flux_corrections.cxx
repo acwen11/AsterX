@@ -71,11 +71,11 @@ template <int dir> void CalcFluxCorrections(CCTK_ARGUMENTS) {
                                      const PointDesc
                                          &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
 
-    fluxdenss(dir)(p.I) += fluxdenss_HO(dir)(p.I);
-    fluxmomxs(dir)(p.I) += fluxmomxs_HO(dir)(p.I);
-    fluxmomys(dir)(p.I) += fluxmomys_HO(dir)(p.I);
-    fluxmomzs(dir)(p.I) += fluxmomzs_HO(dir)(p.I);
-    fluxtaus(dir)(p.I) += fluxtaus_HO(dir)(p.I);
+    fluxdenss(dir)(p.I) = fluxdenss_HO(dir)(p.I);
+    fluxmomxs(dir)(p.I) = fluxmomxs_HO(dir)(p.I);
+    fluxmomys(dir)(p.I) = fluxmomys_HO(dir)(p.I);
+    fluxmomzs(dir)(p.I) = fluxmomzs_HO(dir)(p.I);
+    fluxtaus(dir)(p.I) = fluxtaus_HO(dir)(p.I);
 
   });
 

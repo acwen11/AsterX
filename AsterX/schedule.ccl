@@ -168,10 +168,9 @@ SCHEDULE AsterX_Flux_Corrections IN ODESolvers_RHS AFTER AsterX_Fluxes
   WRITES: flux_x_HO(interior) flux_y_HO(interior) flux_z_HO(interior)
   WRITES: flux_x(interior) flux_y(interior) flux_z(interior)
   SYNC: flux_x flux_y flux_z
-  SYNC: flux_x_HO flux_y_HO flux_z_HO
 } "Computes the higher order corrections to fluxes and updates them"
 
-SCHEDULE AsterX_SourceTerms IN ODESolvers_RHS AFTER AsterX_Fluxes 
+SCHEDULE AsterX_SourceTerms IN ODESolvers_RHS AFTER AsterX_Flux_Corrections 
 {
   LANG: C
   READS: ADMBaseX::metric(everywhere)
