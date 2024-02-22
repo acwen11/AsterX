@@ -2,7 +2,7 @@
 #include <cctk_Arguments.h>
 
 #include "../test.hxx"
-#include "../reconstruct.hxx"
+#include "reconstruct.hxx"
 
 #include <random>
 

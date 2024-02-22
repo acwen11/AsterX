@@ -229,6 +229,7 @@ Numerical/AEILocalInterp
 CarpetX/ADMBaseX
 CarpetX/Algo
 CarpetX/Arith
+CarpetX/BoxInBox
 CarpetX/CarpetX
 CarpetX/CoordinatesX
 CarpetX/Derivs
@@ -258,6 +259,7 @@ CarpetX/WaveToyX
 #DISABLED SpacetimeX/BaikalX
 #DISABLED SpacetimeX/BrillLindquist
 SpacetimeX/Cowling
+SpacetimeX/NewRadX
 SpacetimeX/Punctures
 SpacetimeX/StaticTrumpet
 SpacetimeX/TwoPuncturesX

@@ -85,7 +85,6 @@ schedule TOVX_C_Exact IN HydroBaseX_InitialData
   WRITES: HydroBaseX::vel(interior)
   WRITES: HydroBaseX::eps(interior)
   WRITES: HydroBaseX::press(interior)
-  WRITES: AsterX::Avec_x(interior) AsterX::Avec_y(interior) AsterX::Avec_z(interior)
 
   WRITES: metric_cell(interior)
   WRITES: lapse_cell(interior)
@@ -95,7 +94,6 @@ schedule TOVX_C_Exact IN HydroBaseX_InitialData
   WRITES: dtshift_cell(interior)
 
   SYNC: HydroBaseX::rho HydroBaseX::vel HydroBaseX::eps HydroBaseX::press
-  SYNC: AsterX::Avec_x AsterX::Avec_y AsterX::Avec_z
   SYNC: metric_cell lapse_cell shift_cell curv_cell
   SYNC: dtlapse_cell dtshift_cell
 } "Set values for all variables of TOV"

@@ -5,4 +5,5 @@ SRCS = contraction_smat_upvec.cxx    \
        contraction_upvec_downvec.cxx \
        cross_product.cxx             \
        minmod.cxx                    \
+       mp5.cxx                       \
        wlorentz.cxx

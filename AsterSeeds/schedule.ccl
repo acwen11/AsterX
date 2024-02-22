@@ -1,5 +1,17 @@
 #Schedule definitions for thorn AsterSeeds
 
+#Initial conditions for setting atmosphere test
+
+if (CCTK_Equals(test_type, "Atmosphere")) {
+
+  SCHEDULE Atmosphere_Initialize IN HydroBaseX_InitialData AFTER HydroBaseX_initial_data {
+  LANG: C
+  WRITES: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere)
+  WRITES: AsterX::Avec_x(everywhere) AsterX::Avec_y(everywhere) AsterX::Avec_z(everywhere)
+  }
+  "Set up initial conditions for atmosphere"
+}
+
 #Initial conditions for 1D tests
 
 if (CCTK_Equals(test_type, "1DTest")) {

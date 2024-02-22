@@ -4,7 +4,8 @@ KEYWORD test_type "Type of test to set up" STEERABLE=never
 {
   "1DTest" :: ""
   "2DTest" :: ""
-  "3DTest" :: ""  
+  "3DTest" :: "" 
+  "Atmosphere" :: "Atmosphere" 
 } "1DTest"
 
 KEYWORD test_case "Name of the testcase" STEERABLE=never
@@ -27,6 +28,13 @@ KEYWORD test_case "Name of the testcase" STEERABLE=never
 } "Balsara1"
 
 private:
+
+# parameters for atmosphere
+
+REAL rho_atmosphere "floor density in the atmosphere"
+{
+  0.0:*   :: "Positive"
+} 1e-5
 
 # parameters for 1D tests
 
@@ -121,6 +129,8 @@ REAL dipole_z "z-coordinate of the dipole center" STEERABLE=ALWAYS
 } 0.0
 
 SHARES: EOSX
+USES CCTK_REAL poly_gamma
+USES CCTK_REAL poly_k
 USES CCTK_REAL gl_gamma
 USES CCTK_REAL eps_min
 USES CCTK_REAL eps_max
