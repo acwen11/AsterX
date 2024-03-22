@@ -15,7 +15,7 @@ using namespace std;
 using namespace Loop;
 using namespace Arith;
 
-extern "C" void AsterX_Tmunu(CCTK_ARGUMENTS) {
+template <int interp_order> void Tmunu(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_Tmunu;
   DECLARE_CCTK_PARAMETERS;
 
@@ -42,14 +42,14 @@ extern "C" void AsterX_Tmunu(CCTK_ARGUMENTS) {
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         /* Interpolating mhd quantities to vertices */
 
-        const CCTK_REAL rho_avg = calc_avg_c2v_4th(rho, p);
+        const CCTK_REAL rho_avg = calc_avg_c2v<interp_order>(rho, p);
         const vec<CCTK_REAL, 3> vup_avg([&](int i) ARITH_INLINE {
-          return calc_avg_c2v_4th(gf_vels(i), p);
+          return calc_avg_c2v<interp_order>(gf_vels(i), p);
         });
-        const CCTK_REAL eps_avg = calc_avg_c2v_4th(eps, p);
-        const CCTK_REAL press_avg = calc_avg_c2v_4th(press, p);
+        const CCTK_REAL eps_avg = calc_avg_c2v<interp_order>(eps, p);
+        const CCTK_REAL press_avg = calc_avg_c2v<interp_order>(press, p);
         const vec<CCTK_REAL, 3> Bup_avg([&](int i) ARITH_INLINE {
-          return calc_avg_c2v_4th(gf_Bvecs(i), p);
+          return calc_avg_c2v<interp_order>(gf_Bvecs(i), p);
         });
 
         const smat<CCTK_REAL, 3> g_low{gxx(p.I), gxy(p.I), gxz(p.I),
@@ -131,6 +131,22 @@ extern "C" void AsterX_Tmunu(CCTK_ARGUMENTS) {
         eTyz(p.I) = eTyz(p.I) + t(1, 2);
         eTzz(p.I) = eTzz(p.I) + t(2, 2);
       }); // end of loop over grid
+}
+
+extern "C" void AsterX_Tmunu(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_Tmunu;
+  DECLARE_CCTK_PARAMETERS;
+
+  switch (tmunu_interp_order) {
+  case 2:
+    Tmunu<2>(cctkGH);
+    break;
+  case 4:
+    Tmunu<4>(cctkGH);
+    break;
+  default:
+    CCTK_VERROR("intep_tmunu_order must be set to 2 or 4.");
+  }
 }
 
 } // namespace AsterX

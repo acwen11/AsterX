@@ -66,6 +66,7 @@ AsterSeeds::shock_dir = "z"
 
 AsterX::debug_mode = "yes"
 AsterX::flux_type = "HLLE"
+AsterX::update_tmunu = "no"
 
 ReconX::reconstruction_method = "wenoz"
 

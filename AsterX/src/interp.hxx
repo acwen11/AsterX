@@ -94,9 +94,10 @@ calc_avg_c2e(const GF3D2<const T> &gf, const PointDesc &p, const int dir) {
   return gf_avg / 4.0;
 }
 
-template <typename T>
-CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
-calc_avg_c2v(const GF3D2<const T> &gf, const PointDesc &p) {
+template <int interp_order, typename T>
+CCTK_DEVICE CCTK_HOST
+    CCTK_ATTRIBUTE_ALWAYS_INLINE inline std::enable_if_t<interp_order == 2, T>
+    calc_avg_c2v(const GF3D2<const T> &gf, const PointDesc &p) {
   T gf_avg = 0.0;
 
   for (int dk = 0; dk < 2; ++dk) {
@@ -109,9 +110,10 @@ calc_avg_c2v(const GF3D2<const T> &gf, const PointDesc &p) {
   return gf_avg / 8.0;
 }
 
-template <typename T>
-CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
-calc_avg_c2v_4th(const GF3D2<const T> &gf, const PointDesc &p) {
+template <int interp_order, typename T>
+CCTK_DEVICE CCTK_HOST
+    CCTK_ATTRIBUTE_ALWAYS_INLINE inline std::enable_if_t<interp_order == 4, T>
+    calc_avg_c2v(const GF3D2<const T> &gf, const PointDesc &p) {
   T gf_avg = 0.0;
   const vect<T, 4> wt = {-1.0 / 16.0, 9.0 / 16.0, 9.0 / 16.0, -1.0 / 16.0};
   for (int i = 0; i < dim; i++) {

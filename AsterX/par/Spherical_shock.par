@@ -87,6 +87,7 @@ AsterSeeds::shock_radius = 0.1
 # -------------------- AsterX --------------------------------------------------
 AsterX::debug_mode = "yes"
 AsterX::flux_type = "HLLE"
+AsterX::update_tmunu = "no"
 
 ReconX::reconstruction_method = "PPM"
 

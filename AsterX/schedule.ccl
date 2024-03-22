@@ -197,16 +197,18 @@ SCHEDULE AsterX_RHS IN ODESolvers_RHS AFTER AsterX_SourceTerms
   SYNC: Avec_x_rhs Avec_y_rhs Avec_z_rhs Psi_rhs
 } "Update the RHS of the hydro equations with the flux contributions"
 
-SCHEDULE AsterX_Tmunu IN TmunuBaseX_AddToTmunu
-{
-  LANG: C
-  READS: ADMBaseX::metric(everywhere) ADMBaseX::lapse(everywhere) ADMBaseX::shift(everywhere)
-  READS: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::press(everywhere) HydroBaseX::eps(everywhere)
-  READS: HydroBaseX::Bvec(everywhere)
-  READS: TmunuBaseX::eTtt(interior) TmunuBaseX::eTti(interior) TmunuBaseX::eTij(interior)
-  WRITES: TmunuBaseX::eTtt(interior) TmunuBaseX::eTti(interior) TmunuBaseX::eTij(interior)
-  SYNC: TmunuBaseX::eTtt TmunuBaseX::eTti TmunuBaseX::eTij
-} "Compute the energy-momentum tensor"
+if(update_tmunu){
+  SCHEDULE AsterX_Tmunu IN TmunuBaseX_AddToTmunu
+  {
+    LANG: C
+    READS: ADMBaseX::metric(everywhere) ADMBaseX::lapse(everywhere) ADMBaseX::shift(everywhere)
+    READS: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::press(everywhere) HydroBaseX::eps(everywhere)
+    READS: HydroBaseX::Bvec(everywhere)
+    READS: TmunuBaseX::eTtt(interior) TmunuBaseX::eTti(interior) TmunuBaseX::eTij(interior)
+    WRITES: TmunuBaseX::eTtt(interior) TmunuBaseX::eTti(interior) TmunuBaseX::eTij(interior)
+    SYNC: TmunuBaseX::eTtt TmunuBaseX::eTti TmunuBaseX::eTij
+  } "Compute the energy-momentum tensor"
+}
 
 SCHEDULE AsterX_Sync IN ODESolvers_PostStep
 {

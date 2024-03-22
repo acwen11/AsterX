@@ -94,6 +94,7 @@ AsterX::debug_mode = "no"
 AsterX::flux_type = "HLLE"
 AsterX::vector_potential_gauge = "algebraic"
 AsterX::local_spatial_order = 4
+AsterX::update_tmunu = "no"
 
 ReconX::reconstruction_method = "PPM"
 ReconX::ppm_zone_flattening = "yes"

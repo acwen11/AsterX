@@ -71,6 +71,16 @@ CCTK_INT correction_order "Order of accuracy to check if higher order correction
   6 :: "Sixth order accurate"
 } 2
 
+CCTK_INT tmunu_interp_order "Order of interpolation used when constructing tmunu" STEERABLE=always
+{
+  2 :: "Second order interpolation"
+  4 :: "Fourth order interpolation"
+} 4
+
+BOOLEAN update_tmunu "Updates tmunu gridfunctions if set to yes" STEERABLE=always
+{ 
+} yes
+
 SHARES: EOSX
 USES KEYWORD evolution_eos
 USES CCTK_REAL poly_gamma

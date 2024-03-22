@@ -94,6 +94,7 @@ AsterSeeds::mag_loop_adv_axial_vel = "non-zero"
 # -------------------- AsterX --------------------------------------------------
 AsterX::debug_mode = "yes"
 AsterX::flux_type = "HLLE"
+AsterX::update_tmunu = "no"
 
 ReconX::reconstruction_method = "PPM"
 

@@ -86,6 +86,7 @@ AsterSeeds::test_case = "magnetic rotor"
 # -------------------- AsterX --------------------------------------------------
 AsterX::debug_mode = "yes"
 AsterX::flux_type = "HLLE"
+AsterX::update_tmunu = "no"
 
 ReconX::reconstruction_method = "PPM"
 
