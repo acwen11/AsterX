@@ -145,5 +145,5 @@ USES CCTK_BOOLEAN ppm_zone_flattening
 USES CCTK_REAL weno_eps
 USES CCTK_REAL mp5_alpha
 
-SHARES: CarpetX
+SHARES: Driver
 USES BOOLEAN use_subcycling_wip
