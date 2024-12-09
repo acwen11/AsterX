@@ -14,7 +14,7 @@ USES INCLUDE HEADER: aster_fd.hxx aster_interp.hxx aster_utils.hxx
 
 PUBLIC:
 
-CCTK_REAL dens TYPE=gf CENTERING={ccc} TAGS='rhs="densrhs" dependents="HydroBaseX::rho TmunuBaseX::eTtt AsterX::flux_x AsterX::flux_y AsterX::flux_z"' "Conserved rest mass density"
+CCTK_REAL dens TYPE=gf CENTERING={ccc} TAGS='rhs="densrhs" dependents="HydroBaseX::rho TmunuBaseX::eTtt"' "Conserved rest mass density"
 
 CCTK_REAL mom TYPE=gf CENTERING={ccc} TAGS='rhs="momrhs" dependents="HydroBaseX::vel TmunuBaseX::eTti"'
 {
@@ -33,7 +33,7 @@ CCTK_REAL tau TYPE=gf CENTERING={ccc} TAGS='rhs="taurhs" dependents="HydroBaseX:
 # refer to "physical" and "evolved" entropy, respectively. In this 
 # evolution thorn we always refer to DEnt and entropy to describe 
 # the "evolved" quantities. 
-CCTK_REAL DEnt TYPE=gf CENTERING={ccc} TAGS='rhs="DEntrhs" dependents="HydroBaseX::entropy AsterX::flux_x AsterX::flux_y AsterX::flux_z"' "Advected entropy density"
+CCTK_REAL DEnt TYPE=gf CENTERING={ccc} TAGS='rhs="DEntrhs" dependents="HydroBaseX::entropy"' "Advected entropy density"
 
 CCTK_REAL flux_x TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'
 {
