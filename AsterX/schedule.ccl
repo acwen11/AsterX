@@ -194,7 +194,7 @@ SCHEDULE AsterX_SourceTerms IN AsterX_RHSGroup AFTER AsterX_Fluxes
   READS: svec_x(everywhere), svec_y(everywhere), svec_z(everywhere)
   READS: HydroBaseX::Bvec(everywhere)
   WRITES: densrhs(interior) taurhs(interior) momrhs(interior) DEntrhs(interior)
-  SYNC: densrhs taurhs momrhs DEntrhs
+  #SYNC: densrhs taurhs momrhs DEntrhs
 } "Calculate the source terms and compute the RHS of the hydro equations"
 
 SCHEDULE AsterX_RHS IN AsterX_RHSGroup AFTER AsterX_SourceTerms
@@ -203,7 +203,7 @@ SCHEDULE AsterX_RHS IN AsterX_RHSGroup AFTER AsterX_SourceTerms
   READS: ADMBaseX::metric(everywhere) ADMBaseX::lapse(everywhere) ADMBaseX::shift(everywhere)
   READS: HydroBaseX::vel(everywhere) HydroBaseX::press(everywhere)
   READS: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
-  READS: densrhs(everywhere) taurhs(everywhere) momrhs(everywhere) DEntrhs(everywhere)
+  READS: densrhs(interior) taurhs(interior) momrhs(interior) DEntrhs(interior)
   READS: Psi(everywhere)
   READS: Aux_in_RHSof_A_Psi(everywhere)
   READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
@@ -211,8 +211,8 @@ SCHEDULE AsterX_RHS IN AsterX_RHSGroup AFTER AsterX_SourceTerms
   READS: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
   WRITES: densrhs(interior) taurhs(interior) momrhs(interior) DEntrhs(interior)
   WRITES: Avec_x_rhs(interior) Avec_y_rhs(interior) Avec_z_rhs(interior) Psi_rhs(interior)
-  SYNC: densrhs taurhs momrhs DEntrhs
-  SYNC: Avec_x_rhs Avec_y_rhs Avec_z_rhs Psi_rhs
+  #SYNC: densrhs taurhs momrhs DEntrhs
+  #SYNC: Avec_x_rhs Avec_y_rhs Avec_z_rhs Psi_rhs
 } "Update the RHS of the hydro equations with the flux contributions"
 
 
