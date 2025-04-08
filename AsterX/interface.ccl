@@ -44,6 +44,14 @@ CCTK_REAL flux_x TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'
   fxBx fxBy fxBz
 } "Fluxes in x direction"
 
+CCTK_REAL fluxLO_x TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'
+{
+  fLOxdens
+  fLOxmomx fLOxmomy fLOxmomz
+  fLOxtau
+  fLOxDEnt
+} "Low order fluxes in x direction for PP limiter"
+
 CCTK_REAL flux_y TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"'
 {
   fydens
@@ -53,6 +61,14 @@ CCTK_REAL flux_y TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"'
   fyBx fyBy fyBz
 } "Fluxes in y direction"
 
+CCTK_REAL fluxLO_y TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"'
+{
+  fLOydens
+  fLOymomx fLOymomy fLOymomz
+  fLOytau
+  fLOyDEnt
+} "Low order fluxes in x direction for PP limiter"
+
 CCTK_REAL flux_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
 {
   fzdens
@@ -61,6 +77,19 @@ CCTK_REAL flux_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
   fzDEnt
   fzBx fzBy fzBz
 } "Fluxes in z direction"
+
+CCTK_REAL fluxLO_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
+{
+  fLOzdens
+  fLOzmomx fLOzmomy fLOzmomz
+  fLOztau
+  fLOzDEnt
+} "Low order fluxes in x direction for PP limiter"
+
+CCTK_REAL thetas TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
+{
+	theta_x, theta_y, theta_z
+}
 
 CCTK_REAL densrhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved rest mass density RHS"
 

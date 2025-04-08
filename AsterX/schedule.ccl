@@ -2,6 +2,7 @@
 
 STORAGE: dens mom tau DEnt dB Psi HydroBaseX::Bvec dBx_stag dBy_stag dBz_stag
 STORAGE: flux_x flux_y flux_z
+STORAGE: fluxLO_x fluxLO_y fluxLO_z thetas
 STORAGE: densrhs momrhs taurhs DEntrhs Avec_x_rhs Avec_y_rhs Avec_z_rhs Psi_rhs
 STORAGE: ADMBaseX::metric ADMBaseX::lapse ADMBaseX::shift ADMBaseX::curv
 STORAGE: Aux_in_RHSof_A_Psi
@@ -181,6 +182,8 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   READS: svec_x(everywhere) svec_y(everywhere) svec_z(everywhere)
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere) Psi(everywhere)
   WRITES: flux_x(interior) flux_y(interior) flux_z(interior)
+  WRITES: fluxLO_x(interior) fluxLO_y(interior) fluxLO_z(interior)
+  WRITES: thetas(interior)
   WRITES: Aux_in_RHSof_A_Psi(interior)
   WRITES: vtilde_xface(interior) vtilde_yface(interior) vtilde_zface(interior)
   WRITES: a_xface(interior) a_yface(interior) a_zface(interior)

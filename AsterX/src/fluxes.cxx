@@ -52,6 +52,14 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
   const vec<GF3D2<CCTK_REAL>, dim> fluxBxs{fxBx, fyBx, fzBx};
   const vec<GF3D2<CCTK_REAL>, dim> fluxBys{fxBy, fyBy, fzBy};
   const vec<GF3D2<CCTK_REAL>, dim> fluxBzs{fxBz, fyBz, fzBz};
+  /* grid functions for PP flux limiter */
+	const vec<GF3D2<CCTK_REAL>, dim> thetagf{theta_x, theta_y, theta_z};
+	const vec<GF3D2<CCTK_REAL>, dim> fluxLOdenss{fLOxdens, fLOydens, fLOzdens};
+	const vec<GF3D2<CCTK_REAL>, dim> fluxLODEnts{fLOxDEnt, fLOyDEnt, fLOzDEnt};
+	const vec<GF3D2<CCTK_REAL>, dim> fluxLOmomxs{fLOxmomx, fLOymomx, fLOzmomx};
+	const vec<GF3D2<CCTK_REAL>, dim> fluxLOmomys{fLOxmomy, fLOymomy, fLOzmomy};
+	const vec<GF3D2<CCTK_REAL>, dim> fluxLOmomzs{fLOxmomz, fLOymomz, fLOzmomz};
+	const vec<GF3D2<CCTK_REAL>, dim> fluxLOtaus{fLOxtau, fLOytau, fLOztau};
   /* grid functions */
   const vec<GF3D2<const CCTK_REAL>, dim> gf_vels{velx, vely, velz};
   const vec<GF3D2<const CCTK_REAL>, dim> gf_zvec{zvec_x, zvec_y, zvec_z};
@@ -488,6 +496,69 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
         (dir != 1) * calcflux(lambda, Btildes_rc(1), flux_Btildes(1));
     fluxBzs(dir)(p.I) =
         (dir != 2) * calcflux(lambda, Btildes_rc(2), flux_Btildes(2));
+
+		/* Limit Fluxes */
+		if (use_pplim && !CCTK_EQUALS(flux_type, "LxF")) {
+			const auto Ip = p.I;
+			const auto Im = p.I - p.DI[dir];
+
+			// Get 2 * \alpha * CFL with \alpha = 3
+			const CCTK_REAL a2cfl = 6 * cctk_delta_time / p.DX[dir];
+			
+			// Calc LO flux, currently only LLF
+			fluxLOdenss(dir)(Ip) = laxf(lambda, dens_rc, flux_dens);
+			fluxLODEnts(dir)(Ip) = laxf(lambda, DEnt_rc, flux_DEnt);
+			fluxLOmomxs(dir)(Ip) = laxf(lambda, moms_rc(0), flux_moms(0));
+			fluxLOmomys(dir)(Ip) = laxf(lambda, moms_rc(1), flux_moms(1));
+			fluxLOmomzs(dir)(Ip) = laxf(lambda, moms_rc(2), flux_moms(2));
+			fluxLOtaus(dir)(Ip) = laxf(lambda, tau_rc, flux_tau);
+			
+			// Calc dens floor TODO: is this the best way to do this?
+			const smat<CCTK_REAL, 3> gcc{gxx(Ip), gxy(Ip), gxz(Ip),
+																 gyy(Ip), gyz(Ip), gzz(Ip)};
+			vec<CCTK_REAL, 3> velcc = {velx(Ip), vely(Ip), velz(Ip)};
+			vec<CCTK_REAL, 3> vlowcc = calc_contraction(gcc, velcc);
+      const CCTK_REAL ccsqrtg = sqrt(calc_det(gcc));
+			const CCTK_REAL w_lorentz = 1 / sqrt(1 - calc_contraction(vlowcc, velcc));
+
+			const smat<CCTK_REAL, 3> gccm{gxx(Im), gxy(Im), gxz(Im),
+																 gyy(Im), gyz(Im), gzz(Im)};
+			vec<CCTK_REAL, 3> velccm = {velx(Im), vely(Im), velz(Im)};
+			vec<CCTK_REAL, 3> vlowccm = calc_contraction(gccm, velccm);
+      const CCTK_REAL ccsqrtgm = sqrt(calc_det(gccm));
+			const CCTK_REAL w_lorentzm = 1 / sqrt(1 - calc_contraction(vlowccm, velccm));
+
+			const CCTK_REAL densmin_p = ccsqrtg * w_lorentz * rho_abs_min; //TODO: is this the right floor?
+			const CCTK_REAL densmin_m = ccsqrtgm * w_lorentzm * rho_abs_min;
+
+			// Calc theta
+			const CCTK_REAL newdens_p = dens(Ip) + a2cfl * fluxdenss(dir)(Ip);
+			const CCTK_REAL newdens_m = dens(Im) - a2cfl * fluxdenss(dir)(Ip);
+
+			const CCTK_REAL newdensLO_p = dens(Ip) + a2cfl * fluxLOdenss(dir)(Ip);
+			const CCTK_REAL newdensLO_m = dens(Im) - a2cfl * fluxLOdenss(dir)(Ip);
+
+			CCTK_REAL theta = 1.0;
+			CCTK_REAL theta_m = 1.0;
+			CCTK_REAL theta_p = 1.0;
+
+			if(newdens_p < densmin_p)
+				theta_p = std::min(theta, std::max(0.0, (densmin_p - newdensLO_p) / (a2cfl*(fluxdenss(dir)(p.I) - fluxLOdenss(dir)(p.I)))));
+
+			if(newdens_m < densmin_m)
+				theta_m = std::min(theta, std::max(0.0, -(densmin_m - newdensLO_m) / (a2cfl*(fluxdenss(dir)(p.I) - fluxLOdenss(dir)(p.I)))));
+
+			theta = std::min(theta_m,theta_p);
+			
+			// Update flux GF
+			fluxdenss(dir)(p.I) = (1 - theta) * fluxLOdenss(dir)(p.I) + theta * fluxdenss(dir)(p.I);
+			fluxDEnts(dir)(p.I) = (1 - theta) * fluxLODEnts(dir)(p.I) + theta * fluxDEnts(dir)(p.I);
+			fluxmomxs(dir)(p.I) = (1 - theta) * fluxLOmomxs(dir)(p.I) + theta * fluxmomxs(dir)(p.I);
+			fluxmomys(dir)(p.I) = (1 - theta) * fluxLOmomys(dir)(p.I) + theta * fluxmomys(dir)(p.I);
+			fluxmomzs(dir)(p.I) = (1 - theta) * fluxLOmomzs(dir)(p.I) + theta * fluxmomzs(dir)(p.I);
+			fluxtaus(dir)(p.I) = (1 - theta) * fluxLOtaus(dir)(p.I) + theta * fluxtaus(dir)(p.I);
+			thetagf(dir)(p.I) = theta;
+		}
 
     if (isnan(dens_rc(0)) || isnan(dens_rc(1)) || isnan(moms_rc(0)(0)) ||
         isnan(moms_rc(0)(1)) || isnan(moms_rc(1)(0)) || isnan(moms_rc(1)(1)) ||

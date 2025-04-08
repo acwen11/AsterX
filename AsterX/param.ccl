@@ -25,6 +25,10 @@ KEYWORD flux_type "Flux solver" STEERABLE=always
   "HLLE" :: ""
 } "LxF"
 
+BOOLEAN use_pplim "Use positivity-preserving limiter?" STEERABLE=always
+{
+} "no"
+
 KEYWORD recon_type "Vector field used in reconstruction" STEERABLE=always
 {
   "v_vec" :: "Eulerian 3-velocity"
