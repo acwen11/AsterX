@@ -35,6 +35,9 @@ CCTK_REAL tau TYPE=gf CENTERING={ccc} TAGS='rhs="taurhs" dependents="HydroBaseX:
 # the "evolved" quantities. 
 CCTK_REAL DEnt TYPE=gf CENTERING={ccc} TAGS='rhs="DEntrhs" dependents="HydroBaseX::entropy AsterX::flux_x AsterX::flux_y AsterX::flux_z"' "Advected entropy density"
 
+CCTK_REAL volform TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "sqrt(detg)"
+CCTK_REAL w_lorentz TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Fluid Lorentz factor"
+
 CCTK_REAL flux_x TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'
 {
   fxdens
@@ -90,6 +93,8 @@ CCTK_REAL thetas TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
 {
 	theta_x, theta_y, theta_z
 }
+
+CCTK_REAL r_ent TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Entropy residual for EFL"
 
 CCTK_REAL densrhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved rest mass density RHS"
 

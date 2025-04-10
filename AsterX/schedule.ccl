@@ -1,6 +1,7 @@
 # Schedule definitions for thorn AsterX
 
 STORAGE: dens mom tau DEnt dB Psi HydroBaseX::Bvec dBx_stag dBy_stag dBz_stag
+STORAGE: volform w_lorentz
 STORAGE: flux_x flux_y flux_z
 STORAGE: fluxLO_x fluxLO_y fluxLO_z thetas
 STORAGE: densrhs momrhs taurhs DEntrhs Avec_x_rhs Avec_y_rhs Avec_z_rhs Psi_rhs
@@ -152,6 +153,7 @@ SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBsta
   WRITES: zvec(interior)
   WRITES: svec(interior)
   WRITES: dens(interior) tau(interior) DEnt(interior) mom(interior) dB(interior)
+  WRITES: volform(interior) w_lorentz(interior)
   SYNC: con2prim_flag
   SYNC: HydroBaseX::rho HydroBaseX::vel HydroBaseX::eps HydroBaseX::press HydroBaseX::Bvec 
   SYNC: HydroBaseX::entropy
@@ -159,6 +161,7 @@ SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBsta
   SYNC: zvec
   SYNC: svec
   SYNC: dens tau DEnt mom dB
+  SYNC: volform w_lorentz
 } "Calculate primitive variables from conservative variables"
 
 
@@ -166,6 +169,19 @@ SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBsta
 SCHEDULE GROUP AsterX_RHSGroup IN ODESolvers_RHS
 {
 } "Calculate AsterX RHS"
+
+if(use_efl)
+{
+  SCHEDULE AsterX_CalcEntropyResidual IN AsterX_RHSGroup BEFORE AsterX_Fluxes
+  {
+    LANG: C
+    READS: ADMBaseX::lapse(everywhere)
+    READS: ADMBaseX::shift(everywhere)
+    READS: HydroBaseX::entropy(everywhere) HydroBaseX::vel(everywhere)
+    WRITES: r_ent(interior)
+    SYNC: r_ent
+  } "Calculate local entropy gain for EFL"
+}
 
 SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
 {
@@ -181,6 +197,7 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   READS: zvec_x(everywhere) zvec_y(everywhere) zvec_z(everywhere)
   READS: svec_x(everywhere) svec_y(everywhere) svec_z(everywhere)
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere) Psi(everywhere)
+  READS: volform(everywhere) w_lorentz(everywhere)
   WRITES: flux_x(interior) flux_y(interior) flux_z(interior)
   WRITES: fluxLO_x(interior) fluxLO_y(interior) fluxLO_z(interior)
   WRITES: thetas(interior)
