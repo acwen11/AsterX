@@ -498,6 +498,73 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
         (dir != 2) * calcflux(lambda, Btildes_rc(2), flux_Btildes(2));
 
 
+	/* Limit Fluxes */
+	if (use_pplim) {
+		const auto Ip = p.I;
+		const auto Im = p.I - p.DI[dir];
+
+		// Get 2 * \alpha * CFL with \alpha = 3
+		const CCTK_REAL a2cfl = 6 * cctk_delta_time / p.DX[dir];
+		
+		// Calc LO flux, currently only LLF
+		fluxLOdenss(dir)(Ip) = laxf(lambda, dens_rc, flux_dens);
+		fluxLODEnts(dir)(Ip) = laxf(lambda, DEnt_rc, flux_DEnt);
+		fluxLOmomxs(dir)(Ip) = laxf(lambda, moms_rc(0), flux_moms(0));
+		fluxLOmomys(dir)(Ip) = laxf(lambda, moms_rc(1), flux_moms(1));
+		fluxLOmomzs(dir)(Ip) = laxf(lambda, moms_rc(2), flux_moms(2));
+		fluxLOtaus(dir)(Ip) = laxf(lambda, tau_rc, flux_tau);
+		
+		// Calc dens floor
+		const CCTK_REAL densmin_p = volform(Ip) * w_lorentz(Ip) * rho_abs_min; //TODO: is this the right floor?
+		const CCTK_REAL densmin_m = volform(Im) * w_lorentz(Im) * rho_abs_min;
+
+		// Calc theta
+		const CCTK_REAL newdens_p = dens(Ip) + a2cfl * fluxdenss(dir)(Ip);
+		const CCTK_REAL newdens_m = dens(Im) - a2cfl * fluxdenss(dir)(Ip);
+
+		const CCTK_REAL newdensLO_p = dens(Ip) + a2cfl * fluxLOdenss(dir)(Ip);
+		const CCTK_REAL newdensLO_m = dens(Im) - a2cfl * fluxLOdenss(dir)(Ip);
+
+		CCTK_REAL theta = 1.0;
+		CCTK_REAL theta_m = 1.0;
+		CCTK_REAL theta_p = 1.0;
+
+		if(newdens_p < densmin_p)
+			theta_p = std::min(theta, std::max(0.0, (densmin_p - newdensLO_p) / (a2cfl*(fluxdenss(dir)(Ip) - fluxLOdenss(dir)(Ip)))));
+
+		if(newdens_m < densmin_m)
+			theta_m = std::min(theta, std::max(0.0, -(densmin_m - newdensLO_m) / (a2cfl*(fluxdenss(dir)(Ip) - fluxLOdenss(dir)(Ip)))));
+
+		theta = std::min(theta_m,theta_p);
+		
+		// Update flux GF
+		fluxdenss(dir)(Ip) = (1 - theta) * fluxLOdenss(dir)(Ip) + theta * fluxdenss(dir)(Ip);
+		fluxDEnts(dir)(Ip) = (1 - theta) * fluxLODEnts(dir)(Ip) + theta * fluxDEnts(dir)(Ip);
+		fluxmomxs(dir)(Ip) = (1 - theta) * fluxLOmomxs(dir)(Ip) + theta * fluxmomxs(dir)(Ip);
+		fluxmomys(dir)(Ip) = (1 - theta) * fluxLOmomys(dir)(Ip) + theta * fluxmomys(dir)(Ip);
+		fluxmomzs(dir)(Ip) = (1 - theta) * fluxLOmomzs(dir)(Ip) + theta * fluxmomzs(dir)(Ip);
+		fluxtaus(dir)(Ip) = (1 - theta) * fluxLOtaus(dir)(Ip) + theta * fluxtaus(dir)(Ip);
+		thetagf(dir)(Ip) = theta;
+
+		if (isnan(theta) || isnan(theta_m) || isnan(theta_p) ||
+			isnan(a2cfl) || isnan(fluxLOdenss(dir)(Ip)) || isnan(fluxLODEnts(dir)(Ip)) ||
+			isnan(fluxLOmomxs(dir)(Ip)) || isnan(fluxLOmomys(dir)(Ip)) || isnan(fluxLOmomzs(dir)(Ip)) ||
+			isnan(fluxLOtaus(dir)(Ip)) || isnan(fluxLOmomys(dir)(Ip)) || isnan(fluxLOmomzs(dir)(Ip)) ||
+			isnan(densmin_p) || isnan(densmin_m)) {
+			printf("cctk_iteration = %i,  dir = %i,  ijk = %i, %i, %i, "
+			     "x, y, z = %16.8e, %16.8e, %16.8e.\n",
+			     cctk_iteration, dir, p.i, p.j, p.k, p.x, p.y, p.z);
+			printf("  fluxLOdenss = %16.8e,\n", fluxLOdenss(dir)(p.I));
+			printf("  fluxLOmoms  = %16.8e, %16.8e, %16.8e,\n", fluxLOmomxs(dir)(p.I),
+			       fluxLOmomys(dir)(p.I), fluxLOmomzs(dir)(p.I));
+			printf("  fluxLOtaus  = %16.8e,\n", fluxLOtaus(dir)(p.I));
+			printf("  theta = %16.8e,\n", theta);
+			printf("  a2cfl = %16.8e,\n", a2cfl);
+			printf("  densmins = %16.8e, %16.8e\n", densmin_m, densmin_p);
+			assert(0);
+		}
+	}
+
     if (isnan(dens_rc(0)) || isnan(dens_rc(1)) || isnan(moms_rc(0)(0)) ||
         isnan(moms_rc(0)(1)) || isnan(moms_rc(1)(0)) || isnan(moms_rc(1)(1)) ||
         isnan(moms_rc(2)(0)) || isnan(moms_rc(2)(1)) || isnan(tau_rc(0)) ||
@@ -587,72 +654,6 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
       assert(0);
     }
 
-	/* Limit Fluxes */
-	if (use_pplim) {
-		const auto Ip = p.I;
-		const auto Im = p.I - p.DI[dir];
-
-		// Get 2 * \alpha * CFL with \alpha = 3
-		const CCTK_REAL a2cfl = 6 * cctk_delta_time / p.DX[dir];
-		
-		// Calc LO flux, currently only LLF
-		fluxLOdenss(dir)(Ip) = laxf(lambda, dens_rc, flux_dens);
-		fluxLODEnts(dir)(Ip) = laxf(lambda, DEnt_rc, flux_DEnt);
-		fluxLOmomxs(dir)(Ip) = laxf(lambda, moms_rc(0), flux_moms(0));
-		fluxLOmomys(dir)(Ip) = laxf(lambda, moms_rc(1), flux_moms(1));
-		fluxLOmomzs(dir)(Ip) = laxf(lambda, moms_rc(2), flux_moms(2));
-		fluxLOtaus(dir)(Ip) = laxf(lambda, tau_rc, flux_tau);
-		
-		// Calc dens floor
-		const CCTK_REAL densmin_p = volform(Ip) * w_lorentz(Ip) * rho_abs_min; //TODO: is this the right floor?
-		const CCTK_REAL densmin_m = volform(Im) * w_lorentz(Im) * rho_abs_min;
-
-		// Calc theta
-		const CCTK_REAL newdens_p = dens(Ip) + a2cfl * fluxdenss(dir)(Ip);
-		const CCTK_REAL newdens_m = dens(Im) - a2cfl * fluxdenss(dir)(Ip);
-
-		const CCTK_REAL newdensLO_p = dens(Ip) + a2cfl * fluxLOdenss(dir)(Ip);
-		const CCTK_REAL newdensLO_m = dens(Im) - a2cfl * fluxLOdenss(dir)(Ip);
-
-		CCTK_REAL theta = 1.0;
-		CCTK_REAL theta_m = 1.0;
-		CCTK_REAL theta_p = 1.0;
-
-		if(newdens_p < densmin_p)
-			theta_p = std::min(theta, std::max(0.0, (densmin_p - newdensLO_p) / (a2cfl*(fluxdenss(dir)(Ip) - fluxLOdenss(dir)(Ip)))));
-
-		if(newdens_m < densmin_m)
-			theta_m = std::min(theta, std::max(0.0, -(densmin_m - newdensLO_m) / (a2cfl*(fluxdenss(dir)(Ip) - fluxLOdenss(dir)(Ip)))));
-
-		theta = std::min(theta_m,theta_p);
-		
-		// Update flux GF
-		fluxdenss(dir)(Ip) = (1 - theta) * fluxLOdenss(dir)(Ip) + theta * fluxdenss(dir)(Ip);
-		fluxDEnts(dir)(Ip) = (1 - theta) * fluxLODEnts(dir)(Ip) + theta * fluxDEnts(dir)(Ip);
-		fluxmomxs(dir)(Ip) = (1 - theta) * fluxLOmomxs(dir)(Ip) + theta * fluxmomxs(dir)(Ip);
-		fluxmomys(dir)(Ip) = (1 - theta) * fluxLOmomys(dir)(Ip) + theta * fluxmomys(dir)(Ip);
-		fluxmomzs(dir)(Ip) = (1 - theta) * fluxLOmomzs(dir)(Ip) + theta * fluxmomzs(dir)(Ip);
-		fluxtaus(dir)(Ip) = (1 - theta) * fluxLOtaus(dir)(Ip) + theta * fluxtaus(dir)(Ip);
-		thetagf(dir)(Ip) = theta;
-
-		if (isnan(theta) || isnan(theta_m) || isnan(theta_p) ||
-			isnan(a2cfl) || isnan(fluxLOdenss(dir)(Ip)) || isnan(fluxLODEnts(dir)(Ip)) ||
-			isnan(fluxLOmomxs(dir)(Ip)) || isnan(fluxLOmomys(dir)(Ip)) || isnan(fluxLOmomzs(dir)(Ip)) ||
-			isnan(fluxLOtaus(dir)(Ip)) || isnan(fluxLOmomys(dir)(Ip)) || isnan(fluxLOmomzs(dir)(Ip)) ||
-			isnan(densmin_p) || isnan(densmin_m)) {
-			printf("cctk_iteration = %i,  dir = %i,  ijk = %i, %i, %i, "
-			     "x, y, z = %16.8e, %16.8e, %16.8e.\n",
-			     cctk_iteration, dir, p.i, p.j, p.k, p.x, p.y, p.z);
-			printf("  fluxLOdenss = %16.8e,\n", fluxLOdenss(dir)(p.I));
-			printf("  fluxLOmoms  = %16.8e, %16.8e, %16.8e,\n", fluxLOmomxs(dir)(p.I),
-			       fluxLOmomys(dir)(p.I), fluxLOmomzs(dir)(p.I));
-			printf("  fluxLOtaus  = %16.8e,\n", fluxLOtaus(dir)(p.I));
-			printf("  theta = %16.8e,\n", theta);
-			printf("  a2cfl = %16.8e,\n", a2cfl);
-			printf("  densmins = %16.8e, %16.8e\n", densmin_m, densmin_p);
-			assert(0);
-		}
-	}
 
     /* Begin code for upwindCT */
         // if dir==0: dir1=1, dir2=2 | dir==1: dir1=2, dir2=0 | dir==2; dir1=0,
