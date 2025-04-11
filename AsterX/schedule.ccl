@@ -4,6 +4,7 @@ STORAGE: dens mom tau DEnt dB Psi HydroBaseX::Bvec dBx_stag dBy_stag dBz_stag
 STORAGE: volform w_lorentz
 STORAGE: flux_x flux_y flux_z
 STORAGE: fluxLO_x fluxLO_y fluxLO_z thetas
+STORAGE: r_ent ent_m1 ent_m2
 STORAGE: densrhs momrhs taurhs DEntrhs Avec_x_rhs Avec_y_rhs Avec_z_rhs Psi_rhs
 STORAGE: ADMBaseX::metric ADMBaseX::lapse ADMBaseX::shift ADMBaseX::curv
 STORAGE: Aux_in_RHSof_A_Psi
@@ -82,6 +83,13 @@ SCHEDULE AsterX_CheckPrims IN AsterX_InitialGroup AFTER AsterX_ComputeBFromdB
   SYNC: zvec
   SYNC: svec
 } "Enforce limits on primitive variables"
+
+SCHEDULE AsterX_InitEntropyTLs IN AsterX_InitialGroup AFTER AsterX_CheckPrims
+{
+  LANG: C
+  READS: HydroBaseX::entropy(everywhere)
+  WRITES: ent_m1(everywhere) ent_m2(everywhere)
+} "Initialize previos entropy timelevels for EFL"
 
 SCHEDULE AsterX_Prim2Con_Initial IN AsterX_InitialGroup AFTER AsterX_CheckPrims
 {
@@ -178,8 +186,9 @@ if(use_efl)
     READS: ADMBaseX::lapse(everywhere)
     READS: ADMBaseX::shift(everywhere)
     READS: HydroBaseX::entropy(everywhere) HydroBaseX::vel(everywhere)
-    WRITES: r_ent(interior)
-    SYNC: r_ent
+    READS: ent_m1(everywhere) ent_m2(everywhere)
+    WRITES: r_ent(interior) ent_m1(interior) ent_m2(interior)
+    SYNC: r_ent ent_m1 ent_m2
   } "Calculate local entropy gain for EFL"
 }
 
@@ -198,6 +207,7 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   READS: svec_x(everywhere) svec_y(everywhere) svec_z(everywhere)
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere) Psi(everywhere)
   READS: volform(everywhere) w_lorentz(everywhere)
+  READS: r_ent(interior)
   WRITES: flux_x(interior) flux_y(interior) flux_z(interior)
   WRITES: fluxLO_x(interior) fluxLO_y(interior) fluxLO_z(interior)
   WRITES: thetas(interior)

@@ -41,6 +41,11 @@ CCTK_INT efl_deriv_order "Order of entropy spatial finite differencing for EFL" 
   8 :: "Eighth order finite difference"
 } 4
 
+CCTK_REAL efl_ce "Scaling of entropy residual for EFL" STEERABLE=always
+{
+  0:* :: "Should be positive"
+} 1.0
+
 KEYWORD recon_type "Vector field used in reconstruction" STEERABLE=always
 {
   "v_vec" :: "Eulerian 3-velocity"

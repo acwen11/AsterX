@@ -8,6 +8,7 @@ SRCS = \
   estimate_error.cxx \
   fluxes.cxx \
   check_prims.cxx \
+  init_entropy_tls.cxx \
   prim2con.cxx \
   rhs.cxx \
   sync.cxx \
