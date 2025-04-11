@@ -9,12 +9,13 @@
 #include <cassert>
 #include <cmath>
 
-#include "utils.hxx"
+#include "aster_utils.hxx"
 
 namespace AsterX {
 using namespace std;
 using namespace Loop;
 using namespace Arith;
+using namespace AsterUtils;
 
 
 template <int dir> void CalcFluxCorrections(CCTK_ARGUMENTS) {
@@ -31,11 +32,11 @@ template <int dir> void CalcFluxCorrections(CCTK_ARGUMENTS) {
   const vec<GF3D2<CCTK_REAL>, dim> fluxBys{fxBy, fyBy, fzBy};
   const vec<GF3D2<CCTK_REAL>, dim> fluxBzs{fxBz, fyBz, fzBz};
 
-  const vec<GF3D2<CCTK_REAL>, dim> fluxdenss_HO{fxdens_HO, fydens_HO, fzdens_HO};
-  const vec<GF3D2<CCTK_REAL>, dim> fluxmomxs_HO{fxmomx_HO, fymomx_HO, fzmomx_HO};
-  const vec<GF3D2<CCTK_REAL>, dim> fluxmomys_HO{fxmomy_HO, fymomy_HO, fzmomy_HO};
-  const vec<GF3D2<CCTK_REAL>, dim> fluxmomzs_HO{fxmomz_HO, fymomz_HO, fzmomz_HO};
-  const vec<GF3D2<CCTK_REAL>, dim> fluxtaus_HO{fxtau_HO, fytau_HO, fztau_HO};
+  const vec<GF3D2<CCTK_REAL>, dim> fluxdenss_HO{fHOxdens, fHOydens, fHOzdens};
+  const vec<GF3D2<CCTK_REAL>, dim> fluxmomxs_HO{fHOxmomx, fHOymomx, fHOzmomx};
+  const vec<GF3D2<CCTK_REAL>, dim> fluxmomys_HO{fHOxmomy, fHOymomy, fHOzmomy};
+  const vec<GF3D2<CCTK_REAL>, dim> fluxmomzs_HO{fHOxmomz, fHOymomz, fHOzmomz};
+  const vec<GF3D2<CCTK_REAL>, dim> fluxtaus_HO{fHOxtau, fHOytau, fHOztau};
  
   // Face-centred grid functions (in direction `dir`)
   constexpr array<int, dim> face_centred = {!(dir == 0), !(dir == 1),

@@ -94,29 +94,26 @@ CCTK_REAL thetas TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
 	theta_x, theta_y, theta_z
 }
 
-CCTK_REAL r_ent TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Entropy residual for EFL"
-
-CCTK_REAL flux_x_HO TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'
+CCTK_REAL fluxHO_x TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'
 {
-  fxdens_HO
-  fxmomx_HO fxmomy_HO fxmomz_HO
-  fxtau_HO
+  fHOxdens
+  fHOxmomx fHOxmomy fHOxmomz
+  fHOxtau
 } "Higher order flux corrections in x direction"
 
-CCTK_REAL flux_y_HO TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"'
+CCTK_REAL fluxHO_y TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"'
 {
-  fydens_HO
-  fymomx_HO fymomy_HO fymomz_HO
-  fytau_HO
+  fHOydens
+  fHOymomx fHOymomy fHOymomz
+  fHOytau
 } "Higher order flux corrections in y direction"
 
-CCTK_REAL flux_z_HO TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
+CCTK_REAL fluxHO_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
 {
-  fzdens_HO
-  fzmomx_HO fzmomy_HO fzmomz_HO
-  fztau_HO
+  fHOzdens
+  fHOzmomx fHOzmomy fHOzmomz
+  fHOztau
 } "Higher order flux corrections in z direction"
->>>>>>> acwen-reconstruct
 
 CCTK_REAL densrhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved rest mass density RHS"
 

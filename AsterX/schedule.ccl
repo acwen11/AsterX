@@ -4,7 +4,7 @@ STORAGE: dens mom tau DEnt dB Psi HydroBaseX::Bvec dBx_stag dBy_stag dBz_stag
 STORAGE: volform w_lorentz
 STORAGE: flux_x flux_y flux_z
 STORAGE: fluxLO_x fluxLO_y fluxLO_z thetas
-STORAGE: flux_x_HO flux_y_HO flux_z_HO
+STORAGE: fluxHO_x fluxHO_y fluxHO_z
 STORAGE: densrhs momrhs taurhs DEntrhs Avec_x_rhs Avec_y_rhs Avec_z_rhs Psi_rhs
 STORAGE: ADMBaseX::metric ADMBaseX::lapse ADMBaseX::shift ADMBaseX::curv
 STORAGE: Aux_in_RHSof_A_Psi
@@ -171,19 +171,6 @@ SCHEDULE GROUP AsterX_RHSGroup IN ODESolvers_RHS
 {
 } "Calculate AsterX RHS"
 
-if(use_efl)
-{
-  SCHEDULE AsterX_CalcEntropyResidual IN AsterX_RHSGroup BEFORE AsterX_Fluxes
-  {
-    LANG: C
-    READS: ADMBaseX::lapse(everywhere)
-    READS: ADMBaseX::shift(everywhere)
-    READS: HydroBaseX::entropy(everywhere) HydroBaseX::vel(everywhere)
-    WRITES: r_ent(interior)
-    SYNC: r_ent
-  } "Calculate local entropy gain for EFL"
-}
-
 SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
 {
   LANG: C
@@ -214,7 +201,7 @@ SCHEDULE AsterX_Flux_Corrections IN AsterX_RHSGroup AFTER AsterX_Fluxes
 {
   LANG: C
   READS: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
-  WRITES: flux_x_HO(interior) flux_y_HO(interior) flux_z_HO(interior)
+  WRITES: fluxHO_x(interior) fluxHO_y(interior) fluxHO_z(interior)
   WRITES: flux_x(interior) flux_y(interior) flux_z(interior)
   SYNC: flux_x flux_y flux_z
 } "Computes the higher order corrections to fluxes and updates them"
