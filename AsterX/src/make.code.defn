@@ -2,6 +2,7 @@
 
 # Source files in this directory
 SRCS = \
+  calc_r_ent.cxx \
   computeBfromA.cxx \
   con2prim.cxx \
   estimate_error.cxx \
