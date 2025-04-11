@@ -35,8 +35,8 @@ CCTK_REAL rho_max "Validity region: max density" STEERABLE=RECOVER
 
 CCTK_REAL rho_min "Validity region: min density" STEERABLE=RECOVER
 {
-  0:* :: ""
-} 0.0
+  (0:* :: ""
+} 1.0e-40
 
 CCTK_REAL eps_max "Validity region: max internal specific energy" STEERABLE=RECOVER
 {

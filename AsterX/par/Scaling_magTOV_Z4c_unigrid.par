@@ -110,7 +110,6 @@ Con2PrimFactory::unit_test = "yes"
 Con2PrimFactory::B_lim = 1e8
 Con2PrimFactory::vw_lim = 1e8
 Con2PrimFactory::Ye_lenient = "yes"
-Con2PrimFactory::rho_strict = 6.4e-05
 
 EOSX::evolution_eos = "IdealGas"
 EOSX::gl_gamma = 2.0

@@ -1,0 +1,283 @@
+###############################
+# Simple test of a FM torus
+##############################
+ActiveThorns = "
+    ADMBaseX
+    BoxInBox
+    CarpetX
+    HydroBaseX
+    IOUtil
+    ODESolvers
+    TimerReport
+    TmunuBaseX
+    AsterX
+    AsterSeeds
+#    AHFinderX
+    CoordinatesX
+"
+
+$nlevels	= 3
+$ncells 	= 256
+
+Cactus::cctk_show_schedule = yes
+
+CarpetX::verbose = "no"
+Cactus::presync_mode = "mixed-error"
+CarpetX::poison_undefined_values = yes
+
+# ####################################
+# Original grid ranged from -50 to 50 and
+# included $ncells cells, i.e. left
+# cell boundary/vertex was located at 
+# -50. The origin was located precisely 
+# at a cell vertex.
+# For KS coordinates we must avoid the
+# origin and the z-axis.
+# Hence, shift the whole grid diagonally
+# by 0.25 of the cell size of the finest level.
+# necessary such that neither cell
+# vertices nor cell centers correspond
+# to the origin or the z-axis.
+# ####################################
+
+CarpetX::xmin = -63.96875
+CarpetX::ymin = -63.96875
+CarpetX::zmin = -63.96875
+
+CarpetX::xmax = 64.03125
+CarpetX::ymax = 64.03125
+CarpetX::zmax = 64.03125
+
+CarpetX::ncells_x = $ncells
+CarpetX::ncells_y = $ncells
+CarpetX::ncells_z = $ncells
+
+CarpetX::boundary_x =  "neumann"
+CarpetX::boundary_y =  "neumann"
+CarpetX::boundary_z =  "neumann"
+CarpetX::boundary_upper_x =  "neumann"
+CarpetX::boundary_upper_y =  "neumann"
+CarpetX::boundary_upper_z =  "neumann"
+
+CarpetX::max_num_levels = $nlevels
+CarpetX::regrid_every = 0
+
+CarpetX::blocking_factor_x = 8
+CarpetX::blocking_factor_y = 8
+CarpetX::blocking_factor_z = 8
+
+CarpetX::max_tile_size_x = 1024000
+CarpetX::max_tile_size_y = 1024000
+CarpetX::max_tile_size_z = 1024000
+
+CarpetX::max_grid_size_x = $ncells
+CarpetX::max_grid_size_y = $ncells
+CarpetX::max_grid_size_z = $ncells
+
+BoxInBox::num_regions = 1
+# Region 1
+BoxInBox::shape_1 = "cube"
+BoxInBox::position_x_1 = 0.03125
+BoxInBox::num_levels_1 = $nlevels
+BoxInBox::radius_1 = [ -1.0, 44.0, 16.0]
+
+# the regrid_error_threshold should be in the same units of the 
+# parameter in comparison, see AsterX/src/estimate_error.cxx 
+# for which parameter to use
+CarpetX::regrid_error_threshold = 5.0e-5
+
+CarpetX::prolongation_type = "poly-eno3lfb"
+CarpetX::prolongation_order = 5
+CarpetX::interpolation_order = 1
+CarpetX::ghost_size = 3
+CarpetX::dtfac = 0.4 #0.2
+
+ADMBaseX::initial_data       = "FishboneMoncriefID"
+ADMBaseX::initial_lapse      = "FishboneMoncriefID"
+ADMBaseX::initial_shift      = "FishboneMoncriefID"
+ADMBaseX::initial_dtlapse    = "zero"
+ADMBaseX::initial_dtshift    = "zero"
+
+HydroBaseX::initial_hydro = "FishboneMoncriefID"
+
+ActiveThorns = "FishboneMoncriefIDX"
+FishboneMoncriefIDX::FM_Cowling = yes
+FishboneMoncriefIDX::a = 0.9375
+FishboneMoncriefIDX::M = 1.0
+FishboneMoncriefIDX::random_min = -0.02 # -0.04
+FishboneMoncriefIDX::random_max = 0.02  # 0.04
+FishboneMoncriefIDX::r_in             =  6.0 # Inner radius of disk
+FishboneMoncriefIDX::r_at_max_density = 12.0 # Radius at which disk reaches max density in equatorial plane
+
+# Equation of State parameters
+FishboneMoncriefIDX::kappa = 4.249572342020723e-03
+FishboneMoncriefIDX::gamma = 4./3.
+
+# Set magnetic field
+FishboneMoncriefIDX::seed_magnetic = "yes"
+FishboneMoncriefIDX::A_b = 0.0 #0.9162655225 #0.1
+#FishboneMoncriefIDX::press_cut = 0.00004
+FishboneMoncriefIDX::A_n = 1.0
+FishboneMoncriefIDX::use_pressure = "no"
+FishboneMoncriefIDX::A_c = 0.0
+FishboneMoncriefIDX::rho_cut = 0.2
+FishboneMoncriefIDX::wrt_rho_max = "no"
+
+# Set atmo
+FishboneMoncriefIDX::atmo_type = "free-graded"
+FishboneMoncriefIDX::nrho = 3.0/2.0
+FishboneMoncriefIDX::npress = 5.0/2.0
+FishboneMoncriefIDX::press_min = 0.333333333333333e-7
+FishboneMoncriefIDX::rho_min = 1.0e-5
+
+AsterSeeds::test_type = "None"
+
+AsterX::debug_mode = "yes"
+AsterX::flux_type = "HLLE"
+AsterX::vector_potential_gauge = "generalized Lorentz" #"algebraic"
+AsterX::lorenz_damp_fac = 7.5 # 1.5/largest dt
+AsterX::local_spatial_order = 4
+AsterX::local_estimate_error = "no"
+AsterX::update_tmunu = "no"
+
+AsterX::recon_type = "z_vec"
+AsterX::use_entropy_fix = "yes"
+AsterX::use_uct = "yes"
+
+ReconX::reconstruction_method = "minmod" #"PPM"
+#ReconX::ppm_zone_flattening = "yes"
+#ReconX::ppm_shock_detection = "no"
+
+Con2PrimFactory::c2p_prime = "Noble"
+Con2PrimFactory::c2p_second = "Palenzuela"
+Con2PrimFactory::c2p_tol = 1e-12
+Con2PrimFactory::max_iter = 100
+Con2PrimFactory::rho_abs_min = 1e-12 #1e-6
+Con2PrimFactory::atmo_tol = 1e-3
+Con2PrimFactory::unit_test = "yes"
+Con2PrimFactory::B_lim = 1e8
+Con2PrimFactory::vw_lim = 8 #1e8
+Con2PrimFactory::Ye_lenient = "yes"
+Con2PrimFactory::eps_atmo = 1e-10
+
+Con2PrimFactory::cons_error_limit = 1e-4
+Con2PrimFactory::use_z = "yes"
+
+EOSX::evolution_eos = "IdealGas"
+EOSX::gl_gamma = 4./3.
+EOSX::poly_gamma = 4./3.
+EOSX::poly_k = 4.249572342020723e-03
+EOSX::rho_max = 10
+EOSX::eps_max = 1e8
+EOSX::eps_min = 1e-10
+
+Cactus::terminate = "time"
+Cactus::cctk_final_time = 10000.
+
+#Cactus::terminate = "iteration"
+#Cactus::cctk_itlast = 20
+
+ODESolvers::method = "SSPRK3"
+ODESolvers::verbose = "no"
+
+#AHFinder::npoints = 81
+#AHFinder::initial_pos_x = 0.0
+#AHFinder::initial_pos_y = 0.0
+#AHFinder::initial_pos_z = 0.0   # 0.0
+#AHFinder::initial_radius = 2.0
+#AHFinder::max_iters = 100
+
+IO::out_every = 100
+IO::out_dir = "./data"
+
+CarpetX::out_norm_vars = "all"
+CarpetX::out_norm_omit_unstable = yes
+CarpetX::out_norm_every = 10
+
+#CarpetX::openpmd_format = "HDF5"
+CarpetX::out_openpmd_every = 0 #400
+CarpetX::out_openpmd_vars = "
+    AsterX::con2prim_flag
+#    AsterX::Avec_x
+#    AsterX::Avec_y
+#    AsterX::Avec_z
+#    AsterX::dB
+    AsterX::dens
+    AsterX::mom
+    AsterX::tau
+#    AsterX::taurhs
+    HydroBaseX::Bvec
+    HydroBaseX::rho
+    HydroBaseX::vel
+    HydroBaseX::eps
+    HydroBaseX::press
+#    CarpetX::regrid_error
+#    ADMBaseX::lapse
+#    ADMBaseX::shift
+#    ADMBaseX::metric
+#    ADMBaseX::curv
+"
+
+CarpetX::out_silo_every = 100
+CarpetX::out_silo_vars = "
+    AsterX::con2prim_flag
+#    AsterX::Avec_x
+#    AsterX::Avec_y
+#    AsterX::Avec_z
+#    AsterX::dB
+    AsterX::dens
+    AsterX::mom
+    AsterX::tau
+#    AsterX::taurhs
+    HydroBaseX::Bvec
+    HydroBaseX::rho
+    HydroBaseX::vel
+    HydroBaseX::eps
+    HydroBaseX::press
+#    CarpetX::regrid_error
+#    ADMBaseX::lapse
+#    ADMBaseX::shift
+#    ADMBaseX::metric
+#    ADMBaseX::curv
+"
+
+CarpetX::out_tsv_every = 100
+CarpetX::out_tsv_vars = "
+    AsterX::con2prim_flag
+    AsterX::Avec_x
+    AsterX::Avec_y
+    AsterX::Avec_z
+    AsterX::dens
+    AsterX::mom
+    AsterX::tau
+    AsterX::dB
+    AsterX::aux_fields
+    AsterX::aux_fields_B
+    HydroBaseX::Bvec
+    HydroBaseX::rho
+    HydroBaseX::vel
+    HydroBaseX::press
+    HydroBaseX::eps
+#    CarpetX::regrid_error
+#    ADMBaseX::lapse
+#    ADMBaseX::shift
+#    ADMBaseX::metric
+#    ADMBaseX::curv
+"
+
+TimerReport::out_every = 100
+TimerReport::out_filename = "TimerReport"
+TimerReport::output_all_timers_together = yes
+TimerReport::output_all_timers_readable = yes
+TimerReport::n_top_timers = 50
+
+IO::checkpoint_dir = "../checkpoint"
+IO::recover_dir    = "../checkpoint"
+IO::checkpoint_ID = no
+#IO::checkpoint_every = 2000
+IO::checkpoint_every_walltime_hours = 15.0
+IO::checkpoint_on_terminate = yes
+IO::recover                 = "autoprobe"
+
+CarpetX::checkpoint_method = "openpmd"
+CarpetX::recover_method    = "openpmd"

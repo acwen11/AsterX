@@ -7,6 +7,7 @@ SRCS = \
   estimate_error.cxx \
   fluxes.cxx \
   flux_corrections.cxx \
+  check_prims.cxx \
   prim2con.cxx \
   rhs.cxx \
   sync.cxx \

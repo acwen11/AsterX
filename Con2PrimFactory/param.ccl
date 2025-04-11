@@ -52,11 +52,6 @@ CCTK_REAL vw_lim "Upper limit for the value of velocity * lorentz_factor " STEER
   0:            :: "Must be positive"
 }  10.0
 
-CCTK_REAL rho_strict "Density above which RePrimAnd c2p corrections are forbidden" STEERABLE=ALWAYS
-{
-  0:            :: "Must be positive"
-} 1e100
-
 BOOLEAN Ye_lenient "Whether to allow restricting Y_e to a valid range" STEERABLE=ALWAYS
 {
 }  "no"
@@ -70,3 +65,57 @@ CCTK_REAL c2p_tol "c2p torelance for root finding" STEERABLE=ALWAYS
 {
   0:* :: "Larger than zero"
 } 1e-10
+
+# Parameters for graded atmosphere
+
+CCTK_REAL r_atmo "Radial distance up to which rho_abs_min is kept constant, and after which it decreases as a power law function." STEERABLE=ALWAYS
+{
+  (0.0:* :: ""
+} 1.0e100
+
+CCTK_REAL n_rho_atmo "Exponential of the radial power law atmosphere prescription for density." STEERABLE=ALWAYS
+{
+  0.0:* :: ""
+} 0.0
+
+CCTK_REAL n_press_atmo "Exponential of the radial power law atmosphere prescription for pressure." STEERABLE=ALWAYS
+{
+  0.0:* :: ""
+} 0.0
+
+BOOLEAN thermal_eos_atmo "Whether to use the thermal (evolution) EOS for setting pressure in the atmosphere. If set to no, cold (initial data) EOS is used instead." STEERABLE=ALWAYS
+{
+}  "no"
+
+# Parameters for BH treatment
+
+CCTK_REAL alp_thresh "Lapse threshold below which primitives are modified for stability, specifically inside BH interior. Value should be set such that it is lesser than the lapse at the apparent horizon " STEERABLE=ALWAYS
+{
+  0.0:* :: ""
+} 0.0
+
+CCTK_REAL rho_BH " Maximum density allowed in regions where alp<alp_thresh" STEERABLE=ALWAYS
+{
+  0.0:* :: ""
+} 1.0e100
+
+CCTK_REAL eps_BH " Maximum eps allowed in regions where alp<alp_thresh" STEERABLE=ALWAYS
+{
+  0.0:* :: ""
+} 1.0e100
+
+CCTK_REAL vwlim_BH " Maximum zvec (v*w) allowed in regions where alp<alp_thresh" STEERABLE=ALWAYS
+{
+  0.0:* :: ""
+} 1.0e100
+
+CCTK_REAL cons_error_limit  "Relative deviations in conservatives after c2p failure that we tolerate" STEERABLE=ALWAYS
+{
+  *:* :: "Negative means always rejection"
+} -1
+
+# Experimental parameter to use z instead of v to avoid v > 1
+
+BOOLEAN use_z "" STEERABLE=ALWAYS
+{
+}  "no"

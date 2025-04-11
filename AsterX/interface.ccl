@@ -2,14 +2,15 @@
 
 IMPLEMENTS: AsterX
 
-INHERITS: CarpetX ADMBaseX HydroBaseX TmunuBaseX
+INHERITS: CarpetXRegrid ADMBaseX HydroBaseX TmunuBaseX
 
 USES INCLUDE HEADER: fixmath.hxx
 USES INCLUDE HEADER: loop_device.hxx
 USES INCLUDE HEADER: eos_1p.hxx eos_polytropic.hxx
 USES INCLUDE HEADER: eos.hxx eos_idealgas.hxx
-USES INCLUDE HEADER: c2p.hxx c2p_2DNoble.hxx c2p_1DPalenzuela.hxx
+USES INCLUDE HEADER: c2p.hxx c2p_2DNoble.hxx c2p_1DPalenzuela.hxx c2p_1DEntropy.hxx
 USES INCLUDE HEADER: reconstruct.hxx
+USES INCLUDE HEADER: aster_fd.hxx aster_interp.hxx aster_utils.hxx
 
 PUBLIC:
 
@@ -22,11 +23,24 @@ CCTK_REAL mom TYPE=gf CENTERING={ccc} TAGS='rhs="momrhs" dependents="HydroBaseX:
 
 CCTK_REAL tau TYPE=gf CENTERING={ccc} TAGS='rhs="taurhs" dependents="HydroBaseX::eps HydroBaseX::press HydroBaseX::temperature HydroBaseX::Ye HydroBaseX::Bvec TmunuBaseX::eTij"' "Conserved internal energy density"
 
+# DEnt is the conserved "evolved" entropy.
+# The corresponding primitive is stored in HydroBaseX::entropy.
+# However, note that this gf stores the "evolved" entropy which is 
+# not necessarily the "physical" entropy. This depends on the EOS, e.g.
+# for the ideal gas we have entropy = p rho^(-gamma).
+# The distinction between "evolved" and "physical" entropy is made
+# explicit in EOSX where functions with "entropy_..." and "kappa_..." 
+# refer to "physical" and "evolved" entropy, respectively. In this 
+# evolution thorn we always refer to DEnt and entropy to describe 
+# the "evolved" quantities. 
+CCTK_REAL DEnt TYPE=gf CENTERING={ccc} TAGS='rhs="DEntrhs" dependents="HydroBaseX::entropy AsterX::flux_x AsterX::flux_y AsterX::flux_z"' "Advected entropy density"
+
 CCTK_REAL flux_x TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'
 {
   fxdens
   fxmomx fxmomy fxmomz
   fxtau
+  fxDEnt
   fxBx fxBy fxBz
 } "Fluxes in x direction"
 
@@ -35,6 +49,7 @@ CCTK_REAL flux_y TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"'
   fydens
   fymomx fymomy fymomz
   fytau
+  fyDEnt
   fyBx fyBy fyBz
 } "Fluxes in y direction"
 
@@ -43,6 +58,7 @@ CCTK_REAL flux_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
   fzdens
   fzmomx fzmomy fzmomz
   fztau
+  fzDEnt
   fzBx fzBy fzBz
 } "Fluxes in z direction"
 
@@ -76,6 +92,7 @@ CCTK_REAL momrhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
 
 CCTK_REAL taurhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved internal energy density RHS" 
 
+CCTK_REAL DEntrhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Advected entropy density RHS"
 
 CCTK_REAL Avec_x TYPE=gf CENTERING={cvv} TAGS='rhs="Avec_x_rhs"' "x-component of vector potential"
 CCTK_REAL Avec_y TYPE=gf CENTERING={vcv} TAGS='rhs="Avec_y_rhs"' "y-component of vector potential"
@@ -119,3 +136,45 @@ CCTK_REAL saved_prims TYPE=gf CENTERING={ccc}
   saved_velx saved_vely saved_velz
   saved_eps
 } "Saved primitive variables as initial guesses for con2prim"
+
+CCTK_REAL zvec TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
+{
+  zvec_x, zvec_y, zvec_z
+} ""
+
+CCTK_REAL svec TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
+{
+  svec_x, svec_y, svec_z
+} ""
+
+#grid functions required for upwindCT computation of electric field
+
+CCTK_REAL vtilde_xface TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'
+{
+  vtilde_y_xface, vtilde_z_xface
+} "staggered vtilde components on x-face where vtilde^i = \alpha*v^i-\Beta^i"
+
+CCTK_REAL vtilde_yface TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"'
+{
+  vtilde_x_yface, vtilde_z_yface
+} "staggered vtilde components on y-face where vtilde^i = \alpha*v^i-\Beta^i"
+
+CCTK_REAL vtilde_zface TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
+{
+  vtilde_x_zface, vtilde_y_zface
+} "staggered vtilde components on z-face where vtilde^i = \alpha*v^i-\Beta^i"
+
+CCTK_REAL a_xface TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'
+{
+  amax_xface, amin_xface
+} "staggered vtilde components on x-face where vtilde^i = \alpha*v^i-\Beta^i"
+
+CCTK_REAL a_yface TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"'
+{
+  amax_yface, amin_yface
+} "staggered vtilde components on y-face where vtilde^i = \alpha*v^i-\Beta^i"
+
+CCTK_REAL a_zface TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
+{
+  amax_zface, amin_zface
+} "staggered vtilde components on z-face where vtilde^i = \alpha*v^i-\Beta^i"

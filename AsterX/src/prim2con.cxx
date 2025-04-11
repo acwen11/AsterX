@@ -1,13 +1,13 @@
-#include "prim2con.hxx"
-
-#include <loop_device.hxx>
-
 #include <cctk.h>
 #include <cctk_Arguments.h>
 #include <cctk_Parameters.h>
+#include <loop_device.hxx>
+
+#include "prim2con.hxx"
 
 namespace AsterX {
 using namespace Loop;
+using namespace std;
 
 extern "C" void AsterX_Prim2Con_Initial(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_Prim2Con_Initial;
@@ -29,6 +29,7 @@ extern "C" void AsterX_Prim2Con_Initial(CCTK_ARGUMENTS) {
         pv.vel(2) = velz(p.I);
         pv.eps = eps(p.I);
         pv.press = press(p.I);
+        pv.entropy = entropy(p.I);
         pv.Bvec(0) = Bvecx(p.I);
         pv.Bvec(1) = Bvecy(p.I);
         pv.Bvec(2) = Bvecz(p.I);
@@ -43,14 +44,16 @@ extern "C" void AsterX_Prim2Con_Initial(CCTK_ARGUMENTS) {
         tau(p.I) = cv.tau;
         dBx(p.I) = cv.dBvec(0);
         dBy(p.I) = cv.dBvec(1);
-        dBz(p.I) = cv.dBvec(2);
+        dBz(p.I) = cv.dBvec(2); 
+        DEnt(p.I) = cv.DEnt;
 
-        saved_rho(p.I) = pv.rho;
-        saved_velx(p.I) = pv.vel(0);
-        saved_vely(p.I) = pv.vel(1);
-        saved_velz(p.I) = pv.vel(2);
-        saved_eps(p.I) = pv.eps;
       });
+
+}
+
+extern "C" void AsterX_PsiZero_Initial(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_PsiZero_Initial;
+  DECLARE_CCTK_PARAMETERS;
 
   /* Initilaize Psi to 0.0 */
   grid.loop_all_device<0, 0, 0>(
