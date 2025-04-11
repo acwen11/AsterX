@@ -94,26 +94,26 @@ CCTK_REAL thetas TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
 	theta_x, theta_y, theta_z
 }
 
-CCTK_REAL fluxHO_x TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'
-{
-  fHOxdens
-  fHOxmomx fHOxmomy fHOxmomz
-  fHOxtau
-} "Higher order flux corrections in x direction"
-
-CCTK_REAL fluxHO_y TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"'
-{
-  fHOydens
-  fHOymomx fHOymomy fHOymomz
-  fHOytau
-} "Higher order flux corrections in y direction"
-
-CCTK_REAL fluxHO_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
-{
-  fHOzdens
-  fHOzmomx fHOzmomy fHOzmomz
-  fHOztau
-} "Higher order flux corrections in z direction"
+#CCTK_REAL fluxHO_x TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'
+#{
+#  fHOxdens
+#  fHOxmomx fHOxmomy fHOxmomz
+#  fHOxtau
+#} "Higher order flux corrections in x direction"
+#
+#CCTK_REAL fluxHO_y TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"'
+#{
+#  fHOydens
+#  fHOymomx fHOymomy fHOymomz
+#  fHOytau
+#} "Higher order flux corrections in y direction"
+#
+#CCTK_REAL fluxHO_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
+#{
+#  fHOzdens
+#  fHOzmomx fHOzmomy fHOzmomz
+#  fHOztau
+#} "Higher order flux corrections in z direction"
 
 CCTK_REAL densrhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved rest mass density RHS"
 
