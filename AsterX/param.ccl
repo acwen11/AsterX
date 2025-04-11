@@ -95,6 +95,13 @@ CCTK_INT local_spatial_order "Order of spatial finite differencing" STEERABLE=al
   4 :: "Fourth order finite difference"
 } 2
 
+CCTK_INT correction_order "Order of accuracy to check if higher order corrections are to be applied" STEERABLE=never
+{
+  2 :: "Second order accurate"
+  4 :: "Fourth order accurate"
+  6 :: "Sixth order accurate"
+} 2
+
 CCTK_INT tmunu_interp_order "Order of interpolation used when constructing tmunu" STEERABLE=always
 {
   2 :: "Second order interpolation"
