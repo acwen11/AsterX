@@ -24,7 +24,7 @@ extern "C" void AsterX_CalcEntropyResidual(CCTK_ARGUMENTS) {
   Arith::vect<int, dim> imin, imax;
   const std::array<int, dim> nghostzones = {
         cctk_nghostzones[0], cctk_nghostzones[1], cctk_nghostzones[2]};
-  GridDescBase(cctkGH).box_int<0, 0, 0>(nghostzones, imin, imax);
+  GridDescBase(cctkGH).box_int<1, 1, 1>(nghostzones, imin, imax);
   const GF3D2layout layout2(cctkGH, indextype);
   const GF3D5layout layout5(imin, imax);
   const Arith::vect<CCTK_REAL, dim> dx(std::array<CCTK_REAL, dim>{
@@ -45,10 +45,11 @@ extern "C" void AsterX_CalcEntropyResidual(CCTK_ARGUMENTS) {
 
   const GF3D5<CCTK_REAL> t5_s(make_gf());
   const Arith::vec<GF3D5<CCTK_REAL>, dim> t5_ds(make_vec_gf());
-  const GF3D2<CCTK_REAL> gf_s(layout2, entropy);
+  // const GF3D2<const CCTK_REAL> gf_s(layout2, entropy);
 
-  Derivs::calc_derivs<1, 1, 1, CCTK_REAL>(t5_s, t5_ds, layout5, grid,
-                                gf_s, dx, efl_deriv_order);
+  const int efl_ord = efl_deriv_order;
+  Derivs::calc_derivs<1, 1, 1>(t5_s, t5_ds, layout5, grid,
+                                entropy, dx, efl_ord);
 
   // Prep spacetime GFs
   const vec<GF3D2<const CCTK_REAL>, dim> gf_beta{betax, betay, betaz};
