@@ -5,6 +5,7 @@ STORAGE: volform w_lorentz
 STORAGE: flux_x flux_y flux_z
 STORAGE: fluxLO_x fluxLO_y fluxLO_z thetas
 STORAGE: r_ent ent_m1 ent_m2
+#STORAGE: fluxHO_x fluxHO_y fluxHO_z
 STORAGE: densrhs momrhs taurhs DEntrhs Avec_x_rhs Avec_y_rhs Avec_z_rhs Psi_rhs
 STORAGE: ADMBaseX::metric ADMBaseX::lapse ADMBaseX::shift ADMBaseX::curv
 STORAGE: Aux_in_RHSof_A_Psi
@@ -219,7 +220,16 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   SYNC: vtilde_xface vtilde_yface vtilde_zface a_xface a_yface a_zface
 } "Calculate the hydro fluxes"
 
-SCHEDULE AsterX_SourceTerms IN AsterX_RHSGroup AFTER AsterX_Fluxes
+# SCHEDULE AsterX_Flux_Corrections IN AsterX_RHSGroup AFTER AsterX_Fluxes
+# {
+#   LANG: C
+#   READS: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
+#   WRITES: fluxHO_x(interior) fluxHO_y(interior) fluxHO_z(interior)
+#   WRITES: flux_x(interior) flux_y(interior) flux_z(interior)
+#   SYNC: flux_x flux_y flux_z
+# } "Computes the higher order corrections to fluxes and updates them"
+
+SCHEDULE AsterX_SourceTerms IN AsterX_RHSGroup AFTER AsterX_Fluxes_Corrections
 {
   LANG: C
   READS: ADMBaseX::metric(everywhere)

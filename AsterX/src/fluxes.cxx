@@ -490,6 +490,20 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
     fluxmomys(dir)(p.I) = calcflux(lambda, moms_rc(1), flux_moms(1));
     fluxmomzs(dir)(p.I) = calcflux(lambda, moms_rc(2), flux_moms(2));
     fluxtaus(dir)(p.I) = calcflux(lambda, tau_rc, flux_tau);
+
+    /* Apply higher order correction */
+    if ( (correction_order != 2) && (correction_order != 4) && (correction_order != 6))
+        {
+           printf("Incorrect correction order for the fluxes! \n");
+           assert(0);
+        }
+    fluxdenss(dir)(p.I) = higher_order_correction(fluxdenss(dir), p, dir, correction_order);
+    fluxDEnts(dir)(p.I) = higher_order_correction(fluxDEnts(dir), p, dir, correction_order);
+    fluxmomxs(dir)(p.I) = higher_order_correction(fluxmomxs(dir), p, dir, correction_order);
+    fluxmomys(dir)(p.I) = higher_order_correction(fluxmomys(dir), p, dir, correction_order);
+    fluxmomzs(dir)(p.I) = higher_order_correction(fluxmomzs(dir), p, dir, correction_order);
+    fluxtaus(dir)(p.I) = higher_order_correction(fluxtaus(dir), p, dir, correction_order);
+
     fluxBxs(dir)(p.I) =
         (dir != 0) * calcflux(lambda, Btildes_rc(0), flux_Btildes(0));
     fluxBys(dir)(p.I) =
