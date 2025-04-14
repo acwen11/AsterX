@@ -177,7 +177,7 @@ CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T higher_order_correct
       correction = (1067.0/960.0)*gf(p.I) - (29.0/480.0)*( gf(p.I-p.DI[dir]) + gf(p.I+p.DI[dir]) ) + (3.0/640.0)*( gf(p.I-2*p.DI[dir]) + gf(p.I+2*p.DI[dir]) );
    }
    else {
-      correction = 0.0;
+      correction = gf(p.I);
    }
    return correction;
 }
