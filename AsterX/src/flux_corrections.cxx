@@ -24,6 +24,7 @@ template <int dir> void CalcFluxCorrections(CCTK_ARGUMENTS) {
   
   /* grid functions for fluxes */
   const vec<GF3D2<CCTK_REAL>, dim> fluxdenss{fxdens, fydens, fzdens};
+  const vec<GF3D2<CCTK_REAL>, dim> fluxDEnts{fxDEnt, fyDEnt, fzDEnt};
   const vec<GF3D2<CCTK_REAL>, dim> fluxmomxs{fxmomx, fymomx, fzmomx};
   const vec<GF3D2<CCTK_REAL>, dim> fluxmomys{fxmomy, fymomy, fzmomy};
   const vec<GF3D2<CCTK_REAL>, dim> fluxmomzs{fxmomz, fymomz, fzmomz};
@@ -33,6 +34,7 @@ template <int dir> void CalcFluxCorrections(CCTK_ARGUMENTS) {
   const vec<GF3D2<CCTK_REAL>, dim> fluxBzs{fxBz, fyBz, fzBz};
 
   const vec<GF3D2<CCTK_REAL>, dim> fluxdenss_HO{fHOxdens, fHOydens, fHOzdens};
+  const vec<GF3D2<CCTK_REAL>, dim> fluxDEnts_HO{fHOxDEnt, fHOyDEnt, fHOzDEnt};
   const vec<GF3D2<CCTK_REAL>, dim> fluxmomxs_HO{fHOxmomx, fHOymomx, fHOzmomx};
   const vec<GF3D2<CCTK_REAL>, dim> fluxmomys_HO{fHOxmomy, fHOymomy, fHOzmomy};
   const vec<GF3D2<CCTK_REAL>, dim> fluxmomzs_HO{fHOxmomz, fHOymomz, fHOzmomz};
@@ -57,10 +59,25 @@ template <int dir> void CalcFluxCorrections(CCTK_ARGUMENTS) {
     }
 
     fluxdenss_HO(dir)(p.I) = higher_order_correction(fluxdenss(dir), p, dir, correction_order);
+    fluxDEnts_HO(dir)(p.I) = higher_order_correction(fluxDEnts(dir), p, dir, correction_order);
     fluxmomxs_HO(dir)(p.I) = higher_order_correction(fluxmomxs(dir), p, dir, correction_order);
     fluxmomys_HO(dir)(p.I) = higher_order_correction(fluxmomys(dir), p, dir, correction_order);
     fluxmomzs_HO(dir)(p.I) = higher_order_correction(fluxmomzs(dir), p, dir, correction_order);
     fluxtaus_HO(dir)(p.I) = higher_order_correction(fluxtaus(dir), p, dir, correction_order);
+
+		if (isnan(fluxdenss_HO(dir)(p.I)) || isnan(fluxDEnts_HO(dir)(p.I)) ||
+			isnan(fluxmomxs_HO(dir)(p.I)) || isnan(fluxmomys_HO(dir)(p.I)) || isnan(fluxmomzs_HO(dir)(p.I)) ||
+			isnan(fluxtaus_HO(dir)(p.I))) {
+			printf("cctk_iteration = %i,  dir = %i,  ijk = %i, %i, %i, "
+			     "x, y, z = %16.8e, %16.8e, %16.8e.\n",
+			     cctk_iteration, dir, p.i, p.j, p.k, p.x, p.y, p.z);
+			printf("  fluxHOdenss = %16.8e,\n", fluxdenss_HO(dir)(p.I));
+			printf("  fluxHODEnts = %16.8e,\n", fluxDEnts_HO(dir)(p.I));
+			printf("  fluxHOmoms  = %16.8e, %16.8e, %16.8e,\n", fluxmomxs_HO(dir)(p.I),
+			       fluxmomys_HO(dir)(p.I), fluxmomzs_HO(dir)(p.I));
+			printf("  fluxHOtaus  = %16.8e,\n", fluxtaus_HO(dir)(p.I));
+			assert(0);
+		}
 
   });
 
@@ -73,6 +90,7 @@ template <int dir> void CalcFluxCorrections(CCTK_ARGUMENTS) {
                                          &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
 
     fluxdenss(dir)(p.I) = fluxdenss_HO(dir)(p.I);
+    fluxDEnts(dir)(p.I) = fluxDEnts_HO(dir)(p.I);
     fluxmomxs(dir)(p.I) = fluxmomxs_HO(dir)(p.I);
     fluxmomys(dir)(p.I) = fluxmomys_HO(dir)(p.I);
     fluxmomzs(dir)(p.I) = fluxmomzs_HO(dir)(p.I);
