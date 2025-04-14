@@ -589,6 +589,14 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
 			assert(0);
 		}
 	}
+  else {
+		fluxLOdenss(dir)(p.I) = 0.0; 
+		fluxLODEnts(dir)(p.I) = 0.0; 
+		fluxLOmomxs(dir)(p.I) = 0.0; 
+		fluxLOmomys(dir)(p.I) = 0.0; 
+		fluxLOmomzs(dir)(p.I) = 0.0; 
+		fluxLOtaus(dir)(p.I) =  0.0;
+  }
 
     if (isnan(dens_rc(0)) || isnan(dens_rc(1)) || isnan(moms_rc(0)(0)) ||
         isnan(moms_rc(0)(1)) || isnan(moms_rc(1)(0)) || isnan(moms_rc(1)(1)) ||
