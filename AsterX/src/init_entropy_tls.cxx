@@ -17,7 +17,7 @@ enum class eos_t { IdealGas, Hybrid, Tabulated };
 extern "C" void AsterX_InitEntropyTLs(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_InitEntropyTLs;
   DECLARE_CCTK_PARAMETERS;
-  
+
   eos_t eostype;
   if (CCTK_EQUALS(evolution_eos, "IdealGas")) {
     eostype = eos_t::IdealGas;

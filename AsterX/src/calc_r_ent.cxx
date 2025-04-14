@@ -26,21 +26,21 @@ extern "C" void AsterX_CalcPhysEntropy(CCTK_ARGUMENTS) {
   // defining EOS objects
   eos_t eostype;
   if (CCTK_EQUALS(evolution_eos, "IdealGas")) {
-  	eostype = eos_t::IdealGas;
+    eostype = eos_t::IdealGas;
   } else if (CCTK_EQUALS(evolution_eos, "Hybrid")) {
-  	eostype = eos_t::Hybrid;
+    eostype = eos_t::Hybrid;
   } else if (CCTK_EQUALS(evolution_eos, "Tabulated")) {
-  	eostype = eos_t::Tabulated;
+    eostype = eos_t::Tabulated;
   } else {
-  	CCTK_ERROR("Unknown value for parameter \"evolution_eos\"");
+    CCTK_ERROR("Unknown value for parameter \"evolution_eos\"");
   }
-   
+
   grid.loop_all_device<1, 1, 1>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         switch (eostype) {
         case eos_t::IdealGas: {
-          phys_ent(p.I) = std::log(entropy(p.I));	
+          phys_ent(p.I) = std::log(entropy(p.I));
           break;
         }
         case eos_t::Hybrid: {
@@ -67,7 +67,7 @@ extern "C" void AsterX_CalcEntropyResidual(CCTK_ARGUMENTS) {
   // Derivs boilerplate
   Arith::vect<int, dim> imin, imax;
   const std::array<int, dim> nghostzones = {
-        cctk_nghostzones[0], cctk_nghostzones[1], cctk_nghostzones[2]};
+      cctk_nghostzones[0], cctk_nghostzones[1], cctk_nghostzones[2]};
   GridDescBase(cctkGH).box_int<1, 1, 1>(nghostzones, imin, imax);
   const GF3D5layout layout5(imin, imax);
   const Arith::vect<CCTK_REAL, dim> dx(std::array<CCTK_REAL, dim>{
@@ -89,8 +89,8 @@ extern "C" void AsterX_CalcEntropyResidual(CCTK_ARGUMENTS) {
   const GF3D5<CCTK_REAL> t5_s(make_gf());
   const Arith::vec<GF3D5<CCTK_REAL>, dim> t5_ds(make_vec_gf());
 
-  Derivs::calc_derivs<1, 1, 1>(t5_s, t5_ds, layout5, grid,
-                                phys_ent, dx, efl_deriv_order);
+  Derivs::calc_derivs<1, 1, 1>(t5_s, t5_ds, layout5, grid, phys_ent, dx,
+                               efl_deriv_order);
 
   // Prep spacetime GFs
   const vec<GF3D2<const CCTK_REAL>, dim> gf_beta{betax, betay, betaz};
@@ -98,21 +98,22 @@ extern "C" void AsterX_CalcEntropyResidual(CCTK_ARGUMENTS) {
   grid.loop_int_device<1, 1, 1>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-
         // Calculate spatial contraction
         const GF3D5index index5(layout5, p.I);
         const vec<CCTK_REAL, 3> di_s = t5_ds(index5);
 
         const CCTK_REAL alp_avg = calc_avg_v2c(alp, p);
         const vec<CCTK_REAL, 3> betas_avg(
-                [&](int i) ARITH_INLINE { return calc_avg_v2c(gf_beta(i), p); });
+            [&](int i) ARITH_INLINE { return calc_avg_v2c(gf_beta(i), p); });
         const vec<CCTK_REAL, 3> vels{velx(p.I), vely(p.I), velx(p.I)};
-        
-        const CCTK_REAL v_dis = calc_contraction(alp_avg * vels - betas_avg, di_s);
+
+        const CCTK_REAL v_dis =
+            calc_contraction(alp_avg * vels - betas_avg, di_s);
 
         // Calculate d_t s
-        const CCTK_REAL i2dt = 1 / (2 * cctk_delta_time);	
-        const CCTK_REAL dts = i2dt * (3 * phys_ent(p.I) - 4 * ent_m1(p.I) + ent_m2(p.I));
+        const CCTK_REAL i2dt = 1 / (2 * cctk_delta_time);
+        const CCTK_REAL dts =
+            i2dt * (3 * phys_ent(p.I) - 4 * ent_m1(p.I) + ent_m2(p.I));
 
         // Calculate R
         r_ent(p.I) = std::abs(dts + v_dis);
