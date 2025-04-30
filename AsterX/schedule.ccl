@@ -142,25 +142,18 @@ SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_Con2PrimGroup AFTER AsterX_Compute
 SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBstag
 {
   LANG: C
-  READS: ADMBaseX::metric(interior)
+  READS: ADMBaseX::metric(everywhere)
   READS: ADMBaseX::lapse(everywhere)
-  READS: dens(interior) tau(interior) DEnt(interior) mom(interior) dB(interior)
-  READS: saved_prims(interior)
-  READS: Avec_x(interior) Avec_y(interior) Avec_z(interior)
-  WRITES: con2prim_flag(interior)
-  WRITES: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::Bvec(interior) 
-  WRITES: HydroBaseX::entropy(interior)
-  WRITES: saved_prims(interior)
-  WRITES: zvec(interior)
-  WRITES: svec(interior)
-  WRITES: dens(interior) tau(interior) DEnt(interior) mom(interior) dB(interior)
-  SYNC: con2prim_flag
-  SYNC: HydroBaseX::rho HydroBaseX::vel HydroBaseX::eps HydroBaseX::press HydroBaseX::Bvec 
-  SYNC: HydroBaseX::entropy
-  SYNC: saved_prims
-  SYNC: zvec
-  SYNC: svec
-  SYNC: dens tau DEnt mom dB
+  READS: dens(everywhere) tau(everywhere) DEnt(everywhere) mom(everywhere) dB(everywhere)
+  READS: saved_prims(everywhere)
+  READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
+  WRITES: con2prim_flag(everywhere)
+  WRITES: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::Bvec(everywhere)
+  WRITES: HydroBaseX::entropy(everywhere)
+  WRITES: saved_prims(everywhere)
+  WRITES: zvec(everywhere)
+  WRITES: svec(everywhere)
+  WRITES: dens(everywhere) tau(everywhere) DEnt(everywhere) mom(everywhere) dB(everywhere)
 } "Calculate primitive variables from conservative variables"
 
 
