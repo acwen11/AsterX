@@ -194,7 +194,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
   }};
   constexpr auto dir_arr = dir_arr_table[dir];
 
-  grid.loop_int_device<
+  grid.loop_mix_device<
       face_centred[0], face_centred[1],
       face_centred
           [2]>(grid.nghostzones, [=] CCTK_DEVICE(

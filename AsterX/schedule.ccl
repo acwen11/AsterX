@@ -104,6 +104,14 @@ if (zero_psi) {
   } "Set Psi, time component of 4-vector potential, to zero initially"
 }
 
+SCHEDULE AsterX_FluxZero_Initial IN AsterX_InitialGroup AFTER AsterX_Prim2Con_Initial
+{
+  LANG: C
+  WRITES: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
+  WRITES: vtilde_xface(everywhere) vtilde_yface(everywhere) vtilde_zface(everywhere)
+  WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
+} "Set Fluxes to zero initially"
+
 SCHEDULE AsterX_Sync AT postregrid
 {
   LANG: C
@@ -178,13 +186,16 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   READS: zvec_x(everywhere) zvec_y(everywhere) zvec_z(everywhere)
   READS: svec_x(everywhere) svec_y(everywhere) svec_z(everywhere)
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere) Psi(everywhere)
-  WRITES: flux_x(interior) flux_y(interior) flux_z(interior)
+  READS: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
+  READS: vtilde_xface(everywhere) vtilde_yface(everywhere) vtilde_zface(everywhere)
+  READS: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
+  WRITES: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
+  WRITES: vtilde_xface(everywhere) vtilde_yface(everywhere) vtilde_zface(everywhere)
+  WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
   WRITES: Aux_in_RHSof_A_Psi(interior)
-  WRITES: vtilde_xface(interior) vtilde_yface(interior) vtilde_zface(interior)
-  WRITES: a_xface(interior) a_yface(interior) a_zface(interior)
   SYNC: Aux_in_RHSof_A_Psi
-  SYNC: flux_x flux_y flux_z
-  SYNC: vtilde_xface vtilde_yface vtilde_zface a_xface a_yface a_zface
+  #SYNC: flux_x flux_y flux_z
+  #SYNC: vtilde_xface vtilde_yface vtilde_zface a_xface a_yface a_zface
 } "Calculate the hydro fluxes"
 
 SCHEDULE AsterX_SourceTerms IN AsterX_RHSGroup AFTER AsterX_Fluxes
