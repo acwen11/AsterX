@@ -696,7 +696,7 @@ Numerical/AEILocalInterp
 !TARGET   = $ARR
 !TYPE     = git
 !URL      = https://github.com/lwJi/CarpetX.git
-!REPO_BRANCH = feature/subcycle
+!REPO_BRANCH = reordersubstep
 !REPO_PATH= $2
 !CHECKOUT =
 CarpetX/ADMBaseX
