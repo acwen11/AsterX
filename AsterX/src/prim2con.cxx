@@ -44,11 +44,9 @@ extern "C" void AsterX_Prim2Con_Initial(CCTK_ARGUMENTS) {
         tau(p.I) = cv.tau;
         dBx(p.I) = cv.dBvec(0);
         dBy(p.I) = cv.dBvec(1);
-        dBz(p.I) = cv.dBvec(2); 
+        dBz(p.I) = cv.dBvec(2);
         DEnt(p.I) = cv.DEnt;
-
       });
-
 }
 
 extern "C" void AsterX_PsiZero_Initial(CCTK_ARGUMENTS) {
@@ -59,6 +57,66 @@ extern "C" void AsterX_PsiZero_Initial(CCTK_ARGUMENTS) {
   grid.loop_all_device<0, 0, 0>(
       grid.nghostzones, [=] CCTK_DEVICE(const PointDesc &p)
                             CCTK_ATTRIBUTE_ALWAYS_INLINE { Psi(p.I) = 0.0; });
+}
+
+extern "C" void AsterX_FluxZero_Initial(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_FluxZero_Initial;
+  DECLARE_CCTK_PARAMETERS;
+
+  /* Initilaize Flux to 0.0 */
+  grid.loop_all_device<0, 1, 1>(grid.nghostzones,
+                                [=] CCTK_DEVICE(const PointDesc &p)
+                                    CCTK_ATTRIBUTE_ALWAYS_INLINE {
+                                      fxdens(p.I) = 0.0;
+                                      fxmomx(p.I) = 0.0;
+                                      fxmomy(p.I) = 0.0;
+                                      fxmomz(p.I) = 0.0;
+                                      fxtau(p.I) = 0.0;
+                                      fxDEnt(p.I) = 0.0;
+                                      fxBx(p.I) = 0.0;
+                                      fxBy(p.I) = 0.0;
+                                      fxBz(p.I) = 0.0;
+                                      vtilde_y_xface(p.I) = 0.0;
+                                      vtilde_z_xface(p.I) = 0.0;
+                                      amax_xface(p.I) = 0.0;
+                                      amin_xface(p.I) = 0.0;
+                                    });
+
+  grid.loop_all_device<1, 0, 1>(grid.nghostzones,
+                                [=] CCTK_DEVICE(const PointDesc &p)
+                                    CCTK_ATTRIBUTE_ALWAYS_INLINE {
+                                      fydens(p.I) = 0.0;
+                                      fymomx(p.I) = 0.0;
+                                      fymomy(p.I) = 0.0;
+                                      fymomz(p.I) = 0.0;
+                                      fytau(p.I) = 0.0;
+                                      fyDEnt(p.I) = 0.0;
+                                      fyBx(p.I) = 0.0;
+                                      fyBy(p.I) = 0.0;
+                                      fyBz(p.I) = 0.0;
+                                      vtilde_x_yface(p.I) = 0.0;
+                                      vtilde_z_yface(p.I) = 0.0;
+                                      amax_yface(p.I) = 0.0;
+                                      amin_yface(p.I) = 0.0;
+                                    });
+
+  grid.loop_all_device<1, 1, 0>(grid.nghostzones,
+                                [=] CCTK_DEVICE(const PointDesc &p)
+                                    CCTK_ATTRIBUTE_ALWAYS_INLINE {
+                                      fzdens(p.I) = 0.0;
+                                      fzmomx(p.I) = 0.0;
+                                      fzmomy(p.I) = 0.0;
+                                      fzmomz(p.I) = 0.0;
+                                      fztau(p.I) = 0.0;
+                                      fzDEnt(p.I) = 0.0;
+                                      fzBx(p.I) = 0.0;
+                                      fzBy(p.I) = 0.0;
+                                      fzBz(p.I) = 0.0;
+                                      vtilde_x_zface(p.I) = 0.0;
+                                      vtilde_y_zface(p.I) = 0.0;
+                                      amax_zface(p.I) = 0.0;
+                                      amin_zface(p.I) = 0.0;
+                                    });
 }
 
 } // namespace AsterX
