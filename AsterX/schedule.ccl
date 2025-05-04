@@ -192,8 +192,6 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   WRITES: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
   WRITES: vtilde_xface(everywhere) vtilde_yface(everywhere) vtilde_zface(everywhere)
   WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
-  #SYNC: flux_x flux_y flux_z
-  #SYNC: vtilde_xface vtilde_yface vtilde_zface a_xface a_yface a_zface
 } "Calculate the hydro fluxes"
 
 if (CCTK_EQUALS(vector_potential_gauge, "generalized Lorentz")) {
