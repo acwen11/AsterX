@@ -654,8 +654,8 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
   });
 }
 
-void CalcAuxForAvecPsi(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_AsterX_Fluxes;
+extern "C" void AsterX_CalcAuxTermsForAvecPsiRHS(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_CalcAuxTermsForAvecPsiRHS;
   DECLARE_CCTK_PARAMETERS;
 
   const vec<GF3D2<const CCTK_REAL>, dim> gf_Avecs{Avec_x, Avec_y, Avec_z};
@@ -731,9 +731,6 @@ extern "C" void AsterX_Fluxes(CCTK_ARGUMENTS) {
   default:
     assert(0);
   }
-
-  /* Set auxiliary variables for the rhs of A and Psi  */
-  CalcAuxForAvecPsi(cctkGH);
 }
 
 } // namespace AsterX
