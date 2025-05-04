@@ -121,16 +121,22 @@ SCHEDULE AsterX_Sync AT postregrid
   SYNC: saved_prims
 } "Synchronize"
 
-SCHEDULE AsterX_Sync IN ODESolvers_PostStep
-{
-  LANG: C
-  OPTIONS: global
-  SYNC: dens tau mom DEnt Avec_x Avec_y Avec_z Psi
-} "Synchronize"
+if(!use_subcycling_wip || use_odesolvers_poststep_during_rksubsteps) {
+  SCHEDULE AsterX_Sync IN ODESolvers_PostStep
+  {
+    LANG: C
+    OPTIONS: global
+    SYNC: dens tau mom DEnt Avec_x Avec_y Avec_z Psi
+  } "Synchronize"
+}
 
 
 
 SCHEDULE GROUP AsterX_Con2PrimGroup IN ODESolvers_PostStep BEFORE TmunuBaseX_SetTmunuVars AFTER AsterX_Sync
+{
+} "Compute primitive variables"
+
+SCHEDULE GROUP AsterX_Con2PrimGroup IN ODESolvers_PostSubStep
 {
 } "Compute primitive variables"
 
