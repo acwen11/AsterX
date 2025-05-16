@@ -311,6 +311,7 @@ c2p_1DPalenzuela::solve(const EOSType &eos_th, prim_vars &pv,
   const smat<CCTK_REAL, 3> gup = calc_inv(glo, spatial_detg);
 
   /* Undensitize the conserved vars */
+  /* Make sure to return densitized values later on! */
   cv.dens /= sqrt_detg;
   cv.tau /= sqrt_detg;
   cv.mom /= sqrt_detg;
@@ -318,11 +319,12 @@ c2p_1DPalenzuela::solve(const EOSType &eos_th, prim_vars &pv,
   cv.dYe /= sqrt_detg;
   cv.DEnt  /= sqrt_detg;
 
-  if (cv.dens <= atmo.rho_cut) {
-    rep.set_atmo_set();
-    atmo.set(pv, cv, glo);
-    return;
-  }
+  //if (cv.dens <= atmo.rho_cut) {
+  //  rep.set_atmo_set();
+  //  pv.Bvec = cv.dBvec;
+  //  atmo.set(pv, cv, glo);
+  //  return;
+  //}
 
   const CCTK_REAL Ssq = get_Ssq_Exact(cv.mom, gup);
   const CCTK_REAL Bsq = get_Bsq_Exact(cv.dBvec, glo);
@@ -424,6 +426,10 @@ c2p_1DPalenzuela::solve(const EOSType &eos_th, prim_vars &pv,
 
     CCTK_REAL small = 1e-50;
 
+    // note that we don't compute the error in 
+    // the conserved entropy as this quantity doesn't
+    // include shock heating and might be therefore
+    // inconsistent
     CCTK_REAL max_error = sqrt(max({pow((cv_check.dens-cv.dens)/(cv.dens+small),2.0),
                                     pow((cv_check.mom(0)-cv.mom(0))/(cv.mom(0)+small),2.0),
                                     pow((cv_check.mom(1)-cv.mom(1))/(cv.mom(1)+small),2.0),
@@ -436,9 +442,18 @@ c2p_1DPalenzuela::solve(const EOSType &eos_th, prim_vars &pv,
       // set status to root not converged
       rep.set_root_conv();
       //status = ROOTSTAT::NOT_CONVERGED;
+      cv.dens *= sqrt_detg;
+      cv.tau *= sqrt_detg;
+      cv.mom *= sqrt_detg;
+      cv.dBvec *= sqrt_detg;
+      cv.dYe *= sqrt_detg;
+      cv.DEnt *= sqrt_detg;
       return;
     }
   }
+
+  // Conserved entropy must be consistent with new prims
+  cv.DEnt = cv.dens*pv.entropy;
 
   // set to atmo if computed rho is below floor density
   if (pv.rho < atmo.rho_cut) {

@@ -264,7 +264,7 @@ c2p_1DEntropy::solve(const EOSType &eos_th, prim_vars &pv, cons_vars &cv,
   const CCTK_REAL spatial_detg = calc_det(glo);
   const CCTK_REAL sqrt_detg = sqrt(spatial_detg);
 
-  // if ((!isfinite(sqrt_detg)) || (sqrt_detg <= 0)) {
+  //if ((!isfinite(sqrt_detg)) || (sqrt_detg <= 0)) {
   //  rep.set_invalid_detg(sqrt_detg);
   //  set_to_nan(pv, cv);
   //  return;
@@ -286,6 +286,7 @@ c2p_1DEntropy::solve(const EOSType &eos_th, prim_vars &pv, cons_vars &cv,
   const smat<CCTK_REAL, 3> gup = calc_inv(glo, spatial_detg);
 
   /* Undensitize the conserved vars */
+  /* Make sure to return densitized values later on! */
   cv.dens /= sqrt_detg;
   cv.tau /= sqrt_detg;
   cv.mom /= sqrt_detg;
@@ -293,11 +294,12 @@ c2p_1DEntropy::solve(const EOSType &eos_th, prim_vars &pv, cons_vars &cv,
   cv.dYe /= sqrt_detg;
   cv.DEnt /= sqrt_detg;
 
-  if (cv.dens <= atmo.rho_cut) {
-    rep.set_atmo_set();
-    atmo.set(pv, cv, glo);
-    return;
-  }
+  //if (cv.dens <= atmo.rho_cut) {
+  //  rep.set_atmo_set();
+  //  pv.Bvec = cv.dBvec;
+  //  atmo.set(pv, cv, glo);
+  //  return;
+  //}
 
   const CCTK_REAL Ssq = get_Ssq_Exact(cv.mom, gup);
   const CCTK_REAL Bsq = get_Bsq_Exact(cv.dBvec, glo);
@@ -375,17 +377,25 @@ c2p_1DEntropy::solve(const EOSType &eos_th, prim_vars &pv, cons_vars &cv,
 
     CCTK_REAL small = 1e-50;
 
+    // note that we don't compute the error in 
+    // tau as we make use of the conserved entropy
+    // for the inversion
     CCTK_REAL max_error = sqrt(max({pow((cv_check.dens-cv.dens)/(cv.dens+small),2.0),
                                     pow((cv_check.mom(0)-cv.mom(0))/(cv.mom(0)+small),2.0),
                                     pow((cv_check.mom(1)-cv.mom(1))/(cv.mom(1)+small),2.0),
-                                    pow((cv_check.mom(2)-cv.mom(2))/(cv.mom(2)+small),2.0),
-                                    pow((cv_check.tau-cv.tau)/(cv.tau+small),2.0)}));  
+                                    pow((cv_check.mom(2)-cv.mom(2))/(cv.mom(2)+small),2.0)}));  
 
     // reject only if mismatch in conservatives is inappropriate, else accept
     if (max_error >= cons_error) { 
       // set status to root not converged
       rep.set_root_conv();
       //status = ROOTSTAT::NOT_CONVERGED;
+      cv.dens *= sqrt_detg;
+      cv.tau *= sqrt_detg;
+      cv.mom *= sqrt_detg;
+      cv.dBvec *= sqrt_detg;
+      cv.dYe *= sqrt_detg;
+      cv.DEnt *= sqrt_detg;
       return;
     }
   }

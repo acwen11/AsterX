@@ -7,14 +7,31 @@
 #include <cstdio>
 #include <cstdbool>
 #include <cmath>
+#include <cstdlib> // Needed for rand()
 
 #include "FM_disk_implementation.hxx"
 #include "FM_disk_utils.hxx"
+
+namespace FMdisk {
+
+using namespace AsterUtils;
 
 extern "C" void FishboneMoncrief_ET_GRHD_initial(CCTK_ARGUMENTS) {
 
   DECLARE_CCTK_ARGUMENTSX_FishboneMoncrief_ET_GRHD_initial;
   DECLARE_CCTK_PARAMETERS;
+
+  // Set type of atmosphere
+  atmosphere_t atm_t;
+  if (CCTK_EQUALS(atmo_type, "isentropic-graded")) {
+    atm_t = atmosphere_t::isentropic_graded;
+  } else if (CCTK_EQUALS(atmo_type, "free-graded")) {
+    atm_t = atmosphere_t::free_graded;
+  } else if (CCTK_EQUALS(atmo_type, "constant")) {
+    atm_t = atmosphere_t::constant;
+  } else {
+    CCTK_ERROR("Unknown value for parameter \"atmo_type\"");
+  }
 
   CCTK_VINFO("Fishbone-Moncrief Disk Initial data");
   CCTK_VINFO("Using input parameters of\n a = %e,\n M = %e,\nr_in = "
@@ -27,7 +44,7 @@ extern "C" void FishboneMoncrief_ET_GRHD_initial(CCTK_ARGUMENTS) {
 
   // First compute maximum pressure and density
   const CCTK_REAL hm1_init =
-      FMdisk::GRHD_hm1(xcoord_init, ycoord_init, zcoord_init);
+      GRHD_hm1(xcoord_init, ycoord_init, zcoord_init, M, r_in, a, r_at_max_density);
   const CCTK_REAL rho_max =
       pow(hm1_init * (gamma - 1.0) / (kappa * gamma), 1.0 / (gamma - 1.0));
   const CCTK_REAL P_max = kappa * pow(rho_max, gamma);
@@ -79,10 +96,11 @@ extern "C" void FishboneMoncrief_ET_GRHD_initial(CCTK_ARGUMENTS) {
         CCTK_REAL kDD12_L{ 0. };
         CCTK_REAL kDD22_L{ 0. };
 
-        FMdisk::KerrSchild(xcoord, ycoord, zcoord, alp_L, betaU0_L, betaU1_L,
+        KerrSchild(xcoord, ycoord, zcoord, alp_L, betaU0_L, betaU1_L,
                            betaU2_L, gDD00_L, gDD01_L, gDD02_L, gDD11_L,
                            gDD12_L, gDD22_L, kDD00_L, kDD01_L, kDD02_L, kDD11_L,
-                           kDD12_L, kDD22_L);
+                           kDD12_L, kDD22_L,
+			   M, a);
 
         alp(p.I) = alp_L;
         betax(p.I) = betaU0_L;
@@ -126,7 +144,7 @@ extern "C" void FishboneMoncrief_ET_GRHD_initial(CCTK_ARGUMENTS) {
 
         if (rr > r_in) {
 
-          CCTK_REAL hm1 = FMdisk::GRHD_hm1(xcoord, ycoord, zcoord);
+          CCTK_REAL hm1 = GRHD_hm1(xcoord, ycoord, zcoord, M, r_in, a, r_at_max_density);
 
           if (hm1 > 0) {
 
@@ -141,8 +159,9 @@ extern "C" void FishboneMoncrief_ET_GRHD_initial(CCTK_ARGUMENTS) {
             CCTK_REAL velU1_L{ 0. };
             CCTK_REAL velU2_L{ 0. };
 
-            FMdisk::GRHD_velocities(xcoord, ycoord, zcoord, velU0_L, velU1_L,
-                                    velU2_L);
+            GRHD_velocities(xcoord, ycoord, zcoord, velU0_L, velU1_L,
+                                    velU2_L,
+		            M, a, r_at_max_density);
 
             velx(p.I) = velU0_L;
             vely(p.I) = velU1_L;
@@ -160,10 +179,11 @@ extern "C" void FishboneMoncrief_ET_GRHD_initial(CCTK_ARGUMENTS) {
 
         // Outside the disk? Set to atmosphere all hydrodynamic variables!
         if (set_to_atmosphere) {
+          
+	  switch (atm_t) {
+	  case atmosphere_t::isentropic_graded : {
 
-          if (CCTK_EQUALS(atmo_type, "isentropic-graded")) {
-
-            // Choose an atmosphere such that
+      	    // Choose an atmosphere such that
             //   rho =       1e-5 * r^(-3/2), and
             //   P   = k rho^gamma
             // Add 1e-100 or 1e-300 to rr or rho to avoid divisions by zero.
@@ -173,8 +193,10 @@ extern "C" void FishboneMoncrief_ET_GRHD_initial(CCTK_ARGUMENTS) {
             velx(p.I) = 0.0;
             vely(p.I) = 0.0;
             velz(p.I) = 0.0;
-
-          } else if (CCTK_EQUALS(atmo_type, "free-graded")) {
+	    break;
+          
+	  };
+	  case atmosphere_t::free_graded : {
 
             rho(p.I) = rho_min * pow(rr + 1e-100, -nrho);
             press(p.I) = press_min * pow(rr + 1e-100, -npress);
@@ -182,8 +204,10 @@ extern "C" void FishboneMoncrief_ET_GRHD_initial(CCTK_ARGUMENTS) {
             velx(p.I) = 0.0;
             vely(p.I) = 0.0;
             velz(p.I) = 0.0;
+	    break;
 
-          } else if (CCTK_EQUALS(atmo_type, "constant")) {
+	  };
+	  case atmosphere_t::constant : {
 
             rho(p.I) = rho_min;
             press(p.I) = press_min;
@@ -191,10 +215,10 @@ extern "C" void FishboneMoncrief_ET_GRHD_initial(CCTK_ARGUMENTS) {
             velx(p.I) = 0.0;
             vely(p.I) = 0.0;
             velz(p.I) = 0.0;
+            break;
 
-          } else {
-            CCTK_ERROR("Unknown value for parameter \"atmo_type\"");
-          }
+          };
+	  }
         }
       });
 }
@@ -205,9 +229,10 @@ FishboneMoncrief_ET_GRHD_initial__perturb_pressure(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_FishboneMoncrief_ET_GRHD_initial__perturb_pressure;
   DECLARE_CCTK_PARAMETERS;
 
-  grid.loop_all_device<1, 1, 1>(
+  // rand() is a host function, thus we cannot run the following code on device
+  grid.loop_all<1, 1, 1>(
       grid.nghostzones,
-      [=] CCTK_DEVICE(const Loop::PointDesc & p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+      [=] CCTK_HOST(const Loop::PointDesc & p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
 
         CCTK_REAL xcoord = p.x;
         CCTK_REAL ycoord = p.y;
@@ -219,7 +244,7 @@ FishboneMoncrief_ET_GRHD_initial__perturb_pressure(CCTK_ARGUMENTS) {
 
         if (rr > r_in) {
 
-          hm1 = FMdisk::GRHD_hm1(xcoord, ycoord, zcoord);
+          hm1 = GRHD_hm1(xcoord, ycoord, zcoord, M, r_in, a, r_at_max_density);
 
           if (hm1 > 0) {
 
@@ -227,7 +252,16 @@ FishboneMoncrief_ET_GRHD_initial__perturb_pressure(CCTK_ARGUMENTS) {
             CCTK_REAL eps_L = eps(p.I);
             CCTK_REAL rho_L = rho(p.I);
 
-            FMdisk::GRHD_perturb_pressure(press_L, eps_L, rho_L);
+            // Generate random number in range [0,1),
+            // snippet courtesy http://daviddeley.com/random/crandom.htm
+            const CCTK_REAL random_number_between_0_and_1 =
+                ((CCTK_REAL)rand() / ((CCTK_REAL)(RAND_MAX) + (CCTK_REAL)(1)));
+          
+            const CCTK_REAL random_number_between_min_and_max =
+                random_min + (random_max - random_min) * random_number_between_0_and_1;
+
+            GRHD_perturb_pressure(press_L, eps_L, rho_L,
+			    random_number_between_min_and_max, gamma);
 
             press(p.I) = press_L;
             eps(p.I) = eps_L;
@@ -259,15 +293,16 @@ extern "C" void FishboneMoncrief_Set_A(CCTK_ARGUMENTS) {
         CCTK_REAL ytilde =
             wrt_rho_max ? ycoord - r_at_max_density * sinphi : ycoord;
 
-        CCTK_REAL pressL_stag = FM_Utils::calc_avg_c2e(press, p, 0);
-        CCTK_REAL rhoL_stag = FM_Utils::calc_avg_c2e(rho, p, 0);
+        CCTK_REAL pressL_stag = calc_avg_c2e(press, p, 0);
+        CCTK_REAL rhoL_stag = calc_avg_c2e(rho, p, 0);
 
         CCTK_REAL AxL = 0.;
         CCTK_REAL AyL = 0.;
         CCTK_REAL AzL = 0.;
 
-        FMdisk::GRMHD_set_A(pressL_stag, rhoL_stag, xtilde, ytilde, AxL, AyL,
-                            AzL);
+        GRMHD_set_A(pressL_stag, rhoL_stag, xtilde, ytilde, AxL, AyL,
+                            AzL,
+	            use_pressure, A_b, A_n, A_c, press_cut, rho_cut);
 
         Avec_x(p.I) = AxL;
       });
@@ -289,15 +324,16 @@ extern "C" void FishboneMoncrief_Set_A(CCTK_ARGUMENTS) {
         CCTK_REAL ytilde =
             wrt_rho_max ? ycoord - r_at_max_density * sinphi : ycoord;
 
-        CCTK_REAL pressL_stag = FM_Utils::calc_avg_c2e(press, p, 1);
-        CCTK_REAL rhoL_stag = FM_Utils::calc_avg_c2e(rho, p, 0);
+        CCTK_REAL pressL_stag = calc_avg_c2e(press, p, 1);
+        CCTK_REAL rhoL_stag = calc_avg_c2e(rho, p, 0);
 
         CCTK_REAL AxL = 0.;
         CCTK_REAL AyL = 0.;
         CCTK_REAL AzL = 0.;
 
-        FMdisk::GRMHD_set_A(pressL_stag, rhoL_stag, xtilde, ytilde, AxL, AyL,
-                            AzL);
+        GRMHD_set_A(pressL_stag, rhoL_stag, xtilde, ytilde, AxL, AyL,
+                            AzL,
+	            use_pressure, A_b, A_n, A_c, press_cut, rho_cut);
 
         Avec_y(p.I) = AyL;
       });
@@ -319,15 +355,16 @@ extern "C" void FishboneMoncrief_Set_A(CCTK_ARGUMENTS) {
         CCTK_REAL ytilde =
             wrt_rho_max ? ycoord - r_at_max_density * sinphi : ycoord;
 
-        CCTK_REAL pressL_stag = FM_Utils::calc_avg_c2e(press, p, 2);
-        CCTK_REAL rhoL_stag = FM_Utils::calc_avg_c2e(rho, p, 0);
+        CCTK_REAL pressL_stag = calc_avg_c2e(press, p, 2);
+        CCTK_REAL rhoL_stag = calc_avg_c2e(rho, p, 0);
 
         CCTK_REAL AxL = 0.;
         CCTK_REAL AyL = 0.;
         CCTK_REAL AzL = 0.;
 
-        FMdisk::GRMHD_set_A(pressL_stag, rhoL_stag, xtilde, ytilde, AxL, AyL,
-                            AzL);
+        GRMHD_set_A(pressL_stag, rhoL_stag, xtilde, ytilde, AxL, AyL,
+                            AzL,
+	            use_pressure, A_b, A_n, A_c, press_cut, rho_cut);
 
         Avec_z(p.I) = AzL;
       });
@@ -364,10 +401,11 @@ extern "C" void FishboneMoncrief_Set_Spacetime(CCTK_ARGUMENTS) {
         CCTK_REAL kDD12_L{ 0. };
         CCTK_REAL kDD22_L{ 0. };
 
-        FMdisk::KerrSchild(xcoord, ycoord, zcoord, alp_L, betaU0_L, betaU1_L,
+        KerrSchild(xcoord, ycoord, zcoord, alp_L, betaU0_L, betaU1_L,
                            betaU2_L, gDD00_L, gDD01_L, gDD02_L, gDD11_L,
                            gDD12_L, gDD22_L, kDD00_L, kDD01_L, kDD02_L, kDD11_L,
-                           kDD12_L, kDD22_L);
+                           kDD12_L, kDD22_L,
+			   M, a);
 
         alp(p.I) = alp_L;
         betax(p.I) = betaU0_L;
@@ -396,3 +434,5 @@ extern "C" void FishboneMoncrief_Set_Spacetime(CCTK_ARGUMENTS) {
         kyz(p.I) = kDD12_L;
       });
 }
+
+} // namespace FMdisk

@@ -22,14 +22,14 @@ using namespace AsterUtils;
 struct prim {
   CCTK_REAL rho;
   vec<CCTK_REAL, 3> vel;
-  CCTK_REAL eps, press;
+  CCTK_REAL eps, press, entropy;
   vec<CCTK_REAL, 3> Bvec;
 };
 
 struct cons {
   CCTK_REAL dens;
   vec<CCTK_REAL, 3> mom;
-  CCTK_REAL tau;
+  CCTK_REAL tau, DEnt;
   vec<CCTK_REAL, 3> dBvec;
 };
 
@@ -75,6 +75,8 @@ CCTK_DEVICE CCTK_HOST void prim2con(const smat<CCTK_REAL, 3> &g,
            cv.dens;
 
   cv.dBvec = sqrt_detg * pv.Bvec;
+
+  cv.DEnt = pv.entropy * cv.dens;
 }
 
 } // namespace AsterX

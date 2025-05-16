@@ -7,6 +7,7 @@
 
 namespace AsterX {
 using namespace Loop;
+using namespace std;
 
 extern "C" void AsterX_Prim2Con_Initial(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_Prim2Con_Initial;
@@ -28,6 +29,7 @@ extern "C" void AsterX_Prim2Con_Initial(CCTK_ARGUMENTS) {
         pv.vel(2) = velz(p.I);
         pv.eps = eps(p.I);
         pv.press = press(p.I);
+        pv.entropy = entropy(p.I);
         pv.Bvec(0) = Bvecx(p.I);
         pv.Bvec(1) = Bvecy(p.I);
         pv.Bvec(2) = Bvecz(p.I);
@@ -42,29 +44,16 @@ extern "C" void AsterX_Prim2Con_Initial(CCTK_ARGUMENTS) {
         tau(p.I) = cv.tau;
         dBx(p.I) = cv.dBvec(0);
         dBy(p.I) = cv.dBvec(1);
-        dBz(p.I) = cv.dBvec(2);
-
-        DEnt(p.I) = entropy(p.I)*cv.dens;
-
-        saved_rho(p.I) = pv.rho;
-        saved_velx(p.I) = pv.vel(0);
-        saved_vely(p.I) = pv.vel(1);
-        saved_velz(p.I) = pv.vel(2);
-        saved_eps(p.I) = pv.eps;
-
-	const vec<CCTK_REAL, 3> v_up{pv.vel(0),pv.vel(1),pv.vel(2)};
-        const vec<CCTK_REAL, 3> v_low = calc_contraction(g, v_up);
-        CCTK_REAL wlor = calc_wlorentz(v_low, v_up);
-
-	zvec_x(p.I) = wlor * pv.vel(0);
-	zvec_y(p.I) = wlor * pv.vel(1);
-	zvec_z(p.I) = wlor * pv.vel(2);
-
-	svec_x(p.I) = (pv.rho+pv.rho*pv.eps+pv.press)*wlor*wlor*pv.vel(0);
-	svec_y(p.I) = (pv.rho+pv.rho*pv.eps+pv.press)*wlor*wlor*pv.vel(1);
-	svec_z(p.I) = (pv.rho+pv.rho*pv.eps+pv.press)*wlor*wlor*pv.vel(2);
+        dBz(p.I) = cv.dBvec(2); 
+        DEnt(p.I) = cv.DEnt;
 
       });
+
+}
+
+extern "C" void AsterX_PsiZero_Initial(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_PsiZero_Initial;
+  DECLARE_CCTK_PARAMETERS;
 
   /* Initilaize Psi to 0.0 */
   grid.loop_all_device<0, 0, 0>(

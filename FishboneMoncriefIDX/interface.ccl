@@ -2,5 +2,5 @@ IMPLEMENTS: FishboneMoncriefIDX
 
 INHERITS: ADMBaseX HydroBaseX AsterX
 
-#USES INCLUDE HEADER: fixmath.hxx
 USES INCLUDE HEADER: loop_device.hxx
+USES INCLUDE HEADER: aster_utils.hxx

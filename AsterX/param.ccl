@@ -89,6 +89,10 @@ BOOLEAN update_tmunu "Updates tmunu gridfunctions if set to yes" STEERABLE=alway
 { 
 } yes
 
+BOOLEAN zero_psi "Set Psi, time component of 4-vector potential, to zero initially?" STEERABLE=always
+{
+} yes
+
 SHARES: EOSX
 USES KEYWORD evolution_eos
 USES CCTK_REAL poly_gamma
