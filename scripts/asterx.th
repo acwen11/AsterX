@@ -696,7 +696,7 @@ Numerical/AEILocalInterp
 !TARGET   = $ARR
 !TYPE     = git
 !URL      = https://github.com/lwJi/CarpetX.git
-!REPO_BRANCH = reordersubstep
+!REPO_BRANCH = development
 !REPO_PATH= $2
 !CHECKOUT =
 CarpetX/ADMBaseX
@@ -727,8 +727,8 @@ CarpetX/WaveToyX
 # SpacetimeX thorns
 !TARGET   = $ARR
 !TYPE     = git
-!URL      = https://github.com/EinsteinToolkit/SpacetimeX.git
-!REPO_BRANCH = feature/subcycle
+!URL      = https://github.com/lwJi/SpacetimeX.git
+!REPO_BRANCH = development
 !REPO_PATH= $2
 !CHECKOUT = SpacetimeX/AHFinder SpacetimeX/BaikalX SpacetimeX/BrillLindquist
 #DISABLED SpacetimeX/AHFinder
