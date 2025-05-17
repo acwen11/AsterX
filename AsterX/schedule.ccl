@@ -208,8 +208,8 @@ if (CCTK_EQUALS(vector_potential_gauge, "generalized Lorentz")) {
     READS: ADMBaseX::lapse(everywhere)
     READS: ADMBaseX::shift(everywhere)
     READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere) Psi(everywhere)
-    WRITES: Aux_in_RHSof_A_Psi(interior)
-    SYNC: Aux_in_RHSof_A_Psi
+    READS: Aux_in_RHSof_A_Psi(everywhere)
+    WRITES: Aux_in_RHSof_A_Psi(everywhere)
   } "Calculate the auxiliary terms for the rhs of Avec and Psi"
 }
 
