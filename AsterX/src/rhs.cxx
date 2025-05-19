@@ -222,6 +222,16 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
                                       Avec_z_rhs(p.I) = calcupdate_Avec(p, 2);
                                     });
 
+  if (gauge == vector_potential_gauge_t::generalized_lorentz) {
+    /* The second term of diFi may requires two vertex ghosts, interpolated from
+     * edge-centered Avec, which requires an additional cell, totaling three
+     * cells */
+    for (int d = 0; d < 3; ++d)
+      if (cctk_nghostzones[d] < 3)
+        CCTK_VERROR("Generalized Lorenz Gauge needs at least %d ghost zones",
+                    3);
+  }
+
   const auto calcupdate_Psi =
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         switch (gauge) {
