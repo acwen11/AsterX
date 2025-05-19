@@ -726,11 +726,16 @@ extern "C" void AsterX_CalcAuxTermsForAvecPsiRHS(CCTK_ARGUMENTS) {
         Fx(p.I) = alp(p.I) * sqrtg * Aup(0);
         Fy(p.I) = alp(p.I) * sqrtg * Aup(1);
         Fz(p.I) = alp(p.I) * sqrtg * Aup(2);
-        Fbetax(p.I) = betas(0) * Psi(p.I);
-        Fbetay(p.I) = betas(1) * Psi(p.I);
-        Fbetaz(p.I) = betas(2) * Psi(p.I);
         G(p.I) = alp(p.I) * Psi(p.I) / sqrtg - calc_contraction(betas, A_vert);
       });
+
+  grid.loop_all_device<0, 0, 0>(grid.nghostzones,
+                                [=] CCTK_DEVICE(const PointDesc &p)
+                                    CCTK_ATTRIBUTE_ALWAYS_INLINE {
+                                      Fbetax(p.I) = betax(p.I) * Psi(p.I);
+                                      Fbetay(p.I) = betay(p.I) * Psi(p.I);
+                                      Fbetaz(p.I) = betaz(p.I) * Psi(p.I);
+                                    });
 }
 
 } // namespace AsterX
