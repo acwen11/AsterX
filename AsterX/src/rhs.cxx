@@ -223,13 +223,14 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
                                     });
 
   if (gauge == vector_potential_gauge_t::generalized_lorentz) {
-    /* The second term of diFi may requires two vertex ghosts, interpolated from
-     * edge-centered Avec, which requires an additional cell, totaling three
-     * cells */
+    /* The first term of diFi requires one vertex ghost, interpolated from
+     * edge-centered Avec, requireing at least two ghost cells.
+     * The second term may requires two vertex ghosts or two ghost cells.
+     */
     for (int d = 0; d < 3; ++d)
-      if (cctk_nghostzones[d] < 3)
+      if (cctk_nghostzones[d] < 2)
         CCTK_VERROR("Generalized Lorenz Gauge needs at least %d ghost zones",
-                    3);
+                    2);
   }
 
   const auto calcupdate_Psi =
