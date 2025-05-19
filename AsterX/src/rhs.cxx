@@ -176,7 +176,9 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
       break;
     }
     case vector_potential_gauge_t::generalized_lorentz: {
-      return -E - calc_fd2_v2e(G, p, i); // only interior Gs are required
+      /* The second term requires only interior vertex Gs, constructed using one
+       * ghost of edge-centered As */
+      return -E - calc_fd2_v2e(G, p, i);
       break;
     }
     default:
