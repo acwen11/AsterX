@@ -177,7 +177,7 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
       break;
     }
     case vector_potential_gauge_t::generalized_lorentz: {
-      return -E - calc_fd2_v2e(G, p, i);
+      return -E - calc_fd2_v2e(G, p, i); // only interior Gs are required
       break;
     }
     default:
@@ -234,9 +234,13 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
         }
 
         case vector_potential_gauge_t::generalized_lorentz: {
+          /* diFi on vertices:
+           * 1. the first term requires one ghost point (preferably v2v, but
+           * c2c is also acceptable)
+           * 2. the second term may requires either zero or two ghosts, depend
+           * on beta */
           CCTK_REAL dF = 0.0;
           for (int i = 0; i < dim; i++) {
-            /* diFi on vertices (should be v2v but c2c works too) */
             dF += calc_fd2_c2c(gf_F(i), p, i) -
                   (gf_beta(i)(p.I) < 0
                        ? calc_fd2_v2v_oneside(gf_Fbeta(i), p, i, -1)
