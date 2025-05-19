@@ -224,15 +224,13 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
                                       Avec_z_rhs(p.I) = calcupdate_Avec(p, 2);
                                     });
 
-  grid.loop_int_device<0, 0, 0>(
-      grid.nghostzones,
+  const auto calcupdate_Psi =
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         switch (gauge) {
         case vector_potential_gauge_t::algebraic: {
-          Psi_rhs(p.I) = 0.0;
+          return 0.0;
           break;
         }
-
         case vector_potential_gauge_t::generalized_lorentz: {
           /* diFi on vertices:
            * 1. the first term requires one ghost point (preferably v2v, but
@@ -246,14 +244,18 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
                        ? calc_fd2_v2v_oneside(gf_Fbeta(i), p, i, -1)
                        : calc_fd2_v2v_oneside(gf_Fbeta(i), p, i, 1));
           }
-          Psi_rhs(p.I) = -dF - lorenz_damp_fac * alp(p.I) * Psi(p.I);
+          return -dF - lorenz_damp_fac * alp(p.I) * Psi(p.I);
           break;
         }
-
         default:
           assert(0);
         }
-      });
+      };
+
+  grid.loop_int_device<0, 0, 0>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p)
+          CCTK_ATTRIBUTE_ALWAYS_INLINE { Psi_rhs(p.I) = calcupdate_Psi(p); });
 }
 
 } // namespace AsterX
