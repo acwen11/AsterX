@@ -3,6 +3,7 @@
 STORAGE: dens mom tau DEnt dB Psi HydroBaseX::Bvec dBx_stag dBy_stag dBz_stag
 STORAGE: flux_x flux_y flux_z
 STORAGE: densrhs momrhs taurhs DEntrhs Avec_x_rhs Avec_y_rhs Avec_z_rhs Psi_rhs
+STORAGE: volform w_lorentz
 STORAGE: ADMBaseX::metric ADMBaseX::lapse ADMBaseX::shift ADMBaseX::curv
 STORAGE: Aux_in_RHSof_A_Psi
 STORAGE: TmunuBaseX::eTtt TmunuBaseX::eTti TmunuBaseX::eTij
@@ -159,6 +160,7 @@ SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBsta
   WRITES: zvec(interior)
   WRITES: svec(interior)
   WRITES: dens(interior) tau(interior) DEnt(interior) mom(interior) dB(interior)
+  WRITES: volform(interior) w_lorentz(interior)
   SYNC: con2prim_flag
   SYNC: HydroBaseX::rho HydroBaseX::vel HydroBaseX::eps HydroBaseX::press HydroBaseX::Bvec 
   SYNC: HydroBaseX::entropy
@@ -166,6 +168,7 @@ SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBsta
   SYNC: zvec
   SYNC: svec
   SYNC: dens tau DEnt mom dB
+  SYNC: volform w_lorentz
 } "Calculate primitive variables from conservative variables"
 
 
