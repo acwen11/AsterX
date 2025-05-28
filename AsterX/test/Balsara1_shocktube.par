@@ -65,6 +65,7 @@ AsterSeeds::shock_dir = "x"
 
 AsterX::debug_mode = "yes"
 AsterX::flux_type = "HLLE"
+AsterX::recon_type = "z_vec"
 
 ReconX::reconstruction_method = "PPM"
 
