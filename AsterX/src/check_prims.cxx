@@ -72,10 +72,12 @@ extern "C" void AsterX_CheckPrims(CCTK_ARGUMENTS) {
 
         }
 
-        if (rhoL < rho_abs_min * (1 + atmo_tol)) {
+        // if (rhoL < rho_abs_min * (1 + atmo_tol)) {
+        if (rhoL < eos_th.rgrho.min) {
       
           // add mass
-          rhoL = rho_abs_min;
+          // rhoL = rho_abs_min;
+          rhoL = eos_th.rgrho.min;
           epsL = eos_th.eps_from_valid_rho_press_ye(rho_abs_min, pressL, 0.5);
           entropyL =
               eos_th.kappa_from_valid_rho_eps_ye(rho_abs_min, epsL, 0.5);
