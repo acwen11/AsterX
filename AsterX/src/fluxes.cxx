@@ -5,9 +5,9 @@
 #include <cctk_Parameters.h>
 
 #include <mat.hxx>
-#include <vec.hxx>
-#include <sum.hxx>
 #include <simd.hxx>
+#include <sum.hxx>
+#include <vec.hxx>
 
 #include <algorithm>
 #include <array>
@@ -17,10 +17,10 @@
 #include "eos.hxx"
 #include "eos_idealgas.hxx"
 
+#include "aster_utils.hxx"
 #include "eigenvalues.hxx"
 #include "fluxes.hxx"
 #include "reconstruct.hxx"
-#include "aster_utils.hxx"
 
 namespace AsterX {
 using namespace std;
@@ -65,7 +65,8 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
   const vec<GF3D2<const CCTK_REAL>, dim> gf_zvec{zvec_x, zvec_y, zvec_z};
   const vec<GF3D2<const CCTK_REAL>, dim> gf_svec{svec_x, svec_y, svec_z};
   const vec<GF3D2<const CCTK_REAL>, dim> gf_Bvecs{Bvecx, Bvecy, Bvecz};
-  const vec<GF3D2<const CCTK_REAL>, dim> gf_dBstags{dBx_stag, dBy_stag, dBz_stag};
+  const vec<GF3D2<const CCTK_REAL>, dim> gf_dBstags{dBx_stag, dBy_stag,
+                                                    dBz_stag};
   const vec<GF3D2<const CCTK_REAL>, dim> gf_beta{betax, betay, betaz};
   const smat<GF3D2<const CCTK_REAL>, dim> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
   /* grid functions for Upwind CT */
@@ -194,9 +195,13 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
   constexpr array<int, dim> face_centred = {!(dir == 0), !(dir == 1),
                                             !(dir == 2)};
 
-  constexpr array<int, dim> dir_arr = {(dir==0) ? 2 : ( (dir==1) ? 0 : 1 ), 
-                                       dir,
-                                       (dir==0) ? 1 : ( (dir==1) ? 2 : 0 )};
+  // Precompute mapping table once for clarity and efficiency
+  constexpr array<array<int, 3>, 3> dir_arr_table = {{
+      {0, 1, 2}, // dir == 0: x, y, z
+      {1, 2, 0}, // dir == 1: y, z, x
+      {2, 0, 1}  // dir == 2: z, x, y
+  }};
+  constexpr auto dir_arr = dir_arr_table[dir];
 
   grid.loop_int_device<
       face_centred[0], face_centred[1],
@@ -204,7 +209,6 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
           [2]>(grid.nghostzones, [=] CCTK_DEVICE(
                                      const PointDesc
                                          &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-
     /* Reconstruct primitives from the cells on left (indice 0) and right
      * (indice 1) side of this face rc = reconstructed variables or
      * computed from reconstructed variables */
@@ -254,39 +258,42 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
     });
 
     const vec<CCTK_REAL, 2> rhoh_rc([&](int f) ARITH_INLINE {
-      return rho_rc(f) + rho_rc(f)*eps_rc(f) + press_rc(f);
+      return rho_rc(f) + rho_rc(f) * eps_rc(f) + press_rc(f);
     });
 
     // Introduce reconstructed Bs
     // Use staggered dB for i == dir
-
     vec<vec<CCTK_REAL, 2>, 3> Bs_rc;
-    array<CCTK_REAL,2> Bs_rc_dummy; // note: can't copy array<,2> to vec<,2>, only construct
 
-    Bs_rc(dir)(0) = gf_dBstags(dir)(p.I)/sqrtg;
-    Bs_rc(dir)(1) = Bs_rc(dir)(0);
+    // Assign the value for the primary direction
+    const CCTK_REAL val = gf_dBstags(dir)(p.I) / sqrtg;
+    Bs_rc(dir)(0) = val;
+    Bs_rc(dir)(1) = val;
 
-    Bs_rc_dummy = reconstruct_pt(gf_Bvecs(dir_arr[0]), p, false, false);
-    Bs_rc(dir_arr[0])(0) = Bs_rc_dummy[0];
-    Bs_rc(dir_arr[0])(1) = Bs_rc_dummy[1];
+    // Lambda to assign the reconstructed values
+    auto assign_reconstructed = [&](int d) {
+      const auto tmp = reconstruct_pt(gf_Bvecs(d), p, false, false);
+      Bs_rc(d)(0) = tmp[0];
+      Bs_rc(d)(1) = tmp[1];
+    };
 
-    Bs_rc_dummy = reconstruct_pt(gf_Bvecs(dir_arr[2]), p, false, false);
-    Bs_rc(dir_arr[2])(0) = Bs_rc_dummy[0];
-    Bs_rc(dir_arr[2])(1) = Bs_rc_dummy[1];
-
+    // Assign reconstructed values for the two perpendicular directions
+    assign_reconstructed(dir_arr[1]);
+    assign_reconstructed(dir_arr[2]);
     // End of setting Bs
 
     vec<vec<CCTK_REAL, 2>, 3> vels_rc;
     vec<vec<CCTK_REAL, 2>, 3> vlows_rc;
     vec<CCTK_REAL, 2> w_lorentz_rc;
-    array<CCTK_REAL,2> vels_rc_dummy; // note: can't copy array<,2> to vec<,2>, only construct
+    array<CCTK_REAL, 2>
+        vels_rc_dummy; // note: can't copy array<,2> to vec<,2>, only construct
     switch (rec_var) {
-    case rec_var_t::v_vec : {
+    case rec_var_t::v_vec: {
 
-      for(int i = 0; i <= 2; ++i) { // loop over components
-	      vels_rc_dummy = reconstruct_pt(gf_vels(i), p, false, false);
-	      vels_rc(i)(0) = vels_rc_dummy[0];
-	      vels_rc(i)(1) = vels_rc_dummy[1];
+      for (int i = 0; i <= 2; ++i) { // loop over components
+        vels_rc_dummy = reconstruct_pt(gf_vels(i), p, false, false);
+        vels_rc(i)(0) = vels_rc_dummy[0];
+        vels_rc(i)(1) = vels_rc_dummy[1];
       }
 
       /* co-velocity measured by Eulerian observer: v_j */
@@ -296,49 +303,54 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
       w_lorentz_rc(0) = 1 / sqrt(1 - calc_contraction(vlows_rc, vels_rc)(0));
       w_lorentz_rc(1) = 1 / sqrt(1 - calc_contraction(vlows_rc, vels_rc)(1));
       break;
-
     };
-    case rec_var_t::z_vec : {
-    
+    case rec_var_t::z_vec: {
+
       const vec<vec<CCTK_REAL, 2>, 3> zvec_rc([&](int i) ARITH_INLINE {
-         return vec<CCTK_REAL, 2>{reconstruct_pt(gf_zvec(i), p, false, false)};
+        return vec<CCTK_REAL, 2>{reconstruct_pt(gf_zvec(i), p, false, false)};
       });
 
-      const vec<vec<CCTK_REAL, 2>, 3> zveclow_rc = calc_contraction(g_avg, zvec_rc);
+      const vec<vec<CCTK_REAL, 2>, 3> zveclow_rc =
+          calc_contraction(g_avg, zvec_rc);
 
       w_lorentz_rc(0) = sqrt(1 + calc_contraction(zveclow_rc, zvec_rc)(0));
       w_lorentz_rc(1) = sqrt(1 + calc_contraction(zveclow_rc, zvec_rc)(1));
 
-      for(int i = 0; i <= 2; ++i) { // loop over components
-	      for(int j = 0; j <= 1; ++j) { // loop over left and right state
-		      vels_rc(i)(j) = zvec_rc(i)(j)/w_lorentz_rc(j);
-		      vlows_rc(i)(j) = zveclow_rc(i)(j)/w_lorentz_rc(j);
-	       }
+      for (int i = 0; i <= 2; ++i) {   // loop over components
+        for (int j = 0; j <= 1; ++j) { // loop over left and right state
+          vels_rc(i)(j) = zvec_rc(i)(j) / w_lorentz_rc(j);
+          vlows_rc(i)(j) = zveclow_rc(i)(j) / w_lorentz_rc(j);
+        }
       }
       break;
-
     };
-    case rec_var_t::s_vec : {
+    case rec_var_t::s_vec: {
 
       const vec<vec<CCTK_REAL, 2>, 3> svec_rc([&](int i) ARITH_INLINE {
-         return vec<CCTK_REAL, 2>{reconstruct_pt(gf_svec(i), p, false, false)};
+        return vec<CCTK_REAL, 2>{reconstruct_pt(gf_svec(i), p, false, false)};
       });
 
-      const vec<vec<CCTK_REAL, 2>, 3> sveclow_rc = calc_contraction(g_avg, svec_rc);
+      const vec<vec<CCTK_REAL, 2>, 3> sveclow_rc =
+          calc_contraction(g_avg, svec_rc);
 
-      w_lorentz_rc(0) = sqrt(0.5+sqrt(0.25+calc_contraction(sveclow_rc, svec_rc)(0)/rhoh_rc(0)/rhoh_rc(0)));
-      w_lorentz_rc(1) = sqrt(0.5+sqrt(0.25+calc_contraction(sveclow_rc, svec_rc)(1)/rhoh_rc(1)/rhoh_rc(1)));
+      w_lorentz_rc(0) =
+          sqrt(0.5 + sqrt(0.25 + calc_contraction(sveclow_rc, svec_rc)(0) /
+                                     rhoh_rc(0) / rhoh_rc(0)));
+      w_lorentz_rc(1) =
+          sqrt(0.5 + sqrt(0.25 + calc_contraction(sveclow_rc, svec_rc)(1) /
+                                     rhoh_rc(1) / rhoh_rc(1)));
 
-      //printf("  wlor = %16.8e, %16.8e\n", w_lorentz_rc(0), w_lorentz_rc(1));
+      // printf("  wlor = %16.8e, %16.8e\n", w_lorentz_rc(0), w_lorentz_rc(1));
 
-      for(int i = 0; i <= 2; ++i) { // loop over components
-	      for(int j = 0; j <= 1; ++j) { // loop over left and right state
-		      vels_rc(i)(j) = svec_rc(i)(j)/w_lorentz_rc(j)/w_lorentz_rc(j)/rhoh_rc(j);
-		      vlows_rc(i)(j) = sveclow_rc(i)(j)/w_lorentz_rc(j)/w_lorentz_rc(j)/rhoh_rc(j);
-	       }
+      for (int i = 0; i <= 2; ++i) {   // loop over components
+        for (int j = 0; j <= 1; ++j) { // loop over left and right state
+          vels_rc(i)(j) =
+              svec_rc(i)(j) / w_lorentz_rc(j) / w_lorentz_rc(j) / rhoh_rc(j);
+          vlows_rc(i)(j) =
+              sveclow_rc(i)(j) / w_lorentz_rc(j) / w_lorentz_rc(j) / rhoh_rc(j);
+        }
       }
       break;
-
     };
     }
 
@@ -445,7 +457,8 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
     const vec<CCTK_REAL, 2> flux_dens(
         [&](int f) ARITH_INLINE { return dens_rc(f) * vtilde_rc(f); });
 
-    /* flux(DEnt) = sqrt(g) * D * s * vtilde^i = sqrt(g) * rho * W * s * vtilde^i */
+    /* flux(DEnt) = sqrt(g) * D * s * vtilde^i = sqrt(g) * rho * W * s *
+     * vtilde^i */
     const vec<CCTK_REAL, 2> flux_DEnt(
         [&](int f) ARITH_INLINE { return DEnt_rc(f) * vtilde_rc(f); });
 
@@ -657,8 +670,8 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
              moms_rc(2)(0), moms_rc(2)(1));
       printf("  tau_rc  = %16.8e, %16.8e,\n", tau_rc(0), tau_rc(1));
       printf("  Bs_rc  = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e,\n",
-             Bs_rc(0)(0), Bs_rc(0)(1), Bs_rc(1)(0),
-             Bs_rc(1)(1), Bs_rc(2)(0), Bs_rc(2)(1));
+             Bs_rc(0)(0), Bs_rc(0)(1), Bs_rc(1)(0), Bs_rc(1)(1), Bs_rc(2)(0),
+             Bs_rc(2)(1));
       printf("  Bts_rc  = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e,\n",
              Btildes_rc(0)(0), Btildes_rc(0)(1), Btildes_rc(1)(0),
              Btildes_rc(1)(1), Btildes_rc(2)(0), Btildes_rc(2)(1));
@@ -705,29 +718,28 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
     }
 
     /* Begin code for upwindCT */
-        // if dir==0: dir1=1, dir2=2 | dir==1: dir1=2, dir2=0 | dir==2; dir1=0,
-        // dir2=1
+    // if dir==0: dir1=1, dir2=2 | dir==1: dir1=2, dir2=0 | dir==2; dir1=0,
+    // dir2=1
 
-        const int dir1 = (dir == 0) ? 1 : ((dir == 1) ? 2 : 0);
-        const int dir2 = (dir == 0) ? 2 : ((dir == 1) ? 0 : 1);
+    const int dir1 = (dir == 0) ? 1 : ((dir == 1) ? 2 : 0);
+    const int dir2 = (dir == 0) ? 2 : ((dir == 1) ? 0 : 1);
 
-        amax(dir)(p.I) = max({CCTK_REAL(0), lambda(0)(0), lambda(0)(1),
-                              lambda(0)(2), lambda(0)(3), lambda(1)(0),
-                              lambda(1)(1), lambda(1)(2), lambda(1)(3)});
+    amax(dir)(p.I) = max({CCTK_REAL(0), lambda(0)(0), lambda(0)(1),
+                          lambda(0)(2), lambda(0)(3), lambda(1)(0),
+                          lambda(1)(1), lambda(1)(2), lambda(1)(3)});
 
-        amin(dir)(p.I) = -1 * (min({CCTK_REAL(0), lambda(0)(0), lambda(0)(1),
-                                    lambda(0)(2), lambda(0)(3), lambda(1)(0),
-                                    lambda(1)(1), lambda(1)(2), lambda(1)(3)}));
+    amin(dir)(p.I) = -1 * (min({CCTK_REAL(0), lambda(0)(0), lambda(0)(1),
+                                lambda(0)(2), lambda(0)(3), lambda(1)(0),
+                                lambda(1)(1), lambda(1)(2), lambda(1)(3)}));
 
-        vtildes_one(dir)(p.I) = (amax(dir)(p.I) * vtildes_rc(dir1)(0) +
-                                 amin(dir)(p.I) * vtildes_rc(dir1)(1)) /
-                                (amax(dir)(p.I) + amin(dir)(p.I));
-        vtildes_two(dir)(p.I) = (amax(dir)(p.I) * vtildes_rc(dir2)(0) +
-                                 amin(dir)(p.I) * vtildes_rc(dir2)(1)) /
-                                (amax(dir)(p.I) + amin(dir)(p.I));
+    vtildes_one(dir)(p.I) = (amax(dir)(p.I) * vtildes_rc(dir1)(0) +
+                             amin(dir)(p.I) * vtildes_rc(dir1)(1)) /
+                            (amax(dir)(p.I) + amin(dir)(p.I));
+    vtildes_two(dir)(p.I) = (amax(dir)(p.I) * vtildes_rc(dir2)(0) +
+                             amin(dir)(p.I) * vtildes_rc(dir2)(1)) /
+                            (amax(dir)(p.I) + amin(dir)(p.I));
 
-        /* End code for upwindCT */
-
+    /* End code for upwindCT */
   });
 }
 
