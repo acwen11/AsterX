@@ -88,6 +88,7 @@ extern "C" void AsterX_FluxZero_Initial(CCTK_ARGUMENTS) {
                                       fxmomz(p.I) = 0.0;
                                       fxtau(p.I) = 0.0;
                                       fxDEnt(p.I) = 0.0;
+                                      fxDYe(p.I) = 0.0;
                                       fxBx(p.I) = 0.0;
                                       fxBy(p.I) = 0.0;
                                       fxBz(p.I) = 0.0;
@@ -106,6 +107,7 @@ extern "C" void AsterX_FluxZero_Initial(CCTK_ARGUMENTS) {
                                       fymomz(p.I) = 0.0;
                                       fytau(p.I) = 0.0;
                                       fyDEnt(p.I) = 0.0;
+                                      fyDYe(p.I) = 0.0;
                                       fyBx(p.I) = 0.0;
                                       fyBy(p.I) = 0.0;
                                       fyBz(p.I) = 0.0;
@@ -124,6 +126,7 @@ extern "C" void AsterX_FluxZero_Initial(CCTK_ARGUMENTS) {
                                       fzmomz(p.I) = 0.0;
                                       fztau(p.I) = 0.0;
                                       fzDEnt(p.I) = 0.0;
+                                      fzDYe(p.I) = 0.0;
                                       fzBx(p.I) = 0.0;
                                       fzBy(p.I) = 0.0;
                                       fzBz(p.I) = 0.0;

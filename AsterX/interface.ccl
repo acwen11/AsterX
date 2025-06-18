@@ -22,7 +22,7 @@ CCTK_REAL mom TYPE=gf CENTERING={ccc} TAGS='rhs="momrhs" dependents="HydroBaseX:
 
 CCTK_REAL tau TYPE=gf CENTERING={ccc} TAGS='rhs="taurhs" dependents="HydroBaseX::eps HydroBaseX::press HydroBaseX::temperature HydroBaseX::Ye HydroBaseX::Bvec TmunuBaseX::eTij"' "Conserved internal energy density"
 
-CCTK_REAL DYe TYPE=gf CENTERING={ccc} TAGS='rhs="DYe_rhs" dependents="HydroBaseX::Ye AsterX::flux_x AsterX::flux_y AsterX::flux_z"' "Conserved electron fraction"
+CCTK_REAL DYe TYPE=gf CENTERING={ccc} TAGS='rhs="DYe_rhs" dependents="HydroBaseX::Ye"' "Conserved electron fraction"
 
 # DEnt is the conserved "evolved" entropy.
 # The corresponding primitive is stored in HydroBaseX::entropy.

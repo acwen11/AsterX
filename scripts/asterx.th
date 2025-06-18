@@ -730,16 +730,13 @@ CarpetX/WaveToyX
 !URL      = https://github.com/lwJi/SpacetimeX.git
 !REPO_BRANCH = development
 !REPO_PATH= $2
-!CHECKOUT = SpacetimeX/AHFinder SpacetimeX/BaikalX SpacetimeX/BrillLindquist
-#DISABLED SpacetimeX/AHFinder
-#DISABLED SpacetimeX/BaikalX
-#DISABLED SpacetimeX/BrillLindquist
+!CHECKOUT =
 SpacetimeX/Cowling
 SpacetimeX/NewRadX
-SpacetimeX/Punctures
-SpacetimeX/StaticTrumpet
+#SpacetimeX/Punctures
+#SpacetimeX/StaticTrumpet
 SpacetimeX/TwoPuncturesX
-SpacetimeX/Weyl
+#SpacetimeX/Weyl
 SpacetimeX/Z4c
 
 # AsterX thorns
