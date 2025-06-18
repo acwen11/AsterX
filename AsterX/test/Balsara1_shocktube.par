@@ -37,13 +37,13 @@ CarpetX::xmax = +0.5
 CarpetX::ymax = +0.5
 CarpetX::zmax = +0.5
 
-CarpetX::boundary_x = "linear extrapolation"
-CarpetX::boundary_y = "linear extrapolation"
-CarpetX::boundary_z = "linear extrapolation"
+CarpetX::boundary_x = "neumann"
+CarpetX::boundary_y = "neumann"
+CarpetX::boundary_z = "neumann"
 
-CarpetX::boundary_upper_x = "linear extrapolation"
-CarpetX::boundary_upper_y = "linear extrapolation"
-CarpetX::boundary_upper_z = "linear extrapolation"
+CarpetX::boundary_upper_x = "neumann"
+CarpetX::boundary_upper_y = "neumann"
+CarpetX::boundary_upper_z = "neumann"
 
 CarpetX::ncells_x = $ncells
 CarpetX::ncells_y = 2
