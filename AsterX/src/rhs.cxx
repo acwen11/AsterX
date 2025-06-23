@@ -1,11 +1,11 @@
+#include <array>
 #include <cctk.h>
 #include <cctk_Arguments.h>
 #include <cctk_Parameters.h>
 #include <loop_device.hxx>
-#include <array>
 
-#include "reconstruct.hxx"
 #include "aster_utils.hxx"
+#include "reconstruct.hxx"
 
 namespace AsterX {
 using namespace Loop;
@@ -177,6 +177,8 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
       break;
     }
     case vector_potential_gauge_t::generalized_lorentz: {
+      /* The second term requires only interior vertex Gs, constructed using one
+       * ghost of edge-centered As */
       return -E - calc_fd2_v2e(G, p, i);
       break;
     }
@@ -224,32 +226,49 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
                                       Avec_z_rhs(p.I) = calcupdate_Avec(p, 2);
                                     });
 
-  grid.loop_int_device<0, 0, 0>(
-      grid.nghostzones,
+  if (gauge == vector_potential_gauge_t::generalized_lorentz) {
+    /* The first term of diFi requires one vertex ghost, interpolated from
+     * edge-centered Avec, requireing at least two ghost cells.
+     * The second term may requires two vertex ghosts or two ghost cells.
+     */
+    for (int d = 0; d < 3; ++d)
+      if (cctk_nghostzones[d] < 2)
+        CCTK_VERROR("Generalized Lorenz Gauge needs at least %d ghost zones",
+                    2);
+  }
+
+  const auto calcupdate_Psi =
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         switch (gauge) {
         case vector_potential_gauge_t::algebraic: {
-          Psi_rhs(p.I) = 0.0;
+          return 0.0;
           break;
         }
-
         case vector_potential_gauge_t::generalized_lorentz: {
+          /* diFi on vertices:
+           * 1. the first term requires one ghost point (preferably v2v, but
+           * c2c is also acceptable)
+           * 2. the second term may requires either zero or two ghosts, depend
+           * on beta */
           CCTK_REAL dF = 0.0;
           for (int i = 0; i < dim; i++) {
-            /* diFi on vertices (should be v2v but c2c works too) */
             dF += calc_fd2_c2c(gf_F(i), p, i) -
                   (gf_beta(i)(p.I) < 0
                        ? calc_fd2_v2v_oneside(gf_Fbeta(i), p, i, -1)
                        : calc_fd2_v2v_oneside(gf_Fbeta(i), p, i, 1));
           }
-          Psi_rhs(p.I) = -dF - lorenz_damp_fac * alp(p.I) * Psi(p.I);
+          return -dF - lorenz_damp_fac * alp(p.I) * Psi(p.I);
           break;
         }
-
         default:
           assert(0);
         }
-      });
+      };
+
+  grid.loop_int_device<0, 0, 0>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p)
+          CCTK_ATTRIBUTE_ALWAYS_INLINE { Psi_rhs(p.I) = calcupdate_Psi(p); });
 }
 
 } // namespace AsterX

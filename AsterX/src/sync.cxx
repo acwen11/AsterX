@@ -7,8 +7,6 @@ namespace AsterX {
 ////////////////////////////////////////////////////////////////////////////////
 
 extern "C" void AsterX_Sync(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_AsterX_Sync;
-
   // do nothing
 }
 
