@@ -59,6 +59,11 @@ extern "C" void AsterX_PsiZero_Initial(CCTK_ARGUMENTS) {
   grid.loop_all_device<0, 0, 0>(
       grid.nghostzones, [=] CCTK_DEVICE(const PointDesc &p)
                             CCTK_ATTRIBUTE_ALWAYS_INLINE { Psi(p.I) = 0.0; });
+}
+
+extern "C" void AsterX_FluxZero_Initial(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_FluxZero_Initial;
+  DECLARE_CCTK_PARAMETERS;
 
   /* Auxiliary variables for rhs of Avec and Psi */
   grid.loop_all_device<0, 0, 0>(grid.nghostzones,
@@ -72,11 +77,6 @@ extern "C" void AsterX_PsiZero_Initial(CCTK_ARGUMENTS) {
                                       Fbetaz(p.I) = 0.0;
                                       G(p.I) = 0.0;
                                     });
-}
-
-extern "C" void AsterX_FluxZero_Initial(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_AsterX_FluxZero_Initial;
-  DECLARE_CCTK_PARAMETERS;
 
   /* Initilaize Flux to 0.0 */
   grid.loop_all_device<0, 1, 1>(grid.nghostzones,

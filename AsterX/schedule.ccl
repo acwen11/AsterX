@@ -101,32 +101,32 @@ if (zero_psi) {
   {
     LANG: C
     WRITES: Psi(everywhere)
-    WRITES: Aux_in_RHSof_A_Psi(everywhere)
-  } "Set Psi, time component of 4-vector potential, to zero initially"
+  } "Set Psi to zero initially"
 
   SCHEDULE AsterX_PsiZero_Initial AT postregrid
   {
     LANG: C
     WRITES: Psi(everywhere)
-    WRITES: Aux_in_RHSof_A_Psi(everywhere)
-  } "Set Psi, time component of 4-vector potential, to zero initially"
+  } "Set Psi to zero initially"
 }
 
 SCHEDULE AsterX_FluxZero_Initial IN AsterX_InitialGroup AFTER AsterX_Prim2Con_Initial
 {
   LANG: C
+  WRITES: Aux_in_RHSof_A_Psi(everywhere)
   WRITES: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
   WRITES: vtilde_xface(everywhere) vtilde_yface(everywhere) vtilde_zface(everywhere)
   WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
-} "Set Fluxes to zero initially"
+} "Set Fluxes and Auxiliary variables to zero initially"
 
 SCHEDULE AsterX_FluxZero_Initial AT postregrid
 {
   LANG: C
+  WRITES: Aux_in_RHSof_A_Psi(everywhere)
   WRITES: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
   WRITES: vtilde_xface(everywhere) vtilde_yface(everywhere) vtilde_zface(everywhere)
   WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
-} "Set Fluxes to zero initially"
+} "Set Fluxes and Auxiliary variables to zero initially"
 
 SCHEDULE AsterX_Sync AT postregrid
 {
