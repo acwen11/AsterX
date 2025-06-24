@@ -104,7 +104,7 @@ if (zero_psi) {
   } "Set Psi to zero initially"
 }
 
-SCHEDULE AsterX_FluxZero_Initial IN AsterX_InitialGroup AFTER AsterX_Prim2Con_Initial
+SCHEDULE AsterX_FluxAuxZero_Initial IN AsterX_InitialGroup AFTER AsterX_Prim2Con_Initial
 {
   LANG: C
   WRITES: Aux_in_RHSof_A_Psi(everywhere)
@@ -113,7 +113,7 @@ SCHEDULE AsterX_FluxZero_Initial IN AsterX_InitialGroup AFTER AsterX_Prim2Con_In
   WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
 } "Set Fluxes and Auxiliary variables to zero initially"
 
-SCHEDULE AsterX_FluxZero_Initial AT postregrid
+SCHEDULE AsterX_FluxAuxZero_Initial AT postregrid
 {
   LANG: C
   WRITES: Aux_in_RHSof_A_Psi(everywhere)

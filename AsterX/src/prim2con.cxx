@@ -61,8 +61,8 @@ extern "C" void AsterX_PsiZero_Initial(CCTK_ARGUMENTS) {
                             CCTK_ATTRIBUTE_ALWAYS_INLINE { Psi(p.I) = 0.0; });
 }
 
-extern "C" void AsterX_FluxZero_Initial(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_AsterX_FluxZero_Initial;
+extern "C" void AsterX_FluxAuxZero_Initial(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_FluxAuxZero_Initial;
   DECLARE_CCTK_PARAMETERS;
 
   /* Auxiliary variables for rhs of Avec and Psi */
