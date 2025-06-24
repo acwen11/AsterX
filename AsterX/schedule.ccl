@@ -164,6 +164,7 @@ SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBsta
   READS: saved_prims(everywhere)
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
   WRITES: con2prim_flag(everywhere)
+  WRITES: AsterMasks::aster_mask_cc(everywhere)
   WRITES: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::Bvec(everywhere) 
   WRITES: HydroBaseX::temperature(everywhere) HydroBaseX::entropy(everywhere) HydroBaseX::Ye(everywhere)
   WRITES: saved_prims(everywhere)
