@@ -113,6 +113,14 @@ SCHEDULE AsterX_FluxZero_Initial IN AsterX_InitialGroup AFTER AsterX_Prim2Con_In
   WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
 } "Set Fluxes to zero initially"
 
+SCHEDULE AsterX_FluxZero_Initial AT postregrid
+{
+  LANG: C
+  WRITES: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
+  WRITES: vtilde_xface(everywhere) vtilde_yface(everywhere) vtilde_zface(everywhere)
+  WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
+} "Set Fluxes to zero initially"
+
 SCHEDULE AsterX_Sync AT postregrid
 {
   LANG: C
