@@ -135,7 +135,13 @@ SCHEDULE AsterX_Sync AT postregrid
 {
   LANG: C
   OPTIONS: global
-  SYNC: dens tau mom DEnt DYe Avec_x Avec_y Avec_z Psi
+  SYNC: saved_prims
+} "Synchronize"
+
+SCHEDULE AsterX_Sync AT post_recover_variables
+{
+  LANG: C
+  OPTIONS: global
   SYNC: saved_prims
 } "Synchronize"
 
