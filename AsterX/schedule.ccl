@@ -103,6 +103,13 @@ if (zero_psi) {
     WRITES: Psi(everywhere)
     WRITES: Aux_in_RHSof_A_Psi(everywhere)
   } "Set Psi, time component of 4-vector potential, to zero initially"
+
+  SCHEDULE AsterX_PsiZero_Initial AT postregrid
+  {
+    LANG: C
+    WRITES: Psi(everywhere)
+    WRITES: Aux_in_RHSof_A_Psi(everywhere)
+  } "Set Psi, time component of 4-vector potential, to zero initially"
 }
 
 SCHEDULE AsterX_FluxZero_Initial IN AsterX_InitialGroup AFTER AsterX_Prim2Con_Initial
