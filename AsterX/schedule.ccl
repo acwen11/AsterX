@@ -102,12 +102,6 @@ if (zero_psi) {
     LANG: C
     WRITES: Psi(everywhere)
   } "Set Psi to zero initially"
-
-  SCHEDULE AsterX_PsiZero_Initial AT postregrid
-  {
-    LANG: C
-    WRITES: Psi(everywhere)
-  } "Set Psi to zero initially"
 }
 
 SCHEDULE AsterX_FluxZero_Initial IN AsterX_InitialGroup AFTER AsterX_Prim2Con_Initial
