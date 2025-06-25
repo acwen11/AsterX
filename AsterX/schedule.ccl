@@ -131,14 +131,14 @@ SCHEDULE AsterX_FluxAuxZero_Initial AT post_recover_variables
   WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
 } "Set Fluxes and Auxiliary variables to zero initially"
 
-SCHEDULE AsterX_Sync AT postregrid
+SCHEDULE AsterX_Sync_SavedPrimsOnly AT postregrid
 {
   LANG: C
   OPTIONS: global
   SYNC: saved_prims
 } "Synchronize"
 
-SCHEDULE AsterX_Sync AT post_recover_variables
+SCHEDULE AsterX_Sync_SavedPrimsOnly AT post_recover_variables
 {
   LANG: C
   OPTIONS: global
