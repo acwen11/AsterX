@@ -14,6 +14,7 @@ ActiveThorns = "
     TmunuBaseX
     AsterX
     AsterSeeds
+    AsterMasks
 "
 
 $nlevels	= 1

@@ -20,11 +20,7 @@
 
 namespace Con2PrimFactory {
 
-enum class ROOTSTAT {
-  SUCCESS,
-  NOT_CONVERGED,
-  NOT_BRACKETED
-};
+enum class ROOTSTAT { SUCCESS, NOT_CONVERGED, NOT_BRACKETED };
 
 } // namespace Con2PrimFactory
 

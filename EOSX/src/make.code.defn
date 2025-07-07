@@ -1,8 +1,8 @@
-# Main make.code.defn file for thorn EOSX
-# $Header:$
+#Main make.code.defn file for thorn EOSX
+#$Header : $
 
-# Source files in this directory
-SRCS = #eos_idealgas.cxx
+#Source files in this directory
+SRCS = setup_eos.cxx
 
-# Subdirectories containing source files
-SUBDIRS = 
+#Subdirectories containing source files
+           SUBDIRS =

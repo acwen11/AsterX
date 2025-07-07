@@ -16,7 +16,6 @@ using namespace std;
 using namespace Loop;
 using namespace AsterUtils;
 
-
 } // namespace AsterSeeds
 
 #endif // SEEDS_UTILS_HXX

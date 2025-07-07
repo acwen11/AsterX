@@ -6,8 +6,7 @@
 
 #include <cmath>
 
-#include "eos.hxx"
-#include "eos_idealgas.hxx"
+#include "setup_eos.hxx"
 #include "seeds_utils.hxx"
 
 namespace AsterSeeds {
@@ -21,11 +20,13 @@ extern "C" void Tests1D_Initialize(CCTK_ARGUMENTS) {
   DECLARE_CCTK_PARAMETERS;
 
   // For all the tests, the initial data EOS is ideal gas
-  // Constructing the IG EOS object
-  eos::range rgeps(eps_min, eps_max), rgrho(rho_min, rho_max),
-      rgye(ye_min, ye_max);
-
-  const eos_idealgas eos_th(gl_gamma, particle_mass, rgeps, rgrho, rgye);
+  // Get local eos object
+  auto eos_3p_ig = global_eos_3p_ig;
+  if (not CCTK_EQUALS(evolution_eos, "IdealGas")) {
+    CCTK_VERROR("Invalid evolution EOS type '%s'. Please, set "
+                "EOSX::evolution_eos = \"IdealGas\" in your parameter file.",
+                evolution_eos);
+  }
   const CCTK_REAL dummy_ye = 0.5;
 
   const bool rot_off = ((rotate_angle_x == 0.0) && (rotate_angle_y == 0.0) &&
@@ -43,8 +44,8 @@ extern "C" void Tests1D_Initialize(CCTK_ARGUMENTS) {
           vely(p.I) = 0.0;
           velz(p.I) = 0.0;
           press(p.I) = 1.0;
-          eps(p.I) = eos_th.eps_from_valid_rho_press_ye(rho(p.I), press(p.I),
-                                                        dummy_ye);
+          eps(p.I) = eos_3p_ig->eps_from_valid_rho_press_ye(
+              rho(p.I), press(p.I), dummy_ye);
         });
 
     grid.loop_all_device<1, 0, 0>(
@@ -71,8 +72,8 @@ extern "C" void Tests1D_Initialize(CCTK_ARGUMENTS) {
           vely(p.I) = 0.0;
           velz(p.I) = 0.0;
           press(p.I) = 1.0; // should add kinetic energy here
-          eps(p.I) = eos_th.eps_from_valid_rho_press_ye(rho(p.I), press(p.I),
-                                                        dummy_ye);
+          eps(p.I) = eos_3p_ig->eps_from_valid_rho_press_ye(
+              rho(p.I), press(p.I), dummy_ye);
         });
 
     grid.loop_all_device<1, 0, 0>(
@@ -103,8 +104,8 @@ extern "C" void Tests1D_Initialize(CCTK_ARGUMENTS) {
           vely(p.I) = -va * A0 * cos(k * p.x);
           velz(p.I) = -va * A0 * sin(k * p.x);
           press(p.I) = 0.5; // should add kinetic energy here
-          eps(p.I) = eos_th.eps_from_valid_rho_press_ye(rho(p.I), press(p.I),
-                                                        dummy_ye);
+          eps(p.I) = eos_3p_ig->eps_from_valid_rho_press_ye(
+              rho(p.I), press(p.I), dummy_ye);
         });
 
     grid.loop_all_device<1, 0, 0>(
@@ -142,8 +143,8 @@ extern "C" void Tests1D_Initialize(CCTK_ARGUMENTS) {
             velz(p.I) = 0.0;
             press(p.I) = 1.0;
           }
-          eps(p.I) = eos_th.eps_from_valid_rho_press_ye(rho(p.I), press(p.I),
-                                                        dummy_ye);
+          eps(p.I) = eos_3p_ig->eps_from_valid_rho_press_ye(
+              rho(p.I), press(p.I), dummy_ye);
         });
 
     grid.loop_all_device<1, 0, 0>(
@@ -376,8 +377,8 @@ extern "C" void Tests1D_Initialize(CCTK_ARGUMENTS) {
             velz(p.I) = oldvrs(2);
             press(p.I) = pressr;
           }
-          eps(p.I) = eos_th.eps_from_valid_rho_press_ye(rho(p.I), press(p.I),
-                                                        dummy_ye);
+          eps(p.I) = eos_3p_ig->eps_from_valid_rho_press_ye(
+              rho(p.I), press(p.I), dummy_ye);
         });
 
     // Set up Avec (only support oldBs that have at least one zero component):
@@ -389,41 +390,41 @@ extern "C" void Tests1D_Initialize(CCTK_ARGUMENTS) {
     };
 
     if (rot_off) {
-      grid.loop_all_device<1, 0, 0>(
-          grid.nghostzones,
-          [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-            const auto newxs =
-                transform_vec(R, vec<CCTK_REAL, 3>{p.x, p.y, p.z});
-            if (newxs(0) <= 0.0) {
-              Avec_x(p.I) = oldBls(1) * (p.z);
-            } else {
-              Avec_x(p.I) = oldBrs(1) * (p.z);
-            }
-          });
+      grid.loop_all_device<
+          1, 0, 0>(grid.nghostzones, [=] CCTK_DEVICE(
+                                         const PointDesc
+                                             &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        const auto newxs = transform_vec(R, vec<CCTK_REAL, 3>{p.x, p.y, p.z});
+        if (newxs(0) <= 0.0) {
+          Avec_x(p.I) = oldBls(1) * (p.z);
+        } else {
+          Avec_x(p.I) = oldBrs(1) * (p.z);
+        }
+      });
 
-      grid.loop_all_device<0, 1, 0>(
-          grid.nghostzones,
-          [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-            const auto newxs =
-                transform_vec(R, vec<CCTK_REAL, 3>{p.x, p.y, p.z});
-            if (newxs(0) <= 0.0) {
-              Avec_y(p.I) = oldBls(2) * (p.x);
-            } else {
-              Avec_y(p.I) = oldBrs(2) * (p.x);
-            }
-          });
+      grid.loop_all_device<
+          0, 1, 0>(grid.nghostzones, [=] CCTK_DEVICE(
+                                         const PointDesc
+                                             &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        const auto newxs = transform_vec(R, vec<CCTK_REAL, 3>{p.x, p.y, p.z});
+        if (newxs(0) <= 0.0) {
+          Avec_y(p.I) = oldBls(2) * (p.x);
+        } else {
+          Avec_y(p.I) = oldBrs(2) * (p.x);
+        }
+      });
 
-      grid.loop_all_device<0, 0, 1>(
-          grid.nghostzones,
-          [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-            const auto newxs =
-                transform_vec(R, vec<CCTK_REAL, 3>{p.x, p.y, p.z});
-            if (newxs(0) <= 0.0) {
-              Avec_z(p.I) = oldBls(0) * (p.y);
-            } else {
-              Avec_z(p.I) = oldBrs(0) * (p.y);
-            }
-          });
+      grid.loop_all_device<
+          0, 0, 1>(grid.nghostzones, [=] CCTK_DEVICE(
+                                         const PointDesc
+                                             &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        const auto newxs = transform_vec(R, vec<CCTK_REAL, 3>{p.x, p.y, p.z});
+        if (newxs(0) <= 0.0) {
+          Avec_z(p.I) = oldBls(0) * (p.y);
+        } else {
+          Avec_z(p.I) = oldBrs(0) * (p.y);
+        }
+      });
     } else {
 
       if ((are_all_components_nonzero(oldBls)) ||
@@ -431,53 +432,53 @@ extern "C" void Tests1D_Initialize(CCTK_ARGUMENTS) {
         CCTK_ERROR("All non-zero B components not supported yet.");
       }
 
-      grid.loop_all_device<1, 0, 0>(
-          grid.nghostzones,
-          [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-            const auto newxs =
-                transform_vec(R, vec<CCTK_REAL, 3>{p.x, p.y, p.z});
-            if (newxs(0) <= 0.0) {
-              Avec_x(p.I) = (abs(oldBls(0)) < tiny)
-                                ? 0.0
-                                : oldBls(1) * (p.z) - oldBls(2) * (p.y);
-            } else {
-              Avec_x(p.I) = (abs(oldBrs(0)) < tiny)
-                                ? 0.0
-                                : oldBrs(1) * (p.z) - oldBrs(2) * (p.y);
-            }
-          });
+      grid.loop_all_device<
+          1, 0, 0>(grid.nghostzones, [=] CCTK_DEVICE(
+                                         const PointDesc
+                                             &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        const auto newxs = transform_vec(R, vec<CCTK_REAL, 3>{p.x, p.y, p.z});
+        if (newxs(0) <= 0.0) {
+          Avec_x(p.I) = (abs(oldBls(0)) < tiny)
+                            ? 0.0
+                            : oldBls(1) * (p.z) - oldBls(2) * (p.y);
+        } else {
+          Avec_x(p.I) = (abs(oldBrs(0)) < tiny)
+                            ? 0.0
+                            : oldBrs(1) * (p.z) - oldBrs(2) * (p.y);
+        }
+      });
 
-      grid.loop_all_device<0, 1, 0>(
-          grid.nghostzones,
-          [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-            const auto newxs =
-                transform_vec(R, vec<CCTK_REAL, 3>{p.x, p.y, p.z});
-            if (newxs(0) <= 0.0) {
-              Avec_y(p.I) = (abs(oldBls(1)) < tiny)
-                                ? 0.0
-                                : oldBls(2) * (p.x) - oldBls(0) * (p.z);
-            } else {
-              Avec_y(p.I) = (abs(oldBrs(1)) < tiny)
-                                ? 0.0
-                                : oldBrs(2) * (p.x) - oldBrs(0) * (p.z);
-            }
-          });
+      grid.loop_all_device<
+          0, 1, 0>(grid.nghostzones, [=] CCTK_DEVICE(
+                                         const PointDesc
+                                             &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        const auto newxs = transform_vec(R, vec<CCTK_REAL, 3>{p.x, p.y, p.z});
+        if (newxs(0) <= 0.0) {
+          Avec_y(p.I) = (abs(oldBls(1)) < tiny)
+                            ? 0.0
+                            : oldBls(2) * (p.x) - oldBls(0) * (p.z);
+        } else {
+          Avec_y(p.I) = (abs(oldBrs(1)) < tiny)
+                            ? 0.0
+                            : oldBrs(2) * (p.x) - oldBrs(0) * (p.z);
+        }
+      });
 
-      grid.loop_all_device<0, 0, 1>(
-          grid.nghostzones,
-          [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-            const auto newxs =
-                transform_vec(R, vec<CCTK_REAL, 3>{p.x, p.y, p.z});
-            if (newxs(0) <= 0.0) {
-              Avec_z(p.I) = (abs(oldBls(2)) < tiny)
-                                ? 0.0
-                                : (oldBls(0) * (p.y) - oldBls(1) * (p.x));
-            } else {
-              Avec_z(p.I) = (abs(oldBrs(2)) < tiny)
-                                ? 0.0
-                                : (oldBrs(0) * (p.y) - oldBrs(1) * (p.x));
-            }
-          });
+      grid.loop_all_device<
+          0, 0, 1>(grid.nghostzones, [=] CCTK_DEVICE(
+                                         const PointDesc
+                                             &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        const auto newxs = transform_vec(R, vec<CCTK_REAL, 3>{p.x, p.y, p.z});
+        if (newxs(0) <= 0.0) {
+          Avec_z(p.I) = (abs(oldBls(2)) < tiny)
+                            ? 0.0
+                            : (oldBls(0) * (p.y) - oldBls(1) * (p.x));
+        } else {
+          Avec_z(p.I) = (abs(oldBrs(2)) < tiny)
+                            ? 0.0
+                            : (oldBrs(0) * (p.y) - oldBrs(1) * (p.x));
+        }
+      });
     }
 
   } else {

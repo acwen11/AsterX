@@ -1,0 +1,65 @@
+#---------------- HydroBase parameters ----------------
+# shares: HydroBaseX
+# 
+# EXTENDS KEYWORD initial_Y_e
+# {
+#   "ID_TabEOS_HydroQuantities" :: "Initial electron fraction"
+# }
+# 
+# EXTENDS KEYWORD initial_temperature
+# {
+#   "ID_TabEOS_HydroQuantities" :: "Initial temperature"
+# }
+# 
+# EXTENDS KEYWORD initial_entropy
+# {
+#   "ID_TabEOS_HydroQuantities" :: "Initial entropy"
+# }
+# 
+# EXTENDS KEYWORD initial_hydro
+# {
+#   "ID_TabEOS_HydroQuantities" :: "Initial hydro vars"
+# }
+
+#----------------- Initial data files -----------------
+restricted:
+CCTK_STRING Y_e_filename "Initial data file for electron fraction"
+{
+  ".+" :: "Any nonempty string"
+  ""   :: "Forbidden value"
+} ""
+
+restricted:
+CCTK_STRING temperature_filename "Initial data file for temperature"
+{
+  ".+" :: "Any nonempty string"
+  ""   :: "Forbidden value"
+} ""
+
+#----------------- Initial data type ------------------
+restricted:
+CCTK_STRING id_temperature_type "Type of initial temperature"
+{
+  "constant"  :: "Constant initial temperature"
+  "from file" :: "Read initial temperature from file (as a function of density)"
+} "constant"
+
+restricted:
+CCTK_STRING id_entropy_type "Type of initial entropy"
+{
+  "none"   :: "entropy not set"
+  "constant"   :: "Constant initial entropy"
+  "from table" :: "Set initial entropy from (rho,Ye,T) using the EOS table"
+} "from table"
+
+SHARES: Con2PrimFactory
+USES CCTK_REAL rho_abs_min
+USES CCTK_REAL atmo_tol
+USES CCTK_REAL eps_atmo
+USES CCTK_REAL p_atmo
+USES CCTK_REAL t_atmo
+USES CCTK_REAL Ye_atmo
+USES CCTK_REAL r_atmo
+USES CCTK_REAL n_rho_atmo
+USES CCTK_REAL n_press_atmo
+USES CCTK_REAL n_temp_atmo

@@ -1,0 +1,73 @@
+performance:
+  10:
+    evolution-seconds: 2.05797
+    evolution-compute-seconds: 2.05639
+    evolution-output-seconds: 0.00158501
+    evolution-cell-updates: 3200
+    evolution-iterations: 10
+  20:
+    evolution-seconds: 4.10389
+    evolution-compute-seconds: 4.10074
+    evolution-output-seconds: 0.00315118
+    evolution-cell-updates: 6400
+    evolution-iterations: 20
+  30:
+    evolution-seconds: 6.17674
+    evolution-compute-seconds: 6.17201
+    evolution-output-seconds: 0.0047307
+    evolution-cell-updates: 9600
+    evolution-iterations: 30
+  40:
+    evolution-seconds: 8.26101
+    evolution-compute-seconds: 8.25465
+    evolution-output-seconds: 0.00636792
+    evolution-cell-updates: 12800
+    evolution-iterations: 40
+  50:
+    evolution-seconds: 10.3561
+    evolution-compute-seconds: 10.3385
+    evolution-output-seconds: 0.017657
+    evolution-cell-updates: 16000
+    evolution-iterations: 50
+  60:
+    evolution-seconds: 12.4417
+    evolution-compute-seconds: 12.4224
+    evolution-output-seconds: 0.0193088
+    evolution-cell-updates: 19200
+    evolution-iterations: 60
+  70:
+    evolution-seconds: 14.5261
+    evolution-compute-seconds: 14.5052
+    evolution-output-seconds: 0.0209379
+    evolution-cell-updates: 22400
+    evolution-iterations: 70
+  80:
+    evolution-seconds: 16.6116
+    evolution-compute-seconds: 16.589
+    evolution-output-seconds: 0.0225711
+    evolution-cell-updates: 25600
+    evolution-iterations: 80
+  90:
+    evolution-seconds: 18.6973
+    evolution-compute-seconds: 18.6731
+    evolution-output-seconds: 0.0241973
+    evolution-cell-updates: 28800
+    evolution-iterations: 90
+  100:
+    evolution-seconds: 20.7839
+    evolution-compute-seconds: 20.758
+    evolution-output-seconds: 0.0258553
+    evolution-cell-updates: 32000
+    evolution-iterations: 100
+  110:
+    evolution-seconds: 22.8699
+    evolution-compute-seconds: 22.8423
+    evolution-output-seconds: 0.0275233
+    evolution-cell-updates: 35200
+    evolution-iterations: 110
+  120:
+    evolution-seconds: 24.9556
+    evolution-compute-seconds: 24.9264
+    evolution-output-seconds: 0.0291739
+    evolution-cell-updates: 38400
+    evolution-iterations: 120

@@ -1,0 +1,85 @@
+# Schedule definitions for thorn ID_TabEOS_HydroQuantities
+
+schedule GROUP ID_TabEOS_init IN HydroBaseX_PostInitial {
+} "Group for writing tabulated EOS-related quantities" 
+
+
+schedule ID_TabEOS_HydroQuantities__initial_Y_e IN ID_TabEOS_init 
+{
+  LANG: C
+  READS: HydroBaseX::rho(Everywhere)
+  WRITES: HydroBaseX::Ye(Everywhere)
+} "Set up Y_e on grid."
+
+
+schedule ID_TabEOS_HydroQuantities__initial_temperature IN ID_TabEOS_init AFTER ID_TabEOS_HydroQuantities__initial_Y_e 
+{
+  LANG: C
+  WRITES: HydroBaseX::temperature(Everywhere)
+} "Set up temperatures on grid."
+
+
+schedule ID_TabEOS_HydroQuantities__recompute_HydroBase_variables IN ID_TabEOS_init AFTER ID_TabEOS_HydroQuantities__initial_temperature 
+{
+  LANG: C
+  READS: HydroBaseX::rho(Everywhere)
+  READS: HydroBaseX::eps(Everywhere)
+  READS: HydroBaseX::temperature(Everywhere)
+  READS: HydroBaseX::Ye(Everywhere)
+  READS: HydroBaseX::velx(Everywhere)
+  READS: HydroBaseX::vely(Everywhere)
+  READS: HydroBaseX::velz(Everywhere)
+  WRITES: HydroBaseX::rho(Everywhere)
+  WRITES: HydroBaseX::velx(Everywhere)
+  WRITES: HydroBaseX::vely(Everywhere)
+  WRITES: HydroBaseX::velz(Everywhere)
+  WRITES: HydroBaseX::press(Everywhere)
+  WRITES: HydroBaseX::eps(Everywhere)
+  WRITES: HydroBaseX::Ye(Everywhere)
+  WRITES: HydroBaseX::temperature(Everywhere)
+} "Set up general relativistic hydrodynamic (GRHD) fields"
+
+# if( CCTK_EQUALS( initial_Y_e        ,"ID_tabEOS_HydroQuantities" ) ||
+#     CCTK_EQUALS( initial_temperature,"ID_tabEOS_HydroQuantities" ) ||
+#     CCTK_EQUALS( initial_entropy    ,"ID_tabEOS_HydroQuantities" ) )
+# {
+# 	schedule GROUP ID_TabEOS_init IN HydroBaseX_InitialData AFTER Tests1D_Initialize{
+# 	} "Group for writing tabulated EOS-related quantities" 
+# }
+# 
+# if( CCTK_EQUALS( initial_Y_e        ,"ID_tabEOS_HydroQuantities" ))
+# {
+#   schedule ID_TabEOS_HydroQuantities__initial_Y_e IN ID_TabEOS_init 
+#   {
+#     LANG: C
+#     WRITES: HydroBaseX::Ye(Everywhere)
+#   } "Set up Y_e on grid."
+# }
+# 
+# if( CCTK_EQUALS( initial_temperature,"ID_tabEOS_HydroQuantities" ))
+# {
+#   schedule ID_TabEOS_HydroQuantities__initial_temperature IN ID_TabEOS_init AFTER ID_TabEOS_HydroQuantities__initial_Y_e 
+#   {
+#     LANG: C
+#     WRITES: HydroBaseX::temperature(Everywhere)
+#   } "Set up temperatures on grid."
+# }
+# 
+# if( CCTK_EQUALS( initial_Y_e        ,"ID_tabEOS_HydroQuantities" ) ||
+#     CCTK_EQUALS( initial_temperature,"ID_tabEOS_HydroQuantities" ) ||
+#     CCTK_EQUALS( initial_entropy    ,"ID_tabEOS_HydroQuantities" ) )
+# {
+#   schedule ID_TabEOS_HydroQuantities IN ID_TabEOS_init AFTER ID_TabEOS_HydroQuantities__initial_temperature 
+#   {
+#     LANG: C
+#     WRITES: HydroBaseX::vel[0](Everywhere)
+#     WRITES: HydroBaseX::vel[1](Everywhere)
+#     WRITES: HydroBaseX::vel[2](Everywhere)
+#     WRITES: HydroBaseX::press(Everywhere)
+#     WRITES: HydroBaseX::rho(Everywhere)
+#     WRITES: HydroBaseX::eps(Everywhere)
+#     WRITES: HydroBaseX::Ye(Everywhere)
+#     WRITES: HydroBaseX::temperature(Everywhere)
+#     WRITES: HydroBaseX::entropy(Everywhere)
+#   } "Set up general relativistic hydrodynamic (GRHD) fields"
+# }

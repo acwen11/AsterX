@@ -106,13 +106,25 @@ if (CCTK_Equals(test_type, "3DTest")) {
 
 }
 
+#Initial conditions for TabEOS tests
+
+if (CCTK_Equals(test_type, "TabEOSTest")) {
+
+  SCHEDULE TabEOSTests_Initialize IN HydroBaseX_InitialData AFTER HydroBaseX_initial_data {
+  LANG: C 
+  WRITES: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere)
+  WRITES: AsterX::Avec_x(everywhere) AsterX::Avec_y(everywhere) AsterX::Avec_z(everywhere)
+  }
+  "Set up initial conditions for TabEOS tests"
+}
+
 #Initial conditions for entropy
 
-schedule SetEntropy IN HydroBaseX_PostInitial
+schedule SetEntropy IN HydroBaseX_PostInitial AFTER ID_TabEOS_init
 {
   LANG: C
 
-  READS: HydroBaseX::rho(everywhere) HydroBaseX::eps(everywhere)
-  WRITES: HydroBaseX::entropy(everywhere)
+  READS: HydroBaseX::rho(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::Ye(everywhere)
+  WRITES: HydroBaseX::eps(everywhere) HydroBaseX::entropy(everywhere)
 
 } "Set initial entropy"

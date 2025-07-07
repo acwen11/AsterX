@@ -16,6 +16,7 @@ ActiveThorns = "
     AsterX
     AsterSeeds
     Z4c
+    AsterMasks
 "
 
 $nlevels	= 6

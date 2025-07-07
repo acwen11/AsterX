@@ -6,7 +6,8 @@ KEYWORD test_type "Type of test to set up" STEERABLE=never
   "1DTest" :: ""
   "2DTest" :: ""
   "3DTest" :: "" 
-  "Atmosphere" :: "Atmosphere"
+  "TabEOSTest" :: "" 
+  "Atmosphere" :: "Atmosphere" 
   "BBHCloud" :: "BBHCloud ID" 
 } "1DTest"
 
@@ -28,6 +29,8 @@ KEYWORD test_case "Name of the testcase" STEERABLE=never
 
   "spherical shock"          :: ""
   "magTOV"                   :: ""
+
+  "isotropic gas"            :: ""
   "magBNS"                   :: ""
 } "Balsara1"
 
@@ -53,16 +56,19 @@ REAL rotate_angle_z "Rotation angle about z-axis (in units of pi)" STEERABLE=nev
   *:* :: ""
 } 0.0
 
-
 # ---------------------------------------
 
+# parameters for setting initializing atmosphere as initial data
 
-# parameters for atmosphere
-
-REAL rho_atmosphere "floor density in the atmosphere"
+CCTK_REAL rho_atmosphere "floor density in the atmosphere"
 {
   0.0:*   :: "Positive"
-} 1e-5
+} 1e-9
+
+CCTK_REAL press_atmosphere "floor pressure in the atmosphere"
+{
+  0.0:*   :: "Positive"
+} 1e-18
 
 
 # ---------------------------------------
@@ -257,6 +263,12 @@ CCTK_REAL B_initial "Initial value for the magnetic field"
 
 # ---------------------------------------
 
+# temperature
+
+BOOLEAN set_temperature_postinitial "Set the temperature consistently in HydroBaseX_PostInitial" STEERABLE=always
+{
+} "yes"
+
 # entropy
 
 BOOLEAN set_entropy_postinitial "Set the entropy consistently in HydroBaseX_PostInitial" STEERABLE=always
@@ -265,13 +277,3 @@ BOOLEAN set_entropy_postinitial "Set the entropy consistently in HydroBaseX_Post
 
 SHARES: EOSX
 USES KEYWORD evolution_eos
-USES CCTK_REAL poly_gamma
-USES CCTK_REAL poly_k
-USES CCTK_REAL gl_gamma
-USES CCTK_REAL eps_min
-USES CCTK_REAL eps_max
-USES CCTK_REAL rho_min
-USES CCTK_REAL rho_max
-USES CCTK_REAL ye_min
-USES CCTK_REAL ye_max
-USES CCTK_REAL particle_mass

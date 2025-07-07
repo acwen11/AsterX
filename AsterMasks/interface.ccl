@@ -1,0 +1,10 @@
+# Interface definition for thorn AsterMasks
+
+IMPLEMENTS: AsterMasks
+
+USES INCLUDE HEADER: loop_device.hxx
+
+PUBLIC:
+
+CCTK_REAL aster_mask_vc CENTERING={vvv} TYPE=gf TAGS='checkpoint="no"' "Vertex-centered mask"
+CCTK_REAL aster_mask_cc CENTERING={ccc} TYPE=gf TAGS='checkpoint="no"' "Cell-centered mask"

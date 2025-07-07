@@ -233,7 +233,8 @@ public:
       printf("Density out of range, dens = %16.8e, rho = %16.8e \n", dens, rho);
       break;
     case RANGE_EPS:
-      printf("Specific energy was out of range! eps readjusted to = %16.8e \n", eps);
+      printf("Specific energy was out of range! eps = %16.8e \n",
+             eps);
       break;
     case SPEED_LIMIT:
       printf("Speed limit exceeded, vx, vy, vz = %16.8e, %16.8e, %16.8e \n",
@@ -256,6 +257,9 @@ public:
       break;
     case PREP_ROOT_FAIL_BRACKET:
       printf("Preparatory root finding failed (faulty bracketing) \n");
+      break;
+    case ERR_CODE_NOT_SET:
+      printf("Error code not set! Report was initialized but never changed. \n");
       break;
     default:
       assert(false);

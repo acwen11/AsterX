@@ -37,4 +37,3 @@ inline CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_DEVICE CCTK_HOST int sgn(T val) {
 } // namespace ReconX
 
 #endif // RECONX_UTILS_HXX
-

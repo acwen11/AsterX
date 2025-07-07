@@ -8,12 +8,16 @@ restricted :
 KEYWORD c2p_prime "Name of the main con2prim scheme" STEERABLE=ALWAYS {
   "Noble" ::"Noble"
   "Palenzuela" ::"Palenzuela"
+  "Entropy" ::"Entropy"
+  "None" :: "None"
 }
 "Noble"
 
 KEYWORD c2p_second "Name of the backup con2prim scheme" STEERABLE=ALWAYS {
   "Noble" ::"Noble"
   "Palenzuela" ::"Palenzuela"
+  "Entropy" ::"Entropy"
+  "None" :: "None"
 }
 "Palenzuela"
 
@@ -29,18 +33,19 @@ CCTK_REAL atmo_tol "atmosphere density tolerance factor" STEERABLE=ALWAYS
 
 CCTK_REAL eps_atmo "Specific energy density of the atmosphere" STEERABLE = recover {
   0 : *::"Larger than zero"
-}
-1e-10
+} 1e-10
 
 CCTK_REAL p_atmo "Pressure of the atmosphere" STEERABLE = recover {
   0 : *::"Larger than zero"
-}
-1e-10
+} 1e-10
+
+CCTK_REAL t_atmo "Temperature of the atmosphere in MeV" STEERABLE = recover {
+  0 : *::"Larger than zero"
+} 1e-2
 
 CCTK_REAL Ye_atmo "Electron fraction of the atmosphere" STEERABLE = recover {
   0 : *::"Larger than zero"
-}
-1e-10
+} 0.5
 
 CCTK_REAL B_lim "Upper limit for the value of magnetization" STEERABLE=ALWAYS
 {
@@ -83,9 +88,14 @@ CCTK_REAL n_press_atmo "Exponential of the radial power law atmosphere prescript
   0.0:* :: ""
 } 0.0
 
+CCTK_REAL n_temp_atmo "Exponential of the radial power law atmosphere prescription for temperature." STEERABLE=ALWAYS
+{
+  0.0:* :: ""
+} 0.0
+
 BOOLEAN thermal_eos_atmo "Whether to use the thermal (evolution) EOS for setting pressure in the atmosphere. If set to no, cold (initial data) EOS is used instead." STEERABLE=ALWAYS
 {
-}  "no"
+}  "yes"
 
 # Parameters for BH treatment
 
@@ -117,5 +127,11 @@ CCTK_REAL cons_error_limit  "Relative deviations in conservatives after c2p fail
 # Experimental parameter to use z instead of v to avoid v > 1
 
 BOOLEAN use_z "" STEERABLE=ALWAYS
+{
+}  "no"
+
+# Parameters for tabulated EOS
+
+BOOLEAN use_temperature "Use temperature to compute other thermodynamic quatities" STEERABLE=ALWAYS
 {
 }  "no"

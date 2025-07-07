@@ -23,29 +23,29 @@
 #define DIFF_X(a)                                                              \
   (((i == 0) ? (a[CCTK_GFINDEX3D(cctkGH, i + 1, j, k)] -                       \
                 a[CCTK_GFINDEX3D(cctkGH, i, j, k)])                            \
-    : (i == (cctk_lsh[0] - 1))                                                 \
-        ? (a[CCTK_GFINDEX3D(cctkGH, i, j, k)] -                                \
-           a[CCTK_GFINDEX3D(cctkGH, i - 1, j, k)])                             \
-        : 0.5 * (a[CCTK_GFINDEX3D(cctkGH, i + 1, j, k)] -                      \
-                 a[CCTK_GFINDEX3D(cctkGH, i - 1, j, k)])) /                    \
+             : (i == (cctk_lsh[0] - 1))                                        \
+                   ? (a[CCTK_GFINDEX3D(cctkGH, i, j, k)] -                     \
+                      a[CCTK_GFINDEX3D(cctkGH, i - 1, j, k)])                  \
+                   : 0.5 * (a[CCTK_GFINDEX3D(cctkGH, i + 1, j, k)] -           \
+                            a[CCTK_GFINDEX3D(cctkGH, i - 1, j, k)])) /         \
    CCTK_DELTA_SPACE(0))
 #define DIFF_Y(a)                                                              \
   (((j == 0) ? (a[CCTK_GFINDEX3D(cctkGH, i, j + 1, k)] -                       \
                 a[CCTK_GFINDEX3D(cctkGH, i, j, k)])                            \
-    : (j == (cctk_lsh[1] - 1))                                                 \
-        ? (a[CCTK_GFINDEX3D(cctkGH, i, j, k)] -                                \
-           a[CCTK_GFINDEX3D(cctkGH, i, j - 1, k)])                             \
-        : 0.5 * (a[CCTK_GFINDEX3D(cctkGH, i, j + 1, k)] -                      \
-                 a[CCTK_GFINDEX3D(cctkGH, i, j - 1, k)])) /                    \
+             : (j == (cctk_lsh[1] - 1))                                        \
+                   ? (a[CCTK_GFINDEX3D(cctkGH, i, j, k)] -                     \
+                      a[CCTK_GFINDEX3D(cctkGH, i, j - 1, k)])                  \
+                   : 0.5 * (a[CCTK_GFINDEX3D(cctkGH, i, j + 1, k)] -           \
+                            a[CCTK_GFINDEX3D(cctkGH, i, j - 1, k)])) /         \
    CCTK_DELTA_SPACE(1))
 #define DIFF_Z(a)                                                              \
   (((k == 0) ? (a[CCTK_GFINDEX3D(cctkGH, i, j, k + 1)] -                       \
                 a[CCTK_GFINDEX3D(cctkGH, i, j, k)])                            \
-    : (k == (cctk_lsh[2] - 1))                                                 \
-        ? (a[CCTK_GFINDEX3D(cctkGH, i, j, k)] -                                \
-           a[CCTK_GFINDEX3D(cctkGH, i, j, k - 1)])                             \
-        : 0.5 * (a[CCTK_GFINDEX3D(cctkGH, i, j, k + 1)] -                      \
-                 a[CCTK_GFINDEX3D(cctkGH, i, j, k - 1)])) /                    \
+             : (k == (cctk_lsh[2] - 1))                                        \
+                   ? (a[CCTK_GFINDEX3D(cctkGH, i, j, k)] -                     \
+                      a[CCTK_GFINDEX3D(cctkGH, i, j, k - 1)])                  \
+                   : 0.5 * (a[CCTK_GFINDEX3D(cctkGH, i, j, k + 1)] -           \
+                            a[CCTK_GFINDEX3D(cctkGH, i, j, k - 1)])) /         \
    CCTK_DELTA_SPACE(2))
 
 namespace TOVSolverX {
@@ -65,8 +65,8 @@ namespace TOVSolverX {
    @endhistory
 @@*/
 CCTK_HOST void TOVX_C_Source_RHS(CCTK_REAL r, CCTK_REAL K, CCTK_REAL Gamma,
-                                CCTK_REAL old_data[NUMVARS],
-                                CCTK_REAL source_data[NUMVARS]) {
+                                 CCTK_REAL old_data[NUMVARS],
+                                 CCTK_REAL source_data[NUMVARS]) {
   CCTK_REAL LOCAL_TINY, PI;
   CCTK_REAL press, rho, eps, mu, m;
   CCTK_REAL r_minus_two_m;
@@ -111,8 +111,8 @@ CCTK_HOST void TOVX_C_Source_RHS(CCTK_REAL r, CCTK_REAL K, CCTK_REAL Gamma,
  * value < goal
  */
 CCTK_HOST CCTK_INT TOVX_C_find_index(CCTK_INT array_size, CCTK_REAL *array,
-                                    CCTK_REAL goal, CCTK_INT lower_index,
-                                    CCTK_INT upper_index) {
+                                     CCTK_REAL goal, CCTK_INT lower_index,
+                                     CCTK_INT upper_index) {
   CCTK_INT middle_index;
 
   if (lower_index >= (upper_index - 1))
@@ -121,9 +121,11 @@ CCTK_HOST CCTK_INT TOVX_C_find_index(CCTK_INT array_size, CCTK_REAL *array,
   middle_index = (lower_index + upper_index) / 2;
 
   if (array[middle_index] < goal)
-    return TOVX_C_find_index(array_size, array, goal, middle_index, upper_index);
+    return TOVX_C_find_index(array_size, array, goal, middle_index,
+                             upper_index);
   else
-    return TOVX_C_find_index(array_size, array, goal, lower_index, middle_index);
+    return TOVX_C_find_index(array_size, array, goal, lower_index,
+                             middle_index);
 }
 
 /* utility rountine
@@ -155,7 +157,7 @@ CCTK_HOST void TOVX_C_interp_tov_isotropic(
 
   if (TOV_Fast_Interpolation)
     left_index = TOVX_C_find_index(TOV_Num_Radial - 1, TOV_rbar_1d_local, *r, 0,
-                                  TOV_Num_Radial - 1);
+                                   TOV_Num_Radial - 1);
   else {
     left_index = 0;
     while ((left_index < TOV_Num_Radial - 2) &&

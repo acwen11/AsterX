@@ -13,6 +13,10 @@ KEYWORD reconstruction_method "Reconstruction method" STEERABLE=never
   "mp5" :: ""
 } "Godunov"
 
+CCTK_BOOLEAN reconstruct_with_temperature "Whether to reconstruct temperature and derive other EOS quantities from it" STEERABLE=ALWAYS
+{
+} no
+
 #PPM parameters
 
 CCTK_BOOLEAN ppm_shock_detection "Whether to activate the PPM shock detection mechanism to detect contact discontinuities" STEERABLE=ALWAYS
