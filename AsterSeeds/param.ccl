@@ -118,6 +118,7 @@ KEYWORD Afield_config "Definition of the initial vector potential"
   "none"             :: "Nothing set here"
   "internal dipole"  :: "Dipole field according to Ciolfi+2017"
   "external dipole"  :: "Dipole field according to Moesta+2020"
+  "random"           :: "Random field according to Siegel+2014"
 } "none"
 
 # parameters for internal dipolar magnetic field
@@ -144,7 +145,7 @@ REAL Avec_kappa "Exponential used in the definition of Avec in Ciolfi+2017"
 
 # parameters for external dipolar magnetic field
 
-REAL B0 "Magnetic field strength" STEERABLE=ALWAYS
+REAL A0 "Magnetic field strength" STEERABLE=ALWAYS
 {
   *:*     :: "Anything"
 } 0.0
@@ -153,6 +154,22 @@ REAL r0 "Characteristic radial offset" STEERABLE=ALWAYS
 {
   *:*     :: "Anything"
 } 0.0
+
+# parameters for random magnetic field
+INT nk "Number of modes in each wave vector direction" STEERABLE=ALWAYS
+{
+  *:*     :: "Anything"
+} 31
+
+REAL lambda_min "Min mode wavelength" STEERABLE=ALWAYS
+{
+  *:*     :: "Anything"
+} 2.0
+
+REAL delta_lambda "Mode spacing" STEERABLE=ALWAYS
+{
+  *:*     :: "Anything"
+} 1.5
 
 # coordinates of dipole center, to be based on the location of maximum of rho
 

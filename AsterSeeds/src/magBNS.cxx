@@ -63,8 +63,7 @@ extern "C" void AsterSeeds_InitializeCenteredAvec_BNS(CCTK_ARGUMENTS) {
                    z_local_s1 * z_local_s1);
 
           CCTK_REAL Aphi_local_s1 =
-              B0 * (pow(r0, 3.0) / (pow(r0, 3.0) + pow(rsph_s1, 3.0))) /
-              sqrt(cylrad2_s1 + 1.0e-16);
+              A0 * (pow(r0, 3.0) / (pow(r0, 3.0) + pow(rsph_s1, 3.0)));
 
           // For star 2 at minus side
           CCTK_REAL x_local_s2 = p.x - dipole_x[1];
@@ -77,8 +76,7 @@ extern "C" void AsterSeeds_InitializeCenteredAvec_BNS(CCTK_ARGUMENTS) {
                    z_local_s2 * z_local_s2);
 
           CCTK_REAL Aphi_local_s2 =
-              B0 * (pow(r0, 3.0) / (pow(r0, 3.0) + pow(rsph_s2, 3.0))) /
-              sqrt(cylrad2_s2 + 1.0e-16);
+              A0 * (pow(r0, 3.0) / (pow(r0, 3.0) + pow(rsph_s2, 3.0)));
 
           Avec_x_cent(p.I) =
               -(y_local_s1 * Aphi_local_s1 + y_local_s2 * Aphi_local_s2);
