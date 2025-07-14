@@ -180,13 +180,24 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   READS: svec_x(everywhere) svec_y(everywhere) svec_z(everywhere)
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere) Psi(everywhere)
   WRITES: flux_x(interior) flux_y(interior) flux_z(interior)
-  WRITES: Aux_in_RHSof_A_Psi(interior)
   WRITES: vtilde_xface(interior) vtilde_yface(interior) vtilde_zface(interior)
   WRITES: a_xface(interior) a_yface(interior) a_zface(interior)
-  SYNC: Aux_in_RHSof_A_Psi
   SYNC: flux_x flux_y flux_z
   SYNC: vtilde_xface vtilde_yface vtilde_zface a_xface a_yface a_zface
 } "Calculate the hydro fluxes"
+
+if (CCTK_EQUALS(vector_potential_gauge, "generalized Lorentz")) {
+  SCHEDULE AsterX_CalcAuxTermsForAvecPsiRHS IN AsterX_RHSGroup AFTER AsterX_Fluxes BEFORE AsterX_SourceTerms
+  {
+    LANG: C
+    READS: ADMBaseX::metric(everywhere)
+    READS: ADMBaseX::lapse(everywhere)
+    READS: ADMBaseX::shift(everywhere)
+    READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere) Psi(everywhere)
+    WRITES: Aux_in_RHSof_A_Psi(interior)
+    SYNC: Aux_in_RHSof_A_Psi
+  } "Calculate the auxiliary terms for the rhs of Avec and Psi"
+}
 
 SCHEDULE AsterX_SourceTerms IN AsterX_RHSGroup AFTER AsterX_Fluxes
 {
