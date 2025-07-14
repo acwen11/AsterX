@@ -57,9 +57,8 @@ SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_InitialGroup AFTER AsterX_Computed
 SCHEDULE AsterX_ComputeBFromdB IN AsterX_InitialGroup AFTER AsterX_ComputedBFromdBstag
 {
   LANG: C
-  READS: dB(interior) ADMBaseX::metric(interior)
-  WRITES: HydroBaseX::Bvec(interior)
-  SYNC: HydroBaseX::Bvec
+  READS: dB(everywhere) ADMBaseX::metric(everywhere)
+  WRITES: HydroBaseX::Bvec(everywhere)
 } "Calculate centered B from densitized B"
 
 SCHEDULE AsterX_CheckPrims IN AsterX_InitialGroup AFTER AsterX_ComputeBFromdB
