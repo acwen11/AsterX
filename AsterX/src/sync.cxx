@@ -17,7 +17,7 @@ extern "C" void AsterX_Sync(CCTK_ARGUMENTS) {
   // do nothing
 }
 
-extern "C" void AsterX_ApplyOuterBC(CCTK_ARGUMENTS) {
+extern "C" void AsterX_ApplyOuterBCOnPrim(CCTK_ARGUMENTS) {
   DECLARE_CCTK_PARAMETERS;
 
   std::vector<int> groups;
@@ -30,16 +30,6 @@ extern "C" void AsterX_ApplyOuterBC(CCTK_ARGUMENTS) {
   groups.push_back(CCTK_GroupIndex("HydroBaseX::temperature"));
   groups.push_back(CCTK_GroupIndex("HydroBaseX::entropy"));
   groups.push_back(CCTK_GroupIndex("HydroBaseX::Ye"));
-
-  groups.push_back(CCTK_GroupIndex("AsterX::zvec"));
-  groups.push_back(CCTK_GroupIndex("AsterX::svec"));
-
-  groups.push_back(CCTK_GroupIndex("AsterX::dens"));
-  groups.push_back(CCTK_GroupIndex("AsterX::tau"));
-  groups.push_back(CCTK_GroupIndex("AsterX::DEnt"));
-  groups.push_back(CCTK_GroupIndex("AsterX::mom"));
-  groups.push_back(CCTK_GroupIndex("AsterX::DYe"));
-  groups.push_back(CCTK_GroupIndex("AsterX::dB"));
 
   task_manager tasks1;
   task_manager tasks2;

@@ -191,11 +191,11 @@ SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBsta
   WRITES: dens(everywhere) tau(everywhere) DEnt(everywhere) mom(everywhere) DYe(everywhere) dB(everywhere)
 } "Calculate primitive variables from conservative variables"
 
-SCHEDULE AsterX_ApplyOuterBC IN AsterX_Con2PrimGroup AFTER AsterX_Con2Prim
+SCHEDULE AsterX_ApplyOuterBCOnPrim IN AsterX_Con2PrimGroup AFTER AsterX_Con2Prim
 {
   LANG: C
   OPTIONS: global
-} "Apply CarpetX boundary conditions for both conservative and primitive variables"
+} "Apply CarpetX boundary conditions on primitive variables"
 
 
 
