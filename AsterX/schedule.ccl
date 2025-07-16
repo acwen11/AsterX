@@ -96,9 +96,12 @@ if (zero_psi) {
   } "Set Psi, time component of 4-vector potential, to zero initially"
 }
 
+
+# For bypassing CarpetX NaN guard only
 SCHEDULE AsterX_FluxAuxZero_Initial IN AsterX_InitialGroup AFTER AsterX_Prim2Con_Initial
 {
   LANG: C
+  WRITES: con2prim_flag(everywhere)
   WRITES: Aux_in_RHSof_A_Psi(everywhere)
   #WRITES: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
   #WRITES: vtilde_xface(everywhere) vtilde_yface(everywhere) vtilde_zface(everywhere)
@@ -108,6 +111,7 @@ SCHEDULE AsterX_FluxAuxZero_Initial IN AsterX_InitialGroup AFTER AsterX_Prim2Con
 SCHEDULE AsterX_FluxAuxZero_Initial AT postregrid
 {
   LANG: C
+  WRITES: con2prim_flag(everywhere)
   WRITES: Aux_in_RHSof_A_Psi(everywhere)
   #WRITES: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
   #WRITES: vtilde_xface(everywhere) vtilde_yface(everywhere) vtilde_zface(everywhere)
@@ -117,11 +121,13 @@ SCHEDULE AsterX_FluxAuxZero_Initial AT postregrid
 SCHEDULE AsterX_FluxAuxZero_Initial AT post_recover_variables
 {
   LANG: C
+  WRITES: con2prim_flag(everywhere)
   WRITES: Aux_in_RHSof_A_Psi(everywhere)
   #WRITES: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
   #WRITES: vtilde_xface(everywhere) vtilde_yface(everywhere) vtilde_zface(everywhere)
   #WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
 } "Set Fluxes and Auxiliary variables to zero initially"
+
 
 SCHEDULE AsterX_Sync AT postregrid
 {
@@ -167,9 +173,17 @@ SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBsta
   READS: dens(everywhere) tau(everywhere) DEnt(everywhere) mom(everywhere) DYe(everywhere) dB(everywhere)
   READS: saved_prims(everywhere)
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
+  # For bypassing CarpetX NaN guard only
+  READS: con2prim_flag(everywhere)
+  READS: AsterMasks::aster_mask_cc(everywhere)
+  READS: zvec(everywhere)
+  READS: svec(everywhere)
+  READS: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::Bvec(everywhere)
+  READS: HydroBaseX::temperature(everywhere) HydroBaseX::entropy(everywhere) HydroBaseX::Ye(everywhere)
+  #
   WRITES: con2prim_flag(everywhere)
   WRITES: AsterMasks::aster_mask_cc(everywhere)
-  WRITES: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::Bvec(everywhere) 
+  WRITES: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::Bvec(everywhere)
   WRITES: HydroBaseX::temperature(everywhere) HydroBaseX::entropy(everywhere) HydroBaseX::Ye(everywhere)
   WRITES: saved_prims(everywhere)
   WRITES: zvec(everywhere)

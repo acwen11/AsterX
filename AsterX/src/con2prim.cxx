@@ -59,11 +59,8 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
 
   const smat<GF3D2<const CCTK_REAL>, 3> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
 
-  // Loop over the interior of the grid
-  cctk_grid.loop_all_device<
-      1, 1, 1>(grid.nghostzones, [=] CCTK_DEVICE(
-                                     const PointDesc
-                                         &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+  const auto c2p_impl = [=] CCTK_DEVICE(
+                            const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
     // Note that HydroBaseX gfs are NaN when entering this loop due
     // explicit dependence on conservatives from
     // AsterX -> dependents tag
@@ -423,7 +420,11 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     saved_velz(p.I) = velz(p.I);
     saved_eps(p.I) = eps(p.I);
     saved_Ye(p.I) = Ye(p.I);
-  }); // Loop
+  };
+
+  cctk_grid.loop_int_device<1, 1, 1>(grid.nghostzones, c2p_impl);
+
+  cctk_grid.loop_ghosts_device<1, 1, 1>(grid.nghostzones, c2p_impl);
 }
 
 extern "C" void AsterX_Con2Prim(CCTK_ARGUMENTS) {
