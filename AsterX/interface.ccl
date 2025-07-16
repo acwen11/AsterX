@@ -15,7 +15,7 @@ PUBLIC:
 
 CCTK_REAL dens TYPE=gf CENTERING={ccc} TAGS='rhs="densrhs" dependents="HydroBaseX::rho TmunuBaseX::eTtt"' "Conserved rest mass density"
 
-CCTK_REAL mom TYPE=gf CENTERING={ccc} TAGS='rhs="momrhs" dependents="HydroBaseX::vel TmunuBaseX::eTti"'
+CCTK_REAL mom TYPE=gf CENTERING={ccc} TAGS='parities={-1 +1 +1    +1 -1 +1    +1 +1 -1} rhs="momrhs" dependents="HydroBaseX::vel TmunuBaseX::eTti"'
 {
   momx, momy, momz
 } "Conserved momentum density"
@@ -68,7 +68,7 @@ CCTK_REAL flux_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
 
 CCTK_REAL densrhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved rest mass density RHS"
 
-CCTK_REAL momrhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
+CCTK_REAL momrhs TYPE=gf CENTERING={ccc} TAGS='parities={-1 +1 +1    +1 -1 +1    +1 +1 -1} checkpoint="no"'
 {
   momxrhs, momyrhs, momzrhs
 } "Conserved momentum density RHS"
@@ -78,13 +78,13 @@ CCTK_REAL taurhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved inter
 CCTK_REAL DYe_rhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved electron fraction RHS"
 CCTK_REAL DEntrhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Advected entropy density RHS"
 
-CCTK_REAL Avec_x TYPE=gf CENTERING={cvv} TAGS='rhs="Avec_x_rhs"' "x-component of vector potential"
-CCTK_REAL Avec_y TYPE=gf CENTERING={vcv} TAGS='rhs="Avec_y_rhs"' "y-component of vector potential"
-CCTK_REAL Avec_z TYPE=gf CENTERING={vvc} TAGS='rhs="Avec_z_rhs"' "z-component of vector potential"
+CCTK_REAL Avec_x TYPE=gf CENTERING={cvv} TAGS='parities={-1 +1 +1} rhs="Avec_x_rhs"' "x-component of vector potential"
+CCTK_REAL Avec_y TYPE=gf CENTERING={vcv} TAGS='parities={+1 -1 +1} rhs="Avec_y_rhs"' "y-component of vector potential"
+CCTK_REAL Avec_z TYPE=gf CENTERING={vvc} TAGS='parities={+1 +1 -1} rhs="Avec_z_rhs"' "z-component of vector potential"
 
-CCTK_REAL Avec_x_rhs TYPE=gf CENTERING={cvv} TAGS='checkpoint="no"' "x-component of vector potential RHS"
-CCTK_REAL Avec_y_rhs TYPE=gf CENTERING={vcv} TAGS='checkpoint="no"' "y-component of vector potential RHS"
-CCTK_REAL Avec_z_rhs TYPE=gf CENTERING={vvc} TAGS='checkpoint="no"' "z-component of vector potential RHS"
+CCTK_REAL Avec_x_rhs TYPE=gf CENTERING={cvv} TAGS='parities={-1 +1 +1} checkpoint="no"' "x-component of vector potential RHS"
+CCTK_REAL Avec_y_rhs TYPE=gf CENTERING={vcv} TAGS='parities={+1 -1 +1} checkpoint="no"' "y-component of vector potential RHS"
+CCTK_REAL Avec_z_rhs TYPE=gf CENTERING={vvc} TAGS='parities={+1 +1 -1} checkpoint="no"' "z-component of vector potential RHS"
 
 CCTK_REAL Bx_stag TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"' "x-component of staggered magnetic field"
 CCTK_REAL By_stag TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"' "y-component of staggered magnetic field"
@@ -125,12 +125,12 @@ CCTK_REAL saved_prims TYPE=gf CENTERING={ccc}
   saved_Ye
 } "Saved primitive variables as initial guesses for con2prim"
 
-CCTK_REAL zvec TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
+CCTK_REAL zvec TYPE=gf CENTERING={ccc} TAGS='parities={-1 +1 +1    +1 -1 +1    +1 +1 -1} checkpoint="no"'
 {
   zvec_x, zvec_y, zvec_z
 } ""
 
-CCTK_REAL svec TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
+CCTK_REAL svec TYPE=gf CENTERING={ccc} TAGS='parities={-1 +1 +1    +1 -1 +1    +1 +1 -1} checkpoint="no"'
 {
   svec_x, svec_y, svec_z
 } ""
@@ -173,7 +173,7 @@ CCTK_REAL a_zface TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
 # for subcycling
 
 CCTK_REAL densold TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved rest mass density RHS"
-CCTK_REAL momold TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' { momxold momyold momzold } "Conserved momentum density RHS"
+CCTK_REAL momold TYPE=gf CENTERING={ccc} TAGS='parities={-1 +1 +1    +1 -1 +1    +1 +1 -1} checkpoint="no"' { momxold momyold momzold } "Conserved momentum density RHS"
 CCTK_REAL tauold TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved internal energy density RHS"
 CCTK_REAL DEntold TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Advected entropy density RHS"
 CCTK_REAL DYe_old TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved electron fraction RHS"
@@ -183,7 +183,7 @@ CCTK_REAL Avec_z_old TYPE=gf CENTERING={vvc} TAGS='checkpoint="no"' "z-component
 CCTK_REAL Psi_old TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"' "t-component of vector potential RHS"
 
 CCTK_REAL densk1 TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved rest mass density RHS"
-CCTK_REAL momk1 TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' { momxk1 momyk1 momzk1 } "Conserved momentum density RHS"
+CCTK_REAL momk1 TYPE=gf CENTERING={ccc} TAGS='parities={-1 +1 +1    +1 -1 +1    +1 +1 -1} checkpoint="no"' { momxk1 momyk1 momzk1 } "Conserved momentum density RHS"
 CCTK_REAL tauk1 TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved internal energy density RHS"
 CCTK_REAL DEntk1 TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Advected entropy density RHS"
 CCTK_REAL DYe_k1 TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved electron fraction RHS"
@@ -193,7 +193,7 @@ CCTK_REAL Avec_z_k1 TYPE=gf CENTERING={vvc} TAGS='checkpoint="no"' "z-component 
 CCTK_REAL Psi_k1 TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"' "t-component of vector potential RHS"
 
 CCTK_REAL densk2 TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved rest mass density RHS"
-CCTK_REAL momk2 TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' { momxk2 momyk2 momzk2 } "Conserved momentum density RHS"
+CCTK_REAL momk2 TYPE=gf CENTERING={ccc} TAGS='parities={-1 +1 +1    +1 -1 +1    +1 +1 -1} checkpoint="no"' { momxk2 momyk2 momzk2 } "Conserved momentum density RHS"
 CCTK_REAL tauk2 TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved internal energy density RHS"
 CCTK_REAL DEntk2 TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Advected entropy density RHS"
 CCTK_REAL DYe_k2 TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved electron fraction RHS"
@@ -203,7 +203,7 @@ CCTK_REAL Avec_z_k2 TYPE=gf CENTERING={vvc} TAGS='checkpoint="no"' "z-component 
 CCTK_REAL Psi_k2 TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"' "t-component of vector potential RHS"
 
 CCTK_REAL densk3 TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved rest mass density RHS"
-CCTK_REAL momk3 TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' { momxk3 momyk3 momzk3 } "Conserved momentum density RHS"
+CCTK_REAL momk3 TYPE=gf CENTERING={ccc} TAGS='parities={-1 +1 +1    +1 -1 +1    +1 +1 -1} checkpoint="no"' { momxk3 momyk3 momzk3 } "Conserved momentum density RHS"
 CCTK_REAL tauk3 TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved internal energy density RHS"
 CCTK_REAL DEntk3 TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Advected entropy density RHS"
 CCTK_REAL DYe_k3 TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved electron fraction RHS"
@@ -213,7 +213,7 @@ CCTK_REAL Avec_z_k3 TYPE=gf CENTERING={vvc} TAGS='checkpoint="no"' "z-component 
 CCTK_REAL Psi_k3 TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"' "t-component of vector potential RHS"
 
 CCTK_REAL densk4 TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved rest mass density RHS"
-CCTK_REAL momk4 TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' { momxk4 momyk4 momzk4 } "Conserved momentum density RHS"
+CCTK_REAL momk4 TYPE=gf CENTERING={ccc} TAGS='parities={-1 +1 +1    +1 -1 +1    +1 +1 -1} checkpoint="no"' { momxk4 momyk4 momzk4 } "Conserved momentum density RHS"
 CCTK_REAL tauk4 TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved internal energy density RHS"
 CCTK_REAL DEntk4 TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Advected entropy density RHS"
 CCTK_REAL DYe_k4 TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved electron fraction RHS"

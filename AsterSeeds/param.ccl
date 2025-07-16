@@ -275,5 +275,14 @@ BOOLEAN set_entropy_postinitial "Set the entropy consistently in HydroBaseX_Post
 {
 } "yes"
 
+# Ye
+
+BOOLEAN set_Ye_postinitial "Set Ye in HydroBaseX_PostInitial" STEERABLE=always
+{
+} "yes"
+
 SHARES: EOSX
 USES KEYWORD evolution_eos
+
+SHARES: Con2PrimFactory
+USES CCTK_REAL Ye_atmo

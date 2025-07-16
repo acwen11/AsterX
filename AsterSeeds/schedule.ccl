@@ -69,7 +69,7 @@ if (CCTK_Equals(test_type, "3DTest")) {
     SCHEDULE AsterSeeds_InitializeCenteredAvec_TOV AT initial IN ODESolvers_Initial AFTER HydroBaseX_PostInitial BEFORE AsterX_InitialGroup {
     LANG: C 
     READS: HydroBaseX::press(everywhere) 
-    READS: ADMBaseX::metric(everywhere) 
+    READS: ADMBaseX::metric(everywhere)
     WRITES: Avec_x_cent(everywhere) Avec_y_cent(everywhere) Avec_z_cent(everywhere)
     }
     "Set up initial conditions for the cell-centered vector potential"
@@ -118,13 +118,33 @@ if (CCTK_Equals(test_type, "TabEOSTest")) {
   "Set up initial conditions for TabEOS tests"
 }
 
-#Initial conditions for entropy
+#Initial conditions for temperature, entropy and Ye
 
-schedule SetEntropy IN HydroBaseX_PostInitial AFTER ID_TabEOS_init
-{
-  LANG: C
+if (set_Ye_postinitial) {
+  SCHEDULE SetYe IN HydroBaseX_PostInitial
+  {
+    LANG: C
+    WRITES: HydroBaseX::Ye(everywhere)
+  
+  } "Set initial Ye"
+}
 
-  READS: HydroBaseX::rho(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::Ye(everywhere)
-  WRITES: HydroBaseX::eps(everywhere) HydroBaseX::entropy(everywhere)
+if (set_temperature_postinitial) {
+  SCHEDULE SetTemp IN HydroBaseX_PostInitial AFTER SetYe
+  {
+    LANG: C 
+    READS: HydroBaseX::rho(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::Ye(everywhere)
+    WRITES: HydroBaseX::temperature(everywhere) HydroBaseX::eps(everywhere)
+  
+  } "Set initial temperature"
+}
 
-} "Set initial entropy"
+if (set_entropy_postinitial) {
+  SCHEDULE SetEntropy IN HydroBaseX_PostInitial AFTER SetTemp
+  {
+    LANG: C
+    READS: HydroBaseX::rho(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::Ye(everywhere)
+    WRITES: HydroBaseX::entropy(everywhere) HydroBaseX::eps(everywhere)
+  
+  } "Set initial entropy"
+}
