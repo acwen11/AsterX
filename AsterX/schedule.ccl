@@ -92,48 +92,54 @@ if (zero_psi) {
   } "Set Psi, time component of 4-vector potential, to zero initially"
 }
 
+################################################################################
+# For bypassing CarpetX NaN guard only:
+#   1. which can be removed if we add new 'where' type corresponding to the new
+#      loops used in Con2Prim and CalcAuxTermsForAvecPsiRHS.
+#   2. values set here are meaning less, they should be set somewhere fully
+#      (Con2Prim, AsterX_CalcAuxTermsForAvecPsiRHS, Fluxes)
+################################################################################
 
-# For bypassing CarpetX NaN guard only
-SCHEDULE AsterX_FluxAuxZero_Initial IN AsterX_InitialGroup AFTER AsterX_Prim2Con_Initial
+SCHEDULE GROUP AsterX_TouchNonEvolVarsGroup IN AsterX_InitialGroup AFTER AsterX_Prim2Con_Initial
+{
+} "Touch Non-Evolution Variables to Bypass CarpetX NaN guard"
+
+SCHEDULE GROUP AsterX_TouchNonEvolVarsGroup AT postregrid
+{
+} "Touch Non-Evolution Variables to Bypass CarpetX NaN guard"
+
+SCHEDULE GROUP AsterX_TouchNonEvolVarsGroup AT post_recover_variables
+{
+} "Touch Non-Evolution Variables to Bypass CarpetX NaN guard"
+
+SCHEDULE AsterX_FluxAuxZero_Initial IN AsterX_TouchNonEvolVarsGroup
 {
   LANG: C
+
+  ######################################################
+  # Suppose to be constructed fully in AsterX_Con2Prim #
+  ######################################################
+  WRITES: AsterMasks::aster_mask_cc(everywhere)
   WRITES: con2prim_flag(everywhere)
-  WRITES: Aux_in_RHSof_A_Psi(everywhere)
-  #WRITES: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
-  #WRITES: vtilde_xface(everywhere) vtilde_yface(everywhere) vtilde_zface(everywhere)
-  #WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
-} "Set Fluxes and Auxiliary variables to zero initially"
-
-SCHEDULE AsterX_FluxAuxZero_Initial AT postregrid
-{
-  LANG: C
-  WRITES: con2prim_flag(everywhere)
-  WRITES: Aux_in_RHSof_A_Psi(everywhere)
-  #WRITES: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
-  #WRITES: vtilde_xface(everywhere) vtilde_yface(everywhere) vtilde_zface(everywhere)
-  #WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
-} "Set Fluxes and Auxiliary variables to zero initially"
-
-SCHEDULE AsterX_FluxAuxZero_Initial AT post_recover_variables
-{
-  LANG: C
-  WRITES: con2prim_flag(everywhere)
-  WRITES: Aux_in_RHSof_A_Psi(everywhere)
-  #WRITES: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
-  #WRITES: vtilde_xface(everywhere) vtilde_yface(everywhere) vtilde_zface(everywhere)
-  #WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
-} "Set Fluxes and Auxiliary variables to zero initially"
-
-# For bypassing CarpetX NaN guard only.
-# There variables are supposed to be reconstructed by Con2Prim fully
-SCHEDULE AsterX_TouchNonEvolvedVariables AT postregrid
-{
-  LANG: C
   WRITES: zvec(everywhere)
   WRITES: svec(everywhere)
   WRITES: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::Bvec(everywhere)
   WRITES: HydroBaseX::temperature(everywhere) HydroBaseX::entropy(everywhere) HydroBaseX::Ye(everywhere)
-} "Touch non-evolution variables"
+
+  #######################################################################
+  # Suppose to be constructed fully in AsterX_CalcAuxTermsForAvecPsiRHS #
+  #######################################################################
+  WRITES: Aux_in_RHSof_A_Psi(everywhere)
+ 
+  ####################################################
+  # Suppose to be constructed fully in AsterX_Fluxes #
+  ####################################################
+  #WRITES: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
+  #WRITES: vtilde_xface(everywhere) vtilde_yface(everywhere) vtilde_zface(everywhere)
+  #WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
+} "Set Fluxes and Auxiliary variables to zero initially"
+
+################################################################################
 
 
 SCHEDULE AsterX_Sync AT postregrid
@@ -180,14 +186,18 @@ SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBsta
   READS: dens(everywhere) tau(everywhere) DEnt(everywhere) mom(everywhere) DYe(everywhere) dB(everywhere)
   READS: saved_prims(everywhere)
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
-  # For bypassing CarpetX NaN guard only
-  READS: con2prim_flag(everywhere)
+
+  ########################################
+  # For bypassing CarpetX NaN guard only #
+  ########################################
   READS: AsterMasks::aster_mask_cc(everywhere)
+  READS: con2prim_flag(everywhere)
   READS: zvec(everywhere)
   READS: svec(everywhere)
   READS: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::Bvec(everywhere)
   READS: HydroBaseX::temperature(everywhere) HydroBaseX::entropy(everywhere) HydroBaseX::Ye(everywhere)
-  #
+  ########################################
+
   WRITES: con2prim_flag(everywhere)
   WRITES: AsterMasks::aster_mask_cc(everywhere)
   WRITES: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::Bvec(everywhere)

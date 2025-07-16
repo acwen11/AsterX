@@ -65,10 +65,32 @@ extern "C" void AsterX_FluxAuxZero_Initial(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_FluxAuxZero_Initial;
   DECLARE_CCTK_PARAMETERS;
 
-  grid.loop_all_device<1, 1, 1>(
-      grid.nghostzones,
-      [=] CCTK_DEVICE(const PointDesc &p)
-          CCTK_ATTRIBUTE_ALWAYS_INLINE { con2prim_flag(p.I) = 0; });
+  grid.loop_all_device<1, 1, 1>(grid.nghostzones,
+                                [=] CCTK_DEVICE(const PointDesc &p)
+                                    CCTK_ATTRIBUTE_ALWAYS_INLINE {
+                                      aster_mask_cc(p.I) = 0;
+                                      con2prim_flag(p.I) = 0;
+
+                                      zvec_x(p.I) = 0;
+                                      zvec_y(p.I) = 0;
+                                      zvec_z(p.I) = 0;
+                                      svec_x(p.I) = 0;
+                                      svec_y(p.I) = 0;
+                                      svec_z(p.I) = 0;
+
+                                      rho(p.I) = 0;
+                                      velx(p.I) = 0;
+                                      vely(p.I) = 0;
+                                      velz(p.I) = 0;
+                                      eps(p.I) = 0;
+                                      press(p.I) = 0;
+                                      Bvecx(p.I) = 0;
+                                      Bvecy(p.I) = 0;
+                                      Bvecz(p.I) = 0;
+                                      temperature(p.I) = 0;
+                                      entropy(p.I) = 0;
+                                      Ye(p.I) = 0;
+                                    });
 
   /* Auxiliary variables for rhs of Avec and Psi */
   grid.loop_all_device<0, 0, 0>(grid.nghostzones,
@@ -142,35 +164,6 @@ extern "C" void AsterX_FluxAuxZero_Initial(CCTK_ARGUMENTS) {
                                       amin_zface(p.I) = 0.0;
                                     });
 #endif
-}
-
-extern "C" void AsterX_TouchNonEvolvedVariables(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_AsterX_TouchNonEvolvedVariables;
-  DECLARE_CCTK_PARAMETERS;
-
-  grid.loop_all_device<1, 1, 1>(grid.nghostzones,
-                                [=] CCTK_DEVICE(const PointDesc &p)
-                                    CCTK_ATTRIBUTE_ALWAYS_INLINE {
-                                      zvec_x(p.I) = 0;
-                                      zvec_y(p.I) = 0;
-                                      zvec_z(p.I) = 0;
-                                      svec_x(p.I) = 0;
-                                      svec_y(p.I) = 0;
-                                      svec_z(p.I) = 0;
-
-                                      rho(p.I) = 0;
-                                      velx(p.I) = 0;
-                                      vely(p.I) = 0;
-                                      velz(p.I) = 0;
-                                      eps(p.I) = 0;
-                                      press(p.I) = 0;
-                                      Bvecx(p.I) = 0;
-                                      Bvecy(p.I) = 0;
-                                      Bvecz(p.I) = 0;
-                                      temperature(p.I) = 0;
-                                      entropy(p.I) = 0;
-                                      Ye(p.I) = 0;
-                                    });
 }
 
 } // namespace AsterX
