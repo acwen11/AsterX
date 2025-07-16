@@ -124,6 +124,17 @@ SCHEDULE AsterX_FluxAuxZero_Initial AT post_recover_variables
   #WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
 } "Set Fluxes and Auxiliary variables to zero initially"
 
+# For bypassing CarpetX NaN guard only.
+# There variables are supposed to be reconstructed by Con2Prim fully
+SCHEDULE AsterX_TouchNonEvolvedVariables AT postregrid
+{
+  LANG: C
+  WRITES: zvec(everywhere)
+  WRITES: svec(everywhere)
+  WRITES: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::Bvec(everywhere)
+  WRITES: HydroBaseX::temperature(everywhere) HydroBaseX::entropy(everywhere) HydroBaseX::Ye(everywhere)
+} "Touch non-evolution variables"
+
 
 SCHEDULE AsterX_Sync AT postregrid
 {
