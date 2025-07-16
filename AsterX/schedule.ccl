@@ -64,18 +64,14 @@ SCHEDULE AsterX_ComputeBFromdB IN AsterX_InitialGroup AFTER AsterX_ComputedBFrom
 SCHEDULE AsterX_CheckPrims IN AsterX_InitialGroup AFTER AsterX_ComputeBFromdB
 {
   LANG: C
-  READS: ADMBaseX::metric(interior)
-  READS: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::temperature(interior) HydroBaseX::Bvec(interior)
-  READS: HydroBaseX::entropy(interior) HydroBaseX::Ye(interior)
-  WRITES: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior)
-  WRITES: HydroBaseX::temperature(interior) HydroBaseX::entropy(interior) HydroBaseX::Ye(interior)
-  WRITES: saved_prims(interior)
-  WRITES: zvec(interior)
-  WRITES: svec(interior)
-  SYNC: HydroBaseX::rho HydroBaseX::vel HydroBaseX::eps HydroBaseX::press HydroBaseX::temperature HydroBaseX::entropy HydroBaseX::Ye
-  SYNC: saved_prims
-  SYNC: zvec
-  SYNC: svec
+  READS: ADMBaseX::metric(everywhere)
+  READS: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::temperature(everywhere) HydroBaseX::Bvec(everywhere)
+  READS: HydroBaseX::entropy(everywhere) HydroBaseX::Ye(everywhere)
+  WRITES: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere)
+  WRITES: HydroBaseX::temperature(everywhere) HydroBaseX::entropy(everywhere) HydroBaseX::Ye(everywhere)
+  WRITES: saved_prims(everywhere)
+  WRITES: zvec(everywhere)
+  WRITES: svec(everywhere)
 } "Enforce limits on primitive variables"
 
 SCHEDULE AsterX_Prim2Con_Initial IN AsterX_InitialGroup AFTER AsterX_CheckPrims
