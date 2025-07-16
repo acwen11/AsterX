@@ -13,16 +13,16 @@ USES INCLUDE HEADER: aster_fd.hxx aster_interp.hxx aster_utils.hxx
 
 PUBLIC:
 
-CCTK_REAL dens TYPE=gf CENTERING={ccc} TAGS='rhs="densrhs" dependents="HydroBaseX::rho TmunuBaseX::eTtt AsterX::flux_x AsterX::flux_y AsterX::flux_z"' "Conserved rest mass density"
+CCTK_REAL dens TYPE=gf CENTERING={ccc} TAGS='rhs="densrhs" dependents="TmunuBaseX::eTtt AsterX::flux_x AsterX::flux_y AsterX::flux_z"' "Conserved rest mass density"
 
-CCTK_REAL mom TYPE=gf CENTERING={ccc} TAGS='rhs="momrhs" dependents="HydroBaseX::vel TmunuBaseX::eTti"'
+CCTK_REAL mom TYPE=gf CENTERING={ccc} TAGS='rhs="momrhs" dependents="TmunuBaseX::eTti"'
 {
   momx, momy, momz
 } "Conserved momentum density"
 
-CCTK_REAL tau TYPE=gf CENTERING={ccc} TAGS='rhs="taurhs" dependents="HydroBaseX::eps HydroBaseX::press HydroBaseX::temperature HydroBaseX::Ye HydroBaseX::Bvec TmunuBaseX::eTij"' "Conserved internal energy density"
+CCTK_REAL tau TYPE=gf CENTERING={ccc} TAGS='rhs="taurhs" dependents="TmunuBaseX::eTij"' "Conserved internal energy density"
 
-CCTK_REAL DYe TYPE=gf CENTERING={ccc} TAGS='rhs="DYe_rhs" dependents="HydroBaseX::Ye AsterX::flux_x AsterX::flux_y AsterX::flux_z"' "Conserved electron fraction"
+CCTK_REAL DYe TYPE=gf CENTERING={ccc} TAGS='rhs="DYe_rhs" dependents="AsterX::flux_x AsterX::flux_y AsterX::flux_z"' "Conserved electron fraction"
 
 # DEnt is the conserved "evolved" entropy.
 # The corresponding primitive is stored in HydroBaseX::entropy.
@@ -34,7 +34,7 @@ CCTK_REAL DYe TYPE=gf CENTERING={ccc} TAGS='rhs="DYe_rhs" dependents="HydroBaseX
 # refer to "physical" and "evolved" entropy, respectively. In this 
 # evolution thorn we always refer to DEnt and entropy to describe 
 # the "evolved" quantities. 
-CCTK_REAL DEnt TYPE=gf CENTERING={ccc} TAGS='rhs="DEntrhs" dependents="HydroBaseX::entropy AsterX::flux_x AsterX::flux_y AsterX::flux_z"' "Advected entropy density"
+CCTK_REAL DEnt TYPE=gf CENTERING={ccc} TAGS='rhs="DEntrhs" dependents="AsterX::flux_x AsterX::flux_y AsterX::flux_z"' "Advected entropy density"
 
 CCTK_REAL flux_x TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'
 {
