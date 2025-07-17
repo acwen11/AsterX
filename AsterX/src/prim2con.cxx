@@ -166,4 +166,20 @@ extern "C" void AsterX_FluxAuxZero_Initial(CCTK_ARGUMENTS) {
 #endif
 }
 
+extern "C" void AsterX_SavedPrimsZero_Initial(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_SavedPrimsZero_Initial;
+  DECLARE_CCTK_PARAMETERS;
+
+  grid.loop_all_device<1, 1, 1>(grid.nghostzones,
+                                [=] CCTK_DEVICE(const PointDesc &p)
+                                    CCTK_ATTRIBUTE_ALWAYS_INLINE {
+                                      saved_rho(p.I) = 0;
+                                      saved_velx(p.I) = 0;
+                                      saved_vely(p.I) = 0;
+                                      saved_velz(p.I) = 0;
+                                      saved_eps(p.I) = 0;
+                                      saved_Ye(p.I) = 0;
+                                    });
+}
+
 } // namespace AsterX

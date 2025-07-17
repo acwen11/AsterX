@@ -139,6 +139,12 @@ SCHEDULE AsterX_FluxAuxZero_Initial IN AsterX_TouchNonEvolVarsGroup
   #WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
 } "Set Fluxes and Auxiliary variables to zero initially"
 
+SCHEDULE AsterX_SavedPrimsZero_Initial IN post_recover_variables
+{
+  LANG: C
+  WRITES: saved_prims(everywhere)
+} "Set saved primitives to zero initially"
+
 ################################################################################
 
 
