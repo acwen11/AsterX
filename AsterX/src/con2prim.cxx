@@ -422,6 +422,42 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     saved_Ye(p.I) = Ye(p.I);
   };
 
+  // initialize boundary values, which will be updated by ApplyOuterBCOnPrim
+  // later
+  cctk_grid.loop_bnd_device<1, 1, 1>(grid.nghostzones,
+                                     [=] CCTK_DEVICE(const PointDesc &p)
+                                         CCTK_ATTRIBUTE_ALWAYS_INLINE {
+                                           aster_mask_cc(p.I) = 0;
+                                           con2prim_flag(p.I) = 0;
+
+                                           zvec_x(p.I) = 0;
+                                           zvec_y(p.I) = 0;
+                                           zvec_z(p.I) = 0;
+                                           svec_x(p.I) = 0;
+                                           svec_y(p.I) = 0;
+                                           svec_z(p.I) = 0;
+
+                                           rho(p.I) = 0;
+                                           velx(p.I) = 0;
+                                           vely(p.I) = 0;
+                                           velz(p.I) = 0;
+                                           eps(p.I) = 0;
+                                           press(p.I) = 0;
+                                           Bvecx(p.I) = 0;
+                                           Bvecy(p.I) = 0;
+                                           Bvecz(p.I) = 0;
+                                           temperature(p.I) = 0;
+                                           entropy(p.I) = 0;
+                                           Ye(p.I) = 0;
+
+                                           saved_rho(p.I) = 0;
+                                           saved_velx(p.I) = 0;
+                                           saved_vely(p.I) = 0;
+                                           saved_velz(p.I) = 0;
+                                           saved_eps(p.I) = 0;
+                                           saved_Ye(p.I) = 0;
+                                         });
+
   cctk_grid.loop_int_device<1, 1, 1>(grid.nghostzones, c2p_impl);
 
   cctk_grid.loop_ghosts_device<1, 1, 1>(grid.nghostzones, c2p_impl);
