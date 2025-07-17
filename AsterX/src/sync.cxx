@@ -31,6 +31,13 @@ extern "C" void AsterX_ApplyOuterBCOnPrim(CCTK_ARGUMENTS) {
   groups.push_back(CCTK_GroupIndex("HydroBaseX::entropy"));
   groups.push_back(CCTK_GroupIndex("HydroBaseX::Ye"));
 
+  groups.push_back(CCTK_GroupIndex("AsterX::zvec"));
+  groups.push_back(CCTK_GroupIndex("AsterX::svec"));
+
+  groups.push_back(CCTK_GroupIndex("AsterX::dBx_stag"));
+  groups.push_back(CCTK_GroupIndex("AsterX::dBy_stag"));
+  groups.push_back(CCTK_GroupIndex("AsterX::dBz_stag"));
+
   task_manager tasks1;
   task_manager tasks2;
 
