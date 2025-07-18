@@ -18,7 +18,7 @@ public:
       CCTK_REAL tol, CCTK_REAL alp_thresh_in, CCTK_REAL consError,
       CCTK_REAL vwlim, CCTK_REAL B_lim, CCTK_REAL rho_BH_in,
       CCTK_REAL eps_BH_in, CCTK_REAL vwlim_BH_in, bool ye_len, bool use_z,
-      bool use_temperature);
+      bool use_temperature, bool use_pressure_atmo);
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   get_Ssq_Exact(const vec<CCTK_REAL, 3> &mom,
@@ -66,7 +66,7 @@ CCTK_HOST CCTK_DEVICE
         CCTK_REAL tol, CCTK_REAL alp_thresh_in, CCTK_REAL consError,
         CCTK_REAL vwlim, CCTK_REAL B_lim, CCTK_REAL rho_BH_in,
         CCTK_REAL eps_BH_in, CCTK_REAL vwlim_BH_in, bool ye_len, bool use_z,
-        bool use_temperature) {
+        bool use_temperature, bool use_pressure_atmo) {
 
   // Base
   atmo = atm;
@@ -84,6 +84,7 @@ CCTK_HOST CCTK_DEVICE
   ye_lenient = ye_len;
   use_zprim = use_z;
   use_temp = use_temperature;
+  use_press_atmo = use_pressure_atmo;
 
   // Derived
   GammaIdealFluid = eos_3p->gamma;
@@ -171,8 +172,14 @@ c2p_1DPalenzuela::xPalenzuelaToPrim(CCTK_REAL xPalenzuela_Sol, CCTK_REAL Ssq,
                         (2 * xPalenzuela_Sol * xPalenzuela_Sol) +
                     sPalenzuela / (2.0 * W_sol * W_sol));
 
-  pv.eps = std::max(pv.eps, atmo.eps_atmo); // check on lower bound
-  pv.eps = std::min(pv.eps, eos_3p->rgeps.max); // check on upper bound
+  // TODO: Using this check here can lead to corrections of negative eps
+  //       which could be accepted in certain cases. Thus, these cases will 
+  //       not be marked as failure after the solving for the root. Move 
+  //       the check to the tabulated EOS framework later. 
+  if (use_temp) {
+    pv.eps = std::max(pv.eps, atmo.eps_atmo); // check on lower bound
+    pv.eps = std::min(pv.eps, eos_3p->rgeps.max); // check on upper bound
+  }
 
   // (iv)
   // CCTK_REAL P_loc = get_Press_funcRhoEps(rho_loc, eps_loc);
@@ -280,8 +287,14 @@ c2p_1DPalenzuela::funcRoot_1DPalenzuela(CCTK_REAL Ssq, CCTK_REAL Bsq,
                                tPalenzuela * tPalenzuela / (2 * x * x) +
                                sPalenzuela / (2 * W_loc * W_loc));
 
-  eps_loc = std::max(eps_loc, atmo.eps_atmo); // check on lower bound
-  eps_loc = std::min(eps_loc, eos_3p->rgeps.max); // check on upper bound
+  // TODO: Using this check here can lead to corrections of negative eps
+  //       which could be accepted in certain cases. Thus, these cases will 
+  //       not be marked as failure after the solving for the root. Move 
+  //       the check to the tabulated EOS framework later. 
+  if (use_temp) {
+    eps_loc = std::max(eps_loc, atmo.eps_atmo); // check on lower bound
+    eps_loc = std::min(eps_loc, eos_3p->rgeps.max); // check on upper bound
+  }
 
   // (iv)
   CCTK_REAL P_loc =

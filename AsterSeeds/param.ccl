@@ -62,14 +62,13 @@ REAL rotate_angle_z "Rotation angle about z-axis (in units of pi)" STEERABLE=nev
 
 CCTK_REAL rho_atmosphere "floor density in the atmosphere"
 {
-  0.0:*   :: "Positive"
+  (0.0:*   :: "Positive"
 } 1e-9
 
 CCTK_REAL press_atmosphere "floor pressure in the atmosphere"
 {
-  0.0:*   :: "Positive"
+  (0.0:*   :: "Positive"
 } 1e-18
-
 
 # ---------------------------------------
 
@@ -246,6 +245,7 @@ CCTK_REAL B_initial "Initial value for the magnetic field"
 
 # ---------------------------------------
 
+
 # temperature
 
 BOOLEAN set_temperature_postinitial "Set the temperature consistently in HydroBaseX_PostInitial" STEERABLE=always
@@ -258,5 +258,14 @@ BOOLEAN set_entropy_postinitial "Set the entropy consistently in HydroBaseX_Post
 {
 } "yes"
 
+# Ye
+
+BOOLEAN set_Ye_postinitial "Set Ye in HydroBaseX_PostInitial" STEERABLE=always
+{
+} "yes"
+
 SHARES: EOSX
 USES KEYWORD evolution_eos
+
+SHARES: Con2PrimFactory
+USES CCTK_REAL Ye_atmo

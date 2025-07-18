@@ -17,7 +17,7 @@ public:
       CCTK_REAL tol, CCTK_REAL alp_thresh_in, CCTK_REAL consError,
       CCTK_REAL vwlim, CCTK_REAL B_lim, CCTK_REAL rho_BH_in,
       CCTK_REAL eps_BH_in, CCTK_REAL vwlim_BH_in, bool ye_len, bool use_z,
-      bool use_temperature);
+      bool use_temperature, bool use_pressure_atmo);
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   get_Ssq_Exact(const vec<CCTK_REAL, 3> &mom,
@@ -64,7 +64,7 @@ CCTK_HOST CCTK_DEVICE
         CCTK_REAL tol, CCTK_REAL alp_thresh_in, CCTK_REAL consError,
         CCTK_REAL vwlim, CCTK_REAL B_lim, CCTK_REAL rho_BH_in,
         CCTK_REAL eps_BH_in, CCTK_REAL vwlim_BH_in, bool ye_len, bool use_z,
-        bool use_temperature) {
+        bool use_temperature, bool use_pressure_atmo) {
 
   // Base
   atmo = atm;
@@ -82,6 +82,7 @@ CCTK_HOST CCTK_DEVICE
   ye_lenient = ye_len;
   use_zprim = use_z;
   use_temp = use_temperature;
+  use_press_atmo = use_pressure_atmo;
 
   // Derived
   GammaIdealFluid = eos_3p->gamma;

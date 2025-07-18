@@ -20,7 +20,7 @@ public:
       CCTK_REAL tol, CCTK_REAL alp_thresh_in, CCTK_REAL consError,
       CCTK_REAL vwlim, CCTK_REAL B_lim, CCTK_REAL rho_BH_in,
       CCTK_REAL eps_BH_in, CCTK_REAL vwlim_BH_in, bool ye_len, bool use_z,
-      bool use_temperature);
+      bool use_temperature, bool use_pressure_atmo);
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   get_Ssq_Exact(const vec<CCTK_REAL, 3> &mom,
@@ -76,7 +76,7 @@ CCTK_HOST
         CCTK_REAL tol, CCTK_REAL alp_thresh_in, CCTK_REAL consError,
         CCTK_REAL vwlim, CCTK_REAL B_lim, CCTK_REAL rho_BH_in,
         CCTK_REAL eps_BH_in, CCTK_REAL vwlim_BH_in, bool ye_len, bool use_z,
-        bool use_temperature) {
+        bool use_temperature, bool use_pressure_atmo) {
 
   // Base
   atmo = atm;
@@ -94,10 +94,11 @@ CCTK_HOST
   ye_lenient = ye_len;
   use_zprim = use_z;
   use_temp = use_temperature;
+  use_press_atmo = use_pressure_atmo;
 
   // Derived
   GammaIdealFluid = eos_3p->gamma;
-  Zmin = atmo.rho_atmo;
+  Zmin = eos_3p->rgrho.min;
 }
 
 CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
@@ -398,7 +399,7 @@ c2p_2DNoble::solve(const EOSType *eos_3p, prim_vars &pv, prim_vars &pv_seeds,
   /* Start Recovery with 2D NR Solver */
   constexpr CCTK_INT n = 2;
   constexpr CCTK_REAL dv = (1. - 1.e-10);
-  constexpr CCTK_REAL dw = 1. / (1. - dv);
+  //constexpr CCTK_REAL dw = 1. / (1. - dv);
 
   CCTK_REAL dx[n];
   CCTK_REAL fjac[n][n];
@@ -414,14 +415,13 @@ c2p_2DNoble::solve(const EOSType *eos_3p, prim_vars &pv, prim_vars &pv_seeds,
   }
 
   else {
-    if (x[1] >= dv) {
-      x[0] *= dw * (1.0 - x[1]);
+    if (x[1] >= 1.0) {
       x[1] = dv;
     }
   }
 
-  if (x[0] < Zmin) {
-    x[0] = Zmin;
+  if (x[0] <= 0.0) {
+    x[0] = fabs(x[0])+Zmin;
   } else {
     if (x[0] > 1e20) {
       x[0] = x_old[0];
@@ -481,14 +481,13 @@ c2p_2DNoble::solve(const EOSType *eos_3p, prim_vars &pv, prim_vars &pv_seeds,
     }
 
     else {
-      if (x[1] >= dv) {
-        x[0] *= dw * (1.0 - x[1]);
+      if (x[1] >= 1.0) {
         x[1] = dv;
       }
     }
 
-    if (x[0] < Zmin) {
-      x[0] = Zmin;
+    if (x[0] <= 0.0) {
+      x[0] = fabs(x[0])+Zmin;
     } else {
       if (x[0] > 1e20) {
         x[0] = x_old[0];

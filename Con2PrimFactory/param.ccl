@@ -59,7 +59,7 @@ CCTK_REAL vw_lim "Upper limit for the value of velocity * lorentz_factor " STEER
 
 BOOLEAN Ye_lenient "Whether to allow restricting Y_e to a valid range" STEERABLE=ALWAYS
 {
-}  "no"
+} "no"
 
 CCTK_INT max_iter "Maximum allowed number of iterations for root finding" STEERABLE=ALWAYS
 {
@@ -70,6 +70,10 @@ CCTK_REAL c2p_tol "c2p torelance for root finding" STEERABLE=ALWAYS
 {
   0:* :: "Larger than zero"
 } 1e-10
+
+BOOLEAN use_press_atmo "Use pressure in atmosphere definition and limiting. Important for graded atmosphere." STEERABLE=ALWAYS
+{
+} "no"
 
 # Parameters for graded atmosphere
 

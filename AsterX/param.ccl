@@ -123,6 +123,7 @@ USES CCTK_REAL vw_lim
 USES BOOLEAN Ye_lenient
 USES CCTK_INT max_iter
 USES CCTK_REAL c2p_tol
+USES BOOLEAN use_press_atmo
 USES CCTK_REAL r_atmo
 USES CCTK_REAL n_rho_atmo
 USES CCTK_REAL n_press_atmo
@@ -138,6 +139,7 @@ USES BOOLEAN use_temperature
 
 SHARES: ReconX
 USES KEYWORD reconstruction_method
+USES KEYWORD loworder_method
 USES CCTK_BOOLEAN reconstruct_with_temperature
 USES CCTK_REAL ppm_eta1
 USES CCTK_REAL ppm_eta2

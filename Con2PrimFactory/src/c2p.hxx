@@ -49,6 +49,7 @@ protected:
   bool ye_lenient;
   bool use_zprim;
   bool use_temp;
+  bool use_press_atmo;
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   get_Ssq_Exact(const vec<CCTK_REAL, 3> &mom,
@@ -89,108 +90,129 @@ c2p::prims_floors_and_ceilings(const EOSType *eos_3p, prim_vars &pv,
                                const smat<CCTK_REAL, 3> &glo,
                                c2p_report &rep) const {
 
-  // const CCTK_REAL spatial_detg = calc_det(glo);
-  // const CCTK_REAL sqrt_detg = sqrt(spatial_detg);
+  bool recomp_eps_press_entropy = false;
 
-  // Lower velocity
-  const vec<CCTK_REAL, 3> v_low = calc_contraction(glo, pv.vel);
+  // ----------
+  // Floor and ceiling for Ye
+  // ----------
+
+  if (pv.Ye < eos_3p->rgye.min) {
+
+    pv.Ye = eos_3p->rgye.min;
+    rep.adjust_cons = true;
+    recomp_eps_press_entropy = true;
+  }
+
+  if (pv.Ye > eos_3p->rgye.max) {
+
+    pv.Ye = eos_3p->rgye.max;
+    rep.adjust_cons = true;
+    recomp_eps_press_entropy = true;
+  }
 
   // ----------
   // Floor and ceiling for rho and velocity
-  // Keeps pressure the same and changes eps
   // ----------
 
   // check if computed velocities are within the specified limit
+  const vec<CCTK_REAL, 3> v_low = calc_contraction(glo, pv.vel);
   CCTK_REAL vsq_Sol = calc_contraction(v_low, pv.vel);
   CCTK_REAL sol_v = sqrt(vsq_Sol);
+
   if (sol_v > v_lim) {
-    /*
-    printf("(sol_v > v_lim) is true! \n");
-    printf("sol_v, v_lim: %26.16e, %26.16e \n", sol_v, v_lim);
-    */
     // add mass, keeps conserved density D
     pv.rho = cv.dens / w_lim;
-    if (use_temp) {
-      pv.eps =
-          eos_3p->eps_from_valid_rho_temp_ye(pv.rho, pv.temperature, pv.Ye);
-      pv.press =
-          eos_3p->press_from_valid_rho_temp_ye(pv.rho, pv.temperature, pv.Ye);
-    } else {
-      pv.eps = eos_3p->eps_from_valid_rho_press_ye(pv.rho, pv.press, pv.Ye);
-    }
-    pv.entropy = eos_3p->kappa_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
-    // if (pv.rho >= rho_strict) {
-    //  rep.set_speed_limit({ sol_v, sol_v, sol_v });
-    //  set_to_nan(pv, cv);
-    //  return;
-    //}
     pv.vel *= v_lim / sol_v;
     pv.w_lor = w_lim;
-    // pv.eps = std::min(std::max(eos_th.rgeps.min, pv.eps),
-    // eos_th.rgeps.max);
-    // pv.press = eos_th.press_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
-
     rep.adjust_cons = true;
+
+    if (use_temp) {
+      // changes pressure
+      recomp_eps_press_entropy = true;
+    } else {
+      // keeps pressure, changes eps
+      recomp_eps_press_entropy = false;
+      pv.eps = eos_3p->eps_from_valid_rho_press_ye(pv.rho, pv.press, pv.Ye);
+      pv.temperature = eos_3p->temp_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+      pv.entropy = eos_3p->kappa_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+    }
   }
 
   if (pv.rho > eos_3p->rgrho.max) {
-
     // remove mass, changes conserved density D
     pv.rho = eos_3p->rgrho.max;
-    if (use_temp) {
-      pv.eps =
-          eos_3p->eps_from_valid_rho_temp_ye(pv.rho, pv.temperature, pv.Ye);
-      pv.press =
-          eos_3p->press_from_valid_rho_temp_ye(pv.rho, pv.temperature, pv.Ye);
-    } else {
-      pv.eps = eos_3p->eps_from_valid_rho_press_ye(pv.rho, pv.press, pv.Ye);
-    }
-    pv.entropy =
-        eos_3p->kappa_from_valid_rho_eps_ye(eos_3p->rgrho.max, pv.eps, pv.Ye);
-
     rep.adjust_cons = true;
+
+    if (use_temp) {
+      // changes pressure
+      recomp_eps_press_entropy = true;
+    } else {
+      // keeps pressure, changes eps
+      recomp_eps_press_entropy = false;
+      pv.eps = eos_3p->eps_from_valid_rho_press_ye(pv.rho, pv.press, pv.Ye);
+      pv.temperature = eos_3p->temp_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+      pv.entropy = eos_3p->kappa_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+    }
   }
 
   // ----------
-  // Floor and ceiling for eps
+  // Ceiling for temperature
   // Keeps rho the same and changes press
   // ----------
-
-  // check the validity of the computed eps
-  auto rgeps = eos_3p->range_eps_from_valid_rho_ye(pv.rho, pv.Ye);
   
-  if (pv.eps > rgeps.max) {
-    // printf("(pv.eps > rgeps.max) is true, adjusting cons.. \n");
-    // if (pv.rho >= rho_strict) {
-    //  rep.set_range_eps(pv.eps); // sets adjust_cons to false by default
-    //  rep.adjust_cons = true;
-    //  set_to_nan(pv, cv);
-    //  return;
-    //}
-    pv.eps = rgeps.max;
-    pv.temperature = eos_3p->temp_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
-    pv.press = eos_3p->press_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
-    pv.entropy = eos_3p->kappa_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+  if (pv.temperature > eos_3p->rgtemp.max) {
 
+    pv.temperature = eos_3p->rgtemp.max;
+    recomp_eps_press_entropy = true;
     rep.adjust_cons = true;
-  } else if (pv.eps < atmo.eps_atmo) {
-    /*
-    printf(
-        "(pv.eps < rgeps.min) is true! pv.eps, rgeps.min: %26.16e, %26.16e
-    \n",
-        pv.eps, rgeps.min);
-    printf(" Not adjusting cons.. \n");
-    */
-    // rep.set_range_eps(rgeps.min); // sets adjust_cons to true
-    pv.eps = atmo.eps_atmo;
-    pv.temperature = eos_3p->temp_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
-    pv.press = eos_3p->press_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
-    pv.entropy = eos_3p->kappa_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
 
-    rep.adjust_cons = true;
   }
 
-  // TODO: check validity for Ye
+  // ----------
+  // Floors
+  // ----------
+
+  if (use_press_atmo) {
+
+    // ----------
+    // Pressure floor
+    // Keeps rho the same and changes temperature
+    // ----------
+
+    if (pv.press < atmo.press_atmo) {
+
+      pv.press = atmo.press_atmo;
+      pv.eps = eos_3p->eps_from_valid_rho_press_ye(pv.rho, pv.press, pv.Ye);
+      pv.temperature = eos_3p->temp_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+      pv.entropy = eos_3p->kappa_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+      recomp_eps_press_entropy = false;
+      rep.adjust_cons = true;
+
+    }
+  
+  } else {
+
+    // ----------
+    // Temperature floor
+    // Keeps rho the same and changes press
+    // ----------
+   
+    if (pv.temperature < atmo.temp_atmo) {
+  
+      pv.temperature = atmo.temp_atmo;
+      recomp_eps_press_entropy = true;
+      rep.adjust_cons = true;
+  
+    }
+
+  }
+
+  if (recomp_eps_press_entropy) {
+    pv.eps = eos_3p->eps_from_valid_rho_temp_ye(pv.rho, pv.temperature, pv.Ye);
+    pv.press = eos_3p->press_from_valid_rho_temp_ye(pv.rho, pv.temperature, pv.Ye);
+    pv.entropy = eos_3p->kappa_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+  }
+
 }
 
 template <typename EOSType, bool limiting>
@@ -230,8 +252,6 @@ c2p::bh_interior(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
     };
 
     if (recomp_flag) {
-
-      pv.Ye = atmo.ye_atmo;
   
       pv.temperature = eos_3p->temp_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
       pv.press = eos_3p->press_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye); 
