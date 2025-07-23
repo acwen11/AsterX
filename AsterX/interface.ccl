@@ -100,29 +100,29 @@ CCTK_REAL phys_ent TYPE=gf CENTERING={ccc} "Physical entropy (as opposed to evol
 CCTK_REAL ent_m1 TYPE=gf CENTERING={ccc} "Prev entropy timelevel"
 CCTK_REAL ent_m2 TYPE=gf CENTERING={ccc} "Prev-prev entropy timelevel"
 
-CCTK_REAL fluxHO_x TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'
-{
-  fHOxdens
-  fHOxmomx fHOxmomy fHOxmomz
-  fHOxtau
-  fHOxDEnt
-} "Higher order flux corrections in x direction"
-
-CCTK_REAL fluxHO_y TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"'
-{
-  fHOydens
-  fHOymomx fHOymomy fHOymomz
-  fHOytau
-  fHOyDEnt
-} "Higher order flux corrections in y direction"
-
-CCTK_REAL fluxHO_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
-{
-  fHOzdens
-  fHOzmomx fHOzmomy fHOzmomz
-  fHOztau
-  fHOzDEnt
-} "Higher order flux corrections in z direction"
+# CCTK_REAL fluxHO_x TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'
+# {
+#   fHOxdens
+#   fHOxmomx fHOxmomy fHOxmomz
+#   fHOxtau
+#   fHOxDEnt
+# } "Higher order flux corrections in x direction"
+# 
+# CCTK_REAL fluxHO_y TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"'
+# {
+#   fHOydens
+#   fHOymomx fHOymomy fHOymomz
+#   fHOytau
+#   fHOyDEnt
+# } "Higher order flux corrections in y direction"
+# 
+# CCTK_REAL fluxHO_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
+# {
+#   fHOzdens
+#   fHOzmomx fHOzmomy fHOzmomz
+#   fHOztau
+#   fHOzDEnt
+# } "Higher order flux corrections in z direction"
 
 CCTK_REAL densrhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved rest mass density RHS"
 

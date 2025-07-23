@@ -3,9 +3,7 @@
 STORAGE: dens mom tau DEnt dB Psi HydroBaseX::Bvec dBx_stag dBy_stag dBz_stag
 STORAGE: volform w_lorentz
 STORAGE: flux_x flux_y flux_z
-STORAGE: fluxLO_x fluxLO_y fluxLO_z thetas
-STORAGE: r_ent phys_ent ent_m1 ent_m2
-STORAGE: fluxHO_x fluxHO_y fluxHO_z
+# STORAGE: fluxHO_x fluxHO_y fluxHO_z
 STORAGE: densrhs momrhs taurhs DEntrhs Avec_x_rhs Avec_y_rhs Avec_z_rhs Psi_rhs
 STORAGE: ADMBaseX::metric ADMBaseX::lapse ADMBaseX::shift ADMBaseX::curv
 STORAGE: Aux_in_RHSof_A_Psi
@@ -173,14 +171,19 @@ SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBsta
   SYNC: volform w_lorentz
 } "Calculate primitive variables from conservative variables"
 
-
-
 SCHEDULE GROUP AsterX_RHSGroup IN ODESolvers_RHS
 {
 } "Calculate AsterX RHS"
 
+if(use_pplim || use_efl)
+{
+	STORAGE: fluxLO_x fluxLO_y fluxLO_z thetas
+}
+
 if(use_efl)
 {
+	STORAGE: r_ent phys_ent ent_m1 ent_m2
+
   SCHEDULE AsterX_CalcPhysEntropy IN AsterX_RHSGroup BEFORE AsterX_CalcEntropyResidual
   {
     LANG: C
@@ -231,7 +234,7 @@ SCHEDULE AsterX_Flux_Corrections IN AsterX_RHSGroup AFTER AsterX_Fluxes
 {
   LANG: C
   READS: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
-  WRITES: fluxHO_x(interior) fluxHO_y(interior) fluxHO_z(interior)
+  # WRITES: fluxHO_x(interior) fluxHO_y(interior) fluxHO_z(interior)
   WRITES: flux_x(interior) flux_y(interior) flux_z(interior)
   SYNC: flux_x flux_y flux_z
 } "Computes the higher order corrections to fluxes and updates them"
