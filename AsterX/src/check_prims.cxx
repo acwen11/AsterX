@@ -36,7 +36,7 @@ void CheckPrims(CCTK_ARGUMENTS, EOSIDType *eos_1p, EOSType *eos_3p) {
         CCTK_REAL pressL = press(p.I);
         CCTK_REAL YeL = Ye(p.I);
         CCTK_REAL tempL = temperature(p.I);
-        CCTK_REAL entropyL = eos_3p->kappa_from_valid_rho_eps_ye(rhoL, epsL, YeL);
+        CCTK_REAL entropyL = entropy(p.I); //eos_3p->kappa_from_valid_rho_eps_ye(rhoL, epsL, YeL);
 
         // Setting up atmosphere
         CCTK_REAL rho_atm = 0.0;   // dummy initialization
