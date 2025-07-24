@@ -154,6 +154,7 @@ SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBsta
   WRITES: zvec(interior)
   WRITES: svec(interior)
   WRITES: dens(interior) tau(interior) DEnt(interior) mom(interior) DYe(interior) dB(interior)
+  WRITES: volform(interior) w_lorentz(interior)
   SYNC: con2prim_flag  
   SYNC: AsterMasks::aster_mask_cc
   SYNC: HydroBaseX::rho HydroBaseX::vel HydroBaseX::eps HydroBaseX::press HydroBaseX::Bvec 
@@ -162,6 +163,7 @@ SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBsta
   SYNC: zvec
   SYNC: svec
   SYNC: dens tau DEnt mom dYe dB
+  SYNC: volform w_lorentz
 } "Calculate primitive variables from conservative variables"
 
 
