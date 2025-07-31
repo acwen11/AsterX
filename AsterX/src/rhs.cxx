@@ -76,6 +76,7 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
   const vec<GF3D2<const CCTK_REAL>, dim> gf_fmomy{fxmomy, fymomy, fzmomy};
   const vec<GF3D2<const CCTK_REAL>, dim> gf_fmomz{fxmomz, fymomz, fzmomz};
   const vec<GF3D2<const CCTK_REAL>, dim> gf_ftau{fxtau, fytau, fztau};
+  const vec<GF3D2<const CCTK_REAL>, dim> gf_fDYe{fxDYe, fyDYe, fzDYe};
   const vec<vec<GF3D2<const CCTK_REAL>, dim>, dim> gf_fBs{
       {fxBx, fyBx, fzBx}, {fxBy, fyBy, fzBy}, {fxBz, fyBz, fzBz}};
   const vec<GF3D2<const CCTK_REAL>, dim> gf_F{Fx, Fy, Fz};
@@ -193,7 +194,8 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
         momyrhs(p.I) += calcupdate_hydro(gf_fmomy, p);
         momzrhs(p.I) += calcupdate_hydro(gf_fmomz, p);
         taurhs(p.I) += calcupdate_hydro(gf_ftau, p);
-        
+        DYe_rhs(p.I) += calcupdate_hydro(gf_fDYe, p);
+
         if (isnan(densrhs(p.I))) {
           printf("calcupdate = %f, ", calcupdate_hydro(gf_fdens, p));
           printf("densrhs = %f, gf_fdens = %f, %f, %f, %f, %f, %f \n",
@@ -202,7 +204,6 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
                  gf_fdens(1)(p.I + p.DI[1]), gf_fdens(2)(p.I + p.DI[2]));
         }
         assert(!isnan(densrhs(p.I)));
-        
       });
 
   grid.loop_int_device<1, 0, 0>(grid.nghostzones,

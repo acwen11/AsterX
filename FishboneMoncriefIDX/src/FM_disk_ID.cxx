@@ -43,8 +43,8 @@ extern "C" void FishboneMoncrief_ET_GRHD_initial(CCTK_ARGUMENTS) {
   const CCTK_REAL zcoord_init = 0.0;
 
   // First compute maximum pressure and density
-  const CCTK_REAL hm1_init =
-      GRHD_hm1(xcoord_init, ycoord_init, zcoord_init, M, r_in, a, r_at_max_density);
+  const CCTK_REAL hm1_init = GRHD_hm1(xcoord_init, ycoord_init, zcoord_init, M,
+                                      r_in, a, r_at_max_density);
   const CCTK_REAL rho_max =
       pow(hm1_init * (gamma - 1.0) / (kappa * gamma), 1.0 / (gamma - 1.0));
   const CCTK_REAL P_max = kappa * pow(rho_max, gamma);
@@ -73,34 +73,31 @@ extern "C" void FishboneMoncrief_ET_GRHD_initial(CCTK_ARGUMENTS) {
   // Setup metric, loop over vertices
   grid.loop_all_device<0, 0, 0>(
       grid.nghostzones,
-      [=] CCTK_DEVICE(const Loop::PointDesc & p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-
+      [=] CCTK_DEVICE(const Loop::PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         CCTK_REAL xcoord = p.x;
         CCTK_REAL ycoord = p.y;
         CCTK_REAL zcoord = p.z;
 
-        CCTK_REAL alp_L{ 0. };
-        CCTK_REAL betaU0_L{ 0. };
-        CCTK_REAL betaU1_L{ 0. };
-        CCTK_REAL betaU2_L{ 0. };
-        CCTK_REAL gDD00_L{ 0. };
-        CCTK_REAL gDD01_L{ 0. };
-        CCTK_REAL gDD02_L{ 0. };
-        CCTK_REAL gDD11_L{ 0. };
-        CCTK_REAL gDD12_L{ 0. };
-        CCTK_REAL gDD22_L{ 0. };
-        CCTK_REAL kDD00_L{ 0. };
-        CCTK_REAL kDD01_L{ 0. };
-        CCTK_REAL kDD02_L{ 0. };
-        CCTK_REAL kDD11_L{ 0. };
-        CCTK_REAL kDD12_L{ 0. };
-        CCTK_REAL kDD22_L{ 0. };
+        CCTK_REAL alp_L{0.};
+        CCTK_REAL betaU0_L{0.};
+        CCTK_REAL betaU1_L{0.};
+        CCTK_REAL betaU2_L{0.};
+        CCTK_REAL gDD00_L{0.};
+        CCTK_REAL gDD01_L{0.};
+        CCTK_REAL gDD02_L{0.};
+        CCTK_REAL gDD11_L{0.};
+        CCTK_REAL gDD12_L{0.};
+        CCTK_REAL gDD22_L{0.};
+        CCTK_REAL kDD00_L{0.};
+        CCTK_REAL kDD01_L{0.};
+        CCTK_REAL kDD02_L{0.};
+        CCTK_REAL kDD11_L{0.};
+        CCTK_REAL kDD12_L{0.};
+        CCTK_REAL kDD22_L{0.};
 
-        KerrSchild(xcoord, ycoord, zcoord, alp_L, betaU0_L, betaU1_L,
-                           betaU2_L, gDD00_L, gDD01_L, gDD02_L, gDD11_L,
-                           gDD12_L, gDD22_L, kDD00_L, kDD01_L, kDD02_L, kDD11_L,
-                           kDD12_L, kDD22_L,
-			   M, a);
+        KerrSchild(xcoord, ycoord, zcoord, alp_L, betaU0_L, betaU1_L, betaU2_L,
+                   gDD00_L, gDD01_L, gDD02_L, gDD11_L, gDD12_L, gDD22_L,
+                   kDD00_L, kDD01_L, kDD02_L, kDD11_L, kDD12_L, kDD22_L, M, a);
 
         alp(p.I) = alp_L;
         betax(p.I) = betaU0_L;
@@ -132,8 +129,7 @@ extern "C" void FishboneMoncrief_ET_GRHD_initial(CCTK_ARGUMENTS) {
   // Setup hydro, loop over cell centers
   grid.loop_all_device<1, 1, 1>(
       grid.nghostzones,
-      [=] CCTK_DEVICE(const Loop::PointDesc & p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-
+      [=] CCTK_DEVICE(const Loop::PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         CCTK_REAL xcoord = p.x;
         CCTK_REAL ycoord = p.y;
         CCTK_REAL zcoord = p.z;
@@ -144,7 +140,8 @@ extern "C" void FishboneMoncrief_ET_GRHD_initial(CCTK_ARGUMENTS) {
 
         if (rr > r_in) {
 
-          CCTK_REAL hm1 = GRHD_hm1(xcoord, ycoord, zcoord, M, r_in, a, r_at_max_density);
+          CCTK_REAL hm1 =
+              GRHD_hm1(xcoord, ycoord, zcoord, M, r_in, a, r_at_max_density);
 
           if (hm1 > 0) {
 
@@ -155,13 +152,12 @@ extern "C" void FishboneMoncrief_ET_GRHD_initial(CCTK_ARGUMENTS) {
             // P = (\Gamma - 1) rho epsilon
             eps(p.I) = press(p.I) / (rho(p.I) * (gamma - 1.0));
 
-            CCTK_REAL velU0_L{ 0. };
-            CCTK_REAL velU1_L{ 0. };
-            CCTK_REAL velU2_L{ 0. };
+            CCTK_REAL velU0_L{0.};
+            CCTK_REAL velU1_L{0.};
+            CCTK_REAL velU2_L{0.};
 
-            GRHD_velocities(xcoord, ycoord, zcoord, velU0_L, velU1_L,
-                                    velU2_L,
-		            M, a, r_at_max_density);
+            GRHD_velocities(xcoord, ycoord, zcoord, velU0_L, velU1_L, velU2_L,
+                            M, a, r_at_max_density);
 
             velx(p.I) = velU0_L;
             vely(p.I) = velU1_L;
@@ -179,11 +175,11 @@ extern "C" void FishboneMoncrief_ET_GRHD_initial(CCTK_ARGUMENTS) {
 
         // Outside the disk? Set to atmosphere all hydrodynamic variables!
         if (set_to_atmosphere) {
-          
-	  switch (atm_t) {
-	  case atmosphere_t::isentropic_graded : {
 
-      	    // Choose an atmosphere such that
+          switch (atm_t) {
+          case atmosphere_t::isentropic_graded: {
+
+            // Choose an atmosphere such that
             //   rho =       1e-5 * r^(-3/2), and
             //   P   = k rho^gamma
             // Add 1e-100 or 1e-300 to rr or rho to avoid divisions by zero.
@@ -193,10 +189,9 @@ extern "C" void FishboneMoncrief_ET_GRHD_initial(CCTK_ARGUMENTS) {
             velx(p.I) = 0.0;
             vely(p.I) = 0.0;
             velz(p.I) = 0.0;
-	    break;
-          
-	  };
-	  case atmosphere_t::free_graded : {
+            break;
+          };
+          case atmosphere_t::free_graded: {
 
             rho(p.I) = rho_min * pow(rr + 1e-100, -nrho);
             press(p.I) = press_min * pow(rr + 1e-100, -npress);
@@ -204,10 +199,9 @@ extern "C" void FishboneMoncrief_ET_GRHD_initial(CCTK_ARGUMENTS) {
             velx(p.I) = 0.0;
             vely(p.I) = 0.0;
             velz(p.I) = 0.0;
-	    break;
-
-	  };
-	  case atmosphere_t::constant : {
+            break;
+          };
+          case atmosphere_t::constant: {
 
             rho(p.I) = rho_min;
             press(p.I) = press_min;
@@ -216,9 +210,8 @@ extern "C" void FishboneMoncrief_ET_GRHD_initial(CCTK_ARGUMENTS) {
             vely(p.I) = 0.0;
             velz(p.I) = 0.0;
             break;
-
           };
-	  }
+          }
         }
       });
 }
@@ -232,8 +225,7 @@ FishboneMoncrief_ET_GRHD_initial__perturb_pressure(CCTK_ARGUMENTS) {
   // rand() is a host function, thus we cannot run the following code on device
   grid.loop_all<1, 1, 1>(
       grid.nghostzones,
-      [=] CCTK_HOST(const Loop::PointDesc & p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-
+      [=] CCTK_HOST(const Loop::PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         CCTK_REAL xcoord = p.x;
         CCTK_REAL ycoord = p.y;
         CCTK_REAL zcoord = p.z;
@@ -256,12 +248,13 @@ FishboneMoncrief_ET_GRHD_initial__perturb_pressure(CCTK_ARGUMENTS) {
             // snippet courtesy http://daviddeley.com/random/crandom.htm
             const CCTK_REAL random_number_between_0_and_1 =
                 ((CCTK_REAL)rand() / ((CCTK_REAL)(RAND_MAX) + (CCTK_REAL)(1)));
-          
+
             const CCTK_REAL random_number_between_min_and_max =
-                random_min + (random_max - random_min) * random_number_between_0_and_1;
+                random_min +
+                (random_max - random_min) * random_number_between_0_and_1;
 
             GRHD_perturb_pressure(press_L, eps_L, rho_L,
-			    random_number_between_min_and_max, gamma);
+                                  random_number_between_min_and_max, gamma);
 
             press(p.I) = press_L;
             eps(p.I) = eps_L;
@@ -278,8 +271,7 @@ extern "C" void FishboneMoncrief_Set_A(CCTK_ARGUMENTS) {
 
   grid.loop_all_device<1, 0, 0>(
       grid.nghostzones,
-      [=] CCTK_DEVICE(const Loop::PointDesc & p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-
+      [=] CCTK_DEVICE(const Loop::PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         CCTK_REAL xcoord = p.x;
         CCTK_REAL ycoord = p.y;
 
@@ -300,17 +292,15 @@ extern "C" void FishboneMoncrief_Set_A(CCTK_ARGUMENTS) {
         CCTK_REAL AyL = 0.;
         CCTK_REAL AzL = 0.;
 
-        GRMHD_set_A(pressL_stag, rhoL_stag, xtilde, ytilde, AxL, AyL,
-                            AzL,
-	            use_pressure, A_b, A_n, A_c, press_cut, rho_cut);
+        GRMHD_set_A(pressL_stag, rhoL_stag, xtilde, ytilde, AxL, AyL, AzL,
+                    use_pressure, A_b, A_n, A_c, press_cut, rho_cut);
 
         Avec_x(p.I) = AxL;
       });
 
   grid.loop_all_device<0, 1, 0>(
       grid.nghostzones,
-      [=] CCTK_DEVICE(const Loop::PointDesc & p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-
+      [=] CCTK_DEVICE(const Loop::PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         CCTK_REAL xcoord = p.x;
         CCTK_REAL ycoord = p.y;
 
@@ -331,17 +321,15 @@ extern "C" void FishboneMoncrief_Set_A(CCTK_ARGUMENTS) {
         CCTK_REAL AyL = 0.;
         CCTK_REAL AzL = 0.;
 
-        GRMHD_set_A(pressL_stag, rhoL_stag, xtilde, ytilde, AxL, AyL,
-                            AzL,
-	            use_pressure, A_b, A_n, A_c, press_cut, rho_cut);
+        GRMHD_set_A(pressL_stag, rhoL_stag, xtilde, ytilde, AxL, AyL, AzL,
+                    use_pressure, A_b, A_n, A_c, press_cut, rho_cut);
 
         Avec_y(p.I) = AyL;
       });
 
   grid.loop_all_device<0, 0, 1>(
       grid.nghostzones,
-      [=] CCTK_DEVICE(const Loop::PointDesc & p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-
+      [=] CCTK_DEVICE(const Loop::PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         CCTK_REAL xcoord = p.x;
         CCTK_REAL ycoord = p.y;
 
@@ -362,9 +350,8 @@ extern "C" void FishboneMoncrief_Set_A(CCTK_ARGUMENTS) {
         CCTK_REAL AyL = 0.;
         CCTK_REAL AzL = 0.;
 
-        GRMHD_set_A(pressL_stag, rhoL_stag, xtilde, ytilde, AxL, AyL,
-                            AzL,
-	            use_pressure, A_b, A_n, A_c, press_cut, rho_cut);
+        GRMHD_set_A(pressL_stag, rhoL_stag, xtilde, ytilde, AxL, AyL, AzL,
+                    use_pressure, A_b, A_n, A_c, press_cut, rho_cut);
 
         Avec_z(p.I) = AzL;
       });
@@ -378,34 +365,31 @@ extern "C" void FishboneMoncrief_Set_Spacetime(CCTK_ARGUMENTS) {
   // Setup metric, loop over vertices
   grid.loop_all_device<0, 0, 0>(
       grid.nghostzones,
-      [=] CCTK_DEVICE(const Loop::PointDesc & p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-
+      [=] CCTK_DEVICE(const Loop::PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         CCTK_REAL xcoord = p.x;
         CCTK_REAL ycoord = p.y;
         CCTK_REAL zcoord = p.z;
 
-        CCTK_REAL alp_L{ 0. };
-        CCTK_REAL betaU0_L{ 0. };
-        CCTK_REAL betaU1_L{ 0. };
-        CCTK_REAL betaU2_L{ 0. };
-        CCTK_REAL gDD00_L{ 0. };
-        CCTK_REAL gDD01_L{ 0. };
-        CCTK_REAL gDD02_L{ 0. };
-        CCTK_REAL gDD11_L{ 0. };
-        CCTK_REAL gDD12_L{ 0. };
-        CCTK_REAL gDD22_L{ 0. };
-        CCTK_REAL kDD00_L{ 0. };
-        CCTK_REAL kDD01_L{ 0. };
-        CCTK_REAL kDD02_L{ 0. };
-        CCTK_REAL kDD11_L{ 0. };
-        CCTK_REAL kDD12_L{ 0. };
-        CCTK_REAL kDD22_L{ 0. };
+        CCTK_REAL alp_L{0.};
+        CCTK_REAL betaU0_L{0.};
+        CCTK_REAL betaU1_L{0.};
+        CCTK_REAL betaU2_L{0.};
+        CCTK_REAL gDD00_L{0.};
+        CCTK_REAL gDD01_L{0.};
+        CCTK_REAL gDD02_L{0.};
+        CCTK_REAL gDD11_L{0.};
+        CCTK_REAL gDD12_L{0.};
+        CCTK_REAL gDD22_L{0.};
+        CCTK_REAL kDD00_L{0.};
+        CCTK_REAL kDD01_L{0.};
+        CCTK_REAL kDD02_L{0.};
+        CCTK_REAL kDD11_L{0.};
+        CCTK_REAL kDD12_L{0.};
+        CCTK_REAL kDD22_L{0.};
 
-        KerrSchild(xcoord, ycoord, zcoord, alp_L, betaU0_L, betaU1_L,
-                           betaU2_L, gDD00_L, gDD01_L, gDD02_L, gDD11_L,
-                           gDD12_L, gDD22_L, kDD00_L, kDD01_L, kDD02_L, kDD11_L,
-                           kDD12_L, kDD22_L,
-			   M, a);
+        KerrSchild(xcoord, ycoord, zcoord, alp_L, betaU0_L, betaU1_L, betaU2_L,
+                   gDD00_L, gDD01_L, gDD02_L, gDD11_L, gDD12_L, gDD22_L,
+                   kDD00_L, kDD01_L, kDD02_L, kDD11_L, kDD12_L, kDD22_L, M, a);
 
         alp(p.I) = alp_L;
         betax(p.I) = betaU0_L;

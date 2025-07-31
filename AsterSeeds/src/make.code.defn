@@ -1,15 +1,16 @@
-# Main make.code.defn file for thorn HydroToyGPU
+#Main make.code.defn file for thorn AsterSeeds
 
 # Source files in this directory
 SRCS =	\
   1D_tests.cxx \
   2D_tests.cxx \
   3D_tests.cxx \
+  TabEOS_tests.cxx \
   atmosphere.cxx \
   bbhcloud.cxx \
   magTOV.cxx \
   magBNS.cxx \
-  SetEntropy.cxx
+  SetTempEntropyYe.cxx
 
-# Subdirectories containing source files
-SUBDIRS = 
+#Subdirectories containing source files
+SUBDIRS =

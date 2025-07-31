@@ -8,9 +8,8 @@ namespace FMdisk {
 
 CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
 GRHD_hm1(CCTK_REAL const &xcoord, CCTK_REAL const &ycoord,
-         CCTK_REAL const &zcoord,
-	 CCTK_REAL const M, CCTK_REAL const r_in, CCTK_REAL const a,
-	 CCTK_REAL const r_at_max_density) {
+         CCTK_REAL const &zcoord, CCTK_REAL const M, CCTK_REAL const r_in,
+         CCTK_REAL const a, CCTK_REAL const r_at_max_density) {
 
   const CCTK_REAL tmp_2 = 2 * M * r_in;
   const CCTK_REAL tmp_3 = ((a) * (a));
@@ -55,15 +54,13 @@ GRHD_hm1(CCTK_REAL const &xcoord, CCTK_REAL const &ycoord,
   return hm1;
 }
 
-CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
-KerrSchild(CCTK_REAL const &xcoord, CCTK_REAL const &ycoord,
-           CCTK_REAL const &zcoord, CCTK_REAL &alpha, CCTK_REAL &betaU0,
-           CCTK_REAL &betaU1, CCTK_REAL &betaU2, CCTK_REAL &gammaDD00,
-           CCTK_REAL &gammaDD01, CCTK_REAL &gammaDD02, CCTK_REAL &gammaDD11,
-           CCTK_REAL &gammaDD12, CCTK_REAL &gammaDD22, CCTK_REAL &KDD00,
-           CCTK_REAL &KDD01, CCTK_REAL &KDD02, CCTK_REAL &KDD11,
-           CCTK_REAL &KDD12, CCTK_REAL &KDD22,
-	   CCTK_REAL const M, CCTK_REAL const a) {
+CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline void KerrSchild(
+    CCTK_REAL const &xcoord, CCTK_REAL const &ycoord, CCTK_REAL const &zcoord,
+    CCTK_REAL &alpha, CCTK_REAL &betaU0, CCTK_REAL &betaU1, CCTK_REAL &betaU2,
+    CCTK_REAL &gammaDD00, CCTK_REAL &gammaDD01, CCTK_REAL &gammaDD02,
+    CCTK_REAL &gammaDD11, CCTK_REAL &gammaDD12, CCTK_REAL &gammaDD22,
+    CCTK_REAL &KDD00, CCTK_REAL &KDD01, CCTK_REAL &KDD02, CCTK_REAL &KDD11,
+    CCTK_REAL &KDD12, CCTK_REAL &KDD22, CCTK_REAL const M, CCTK_REAL const a) {
 
   const CCTK_REAL FDPart3_0 = ((a) * (a));
   const CCTK_REAL FDPart3_1 = ((zcoord) * (zcoord));
@@ -236,9 +233,8 @@ CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
 GRHD_velocities(CCTK_REAL const &xcoord, CCTK_REAL const &ycoord,
                 CCTK_REAL const &zcoord, CCTK_REAL &Valencia3velocityU0GF,
                 CCTK_REAL &Valencia3velocityU1GF,
-                CCTK_REAL &Valencia3velocityU2GF,
-	        CCTK_REAL const M, CCTK_REAL const a,
-	        CCTK_REAL const r_at_max_density) {
+                CCTK_REAL &Valencia3velocityU2GF, CCTK_REAL const M,
+                CCTK_REAL const a, CCTK_REAL const r_at_max_density) {
 
   const CCTK_REAL FDPart3_0 = ((a) * (a));
   const CCTK_REAL FDPart3_2 =
@@ -303,8 +299,8 @@ GRHD_velocities(CCTK_REAL const &xcoord, CCTK_REAL const &ycoord,
 
 CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
 GRHD_perturb_pressure(CCTK_REAL &press, CCTK_REAL &eps, CCTK_REAL const &rho,
-		      CCTK_REAL const random_number_between_min_and_max,
-		      CCTK_REAL const gamma) {
+                      CCTK_REAL const random_number_between_min_and_max,
+                      CCTK_REAL const gamma) {
 
   press = press * (1.0 + random_number_between_min_and_max);
 
@@ -315,13 +311,9 @@ GRHD_perturb_pressure(CCTK_REAL &press, CCTK_REAL &eps, CCTK_REAL const &rho,
 CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
 GRMHD_set_A(CCTK_REAL const &press, CCTK_REAL const &rho,
             CCTK_REAL const &xtilde, CCTK_REAL const &ytilde, CCTK_REAL &Ax,
-            CCTK_REAL &Ay, CCTK_REAL &Az,
-	    bool const use_pressure,
-	    CCTK_REAL const A_b,
-	    CCTK_REAL const A_n,
-	    CCTK_REAL const A_c,
-	    CCTK_REAL const press_cut,
-	    CCTK_REAL const rho_cut) {
+            CCTK_REAL &Ay, CCTK_REAL &Az, bool const use_pressure,
+            CCTK_REAL const A_b, CCTK_REAL const A_n, CCTK_REAL const A_c,
+            CCTK_REAL const press_cut, CCTK_REAL const rho_cut) {
 
   const CCTK_REAL rcyl = fmax(sqrt(xtilde * xtilde + ytilde * ytilde), 1e-15);
 

@@ -1,6 +1,6 @@
 # Configuration definitions for thorn EOSX
 
-REQUIRES Loop
+REQUIRES HDF5 MPI Loop 
 PROVIDES EOSX
 {
 }

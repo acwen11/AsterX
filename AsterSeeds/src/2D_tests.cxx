@@ -6,8 +6,7 @@
 
 #include <cmath>
 
-#include "eos.hxx"
-#include "eos_idealgas.hxx"
+#include "setup_eos.hxx"
 #include "seeds_utils.hxx"
 
 namespace AsterSeeds {
@@ -21,11 +20,13 @@ extern "C" void Tests2D_Initialize(CCTK_ARGUMENTS) {
   DECLARE_CCTK_PARAMETERS;
 
   // For all the tests, the initial data EOS is ideal gas
-  // Constructing the IG EOS object
-  eos::range rgeps(eps_min, eps_max), rgrho(rho_min, rho_max),
-      rgye(ye_min, ye_max);
-
-  const eos_idealgas eos_th(gl_gamma, particle_mass, rgeps, rgrho, rgye);
+  // Get local eos object
+  auto eos_3p_ig = global_eos_3p_ig;
+  if (not CCTK_EQUALS(evolution_eos, "IdealGas")) {
+    CCTK_VERROR("Invalid evolution EOS type '%s'. Please, set "
+                "EOSX::evolution_eos = \"IdealGas\" in your parameter file.",
+                evolution_eos);
+  }
   const CCTK_REAL dummy_ye = 0.5;
 
   // See Cipolletta et al (2020) and Del Zanna, Bucciantini, Londrillo (2003)
@@ -51,24 +52,24 @@ extern "C" void Tests2D_Initialize(CCTK_ARGUMENTS) {
           }
 
           press(p.I) = 1.;
-          eps(p.I) = eos_th.eps_from_valid_rho_press_ye(rho(p.I), press(p.I),
-                                                        dummy_ye);
+          eps(p.I) = eos_3p_ig->eps_from_valid_rho_press_ye(
+              rho(p.I), press(p.I), dummy_ye);
         });
 
-    grid.loop_all<1, 0, 0>(
-        grid.nghostzones,
-        [=] CCTK_HOST(const PointDesc &p)
-            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_x(p.I) = 0.; });
+    grid.loop_all<1, 0, 0>(grid.nghostzones, [=] CCTK_HOST(const PointDesc &p)
+                                                 CCTK_ATTRIBUTE_ALWAYS_INLINE {
+                                                   Avec_x(p.I) = 0.;
+                                                 });
 
-    grid.loop_all<0, 1, 0>(
-        grid.nghostzones,
-        [=] CCTK_HOST(const PointDesc &p)
-            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_y(p.I) = 0.; });
+    grid.loop_all<0, 1, 0>(grid.nghostzones, [=] CCTK_HOST(const PointDesc &p)
+                                                 CCTK_ATTRIBUTE_ALWAYS_INLINE {
+                                                   Avec_y(p.I) = 0.;
+                                                 });
 
-    grid.loop_all<0, 0, 1>(
-        grid.nghostzones,
-        [=] CCTK_HOST(const PointDesc &p)
-            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_z(p.I) = p.y; });
+    grid.loop_all<0, 0, 1>(grid.nghostzones, [=] CCTK_HOST(const PointDesc &p)
+                                                 CCTK_ATTRIBUTE_ALWAYS_INLINE {
+                                                   Avec_z(p.I) = p.y;
+                                                 });
   }
 
   // See Cipolletta et al (2020), and Beckwith, Stone (2011)
@@ -99,22 +100,22 @@ extern "C" void Tests2D_Initialize(CCTK_ARGUMENTS) {
         [=] CCTK_HOST(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
           rho(p.I) = 1.;
           press(p.I) = 3.;
-          eps(p.I) = eos_th.eps_from_valid_rho_press_ye(rho(p.I), press(p.I),
-                                                        dummy_ye);
+          eps(p.I) = eos_3p_ig->eps_from_valid_rho_press_ye(
+              rho(p.I), press(p.I), dummy_ye);
           velx(p.I) = 1. / 12.0;
           vely(p.I) = 1. / 24.;
           velz(p.I) = axial_vel;
         });
 
-    grid.loop_all<1, 0, 0>(
-        grid.nghostzones,
-        [=] CCTK_HOST(const PointDesc &p)
-            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_x(p.I) = 0.; });
+    grid.loop_all<1, 0, 0>(grid.nghostzones, [=] CCTK_HOST(const PointDesc &p)
+                                                 CCTK_ATTRIBUTE_ALWAYS_INLINE {
+                                                   Avec_x(p.I) = 0.;
+                                                 });
 
-    grid.loop_all<0, 1, 0>(
-        grid.nghostzones,
-        [=] CCTK_HOST(const PointDesc &p)
-            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_y(p.I) = 0.; });
+    grid.loop_all<0, 1, 0>(grid.nghostzones, [=] CCTK_HOST(const PointDesc &p)
+                                                 CCTK_ATTRIBUTE_ALWAYS_INLINE {
+                                                   Avec_y(p.I) = 0.;
+                                                 });
 
     grid.loop_all<0, 0, 1>(
         grid.nghostzones,
@@ -168,24 +169,24 @@ extern "C" void Tests2D_Initialize(CCTK_ARGUMENTS) {
             vely(p.I) = 0.0;
             velz(p.I) = 0.0;
           }
-          eps(p.I) = eos_th.eps_from_valid_rho_press_ye(rho(p.I), press(p.I),
-                                                        dummy_ye);
+          eps(p.I) = eos_3p_ig->eps_from_valid_rho_press_ye(
+              rho(p.I), press(p.I), dummy_ye);
         });
 
-    grid.loop_all<1, 0, 0>(
-        grid.nghostzones,
-        [=] CCTK_HOST(const PointDesc &p)
-            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_x(p.I) = 0.0; });
+    grid.loop_all<1, 0, 0>(grid.nghostzones, [=] CCTK_HOST(const PointDesc &p)
+                                                 CCTK_ATTRIBUTE_ALWAYS_INLINE {
+                                                   Avec_x(p.I) = 0.0;
+                                                 });
 
-    grid.loop_all<0, 1, 0>(
-        grid.nghostzones,
-        [=] CCTK_HOST(const PointDesc &p)
-            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_y(p.I) = 0.0; });
+    grid.loop_all<0, 1, 0>(grid.nghostzones, [=] CCTK_HOST(const PointDesc &p)
+                                                 CCTK_ATTRIBUTE_ALWAYS_INLINE {
+                                                   Avec_y(p.I) = 0.0;
+                                                 });
 
-    grid.loop_all<0, 0, 1>(
-        grid.nghostzones,
-        [=] CCTK_HOST(const PointDesc &p)
-            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_z(p.I) = 0.1 * p.y; });
+    grid.loop_all<0, 0, 1>(grid.nghostzones, [=] CCTK_HOST(const PointDesc &p)
+                                                 CCTK_ATTRIBUTE_ALWAYS_INLINE {
+                                                   Avec_z(p.I) = 0.1 * p.y;
+                                                 });
   }
 
   else {

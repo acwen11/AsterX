@@ -1,8 +1,13 @@
 # Interface definition for thorn EOSX
 
 implements: EOSX
-INCLUDES HEADER: eos_utils.hxx IN eos_utils.hxx
-INCLUDES HEADER: eos.hxx IN eos.hxx
+
+USES INCLUDE HEADER: loop_device.hxx
+INCLUDES HEADER: setup_eos.hxx IN setup_eos.hxx
+INCLUDES HEADER: utils/eos_utils.hxx IN utils/eos_utils.hxx
 INCLUDES HEADER: eos_1p.hxx IN eos_1p.hxx
-INCLUDES HEADER: eos_idealgas.hxx IN eos_idealgas.hxx
-INCLUDES HEADER: eos_polytropic.hxx IN eos_polytropic.hxx
+INCLUDES HEADER: eos_1p_polytropic/eos_1p_polytropic.hxx IN eos_1p_polytropic/eos_1p_polytropic.hxx
+INCLUDES HEADER: eos_3p.hxx IN eos_3p.hxx
+INCLUDES HEADER: eos_3p_idealgas/eos_3p_idealgas.hxx IN eos_3p_idealgas/eos_3p_idealgas.hxx
+INCLUDES HEADER: eos_3p_hybrid/eos_3p_hybrid.hxx IN eos_3p_hybrid/eos_3p_hybrid.hxx
+INCLUDES HEADER: eos_3p_tabulated3d/eos_3p_tabulated3d.hxx IN eos_3p_tabulated3d/eos_3p_tabulated3d.hxx

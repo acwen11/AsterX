@@ -30,6 +30,7 @@ extern "C" void AsterX_Prim2Con_Initial(CCTK_ARGUMENTS) {
         pv.eps = eps(p.I);
         pv.press = press(p.I);
         pv.entropy = entropy(p.I);
+        pv.Ye = Ye(p.I);
         pv.Bvec(0) = Bvecx(p.I);
         pv.Bvec(1) = Bvecy(p.I);
         pv.Bvec(2) = Bvecz(p.I);
@@ -42,13 +43,12 @@ extern "C" void AsterX_Prim2Con_Initial(CCTK_ARGUMENTS) {
         momy(p.I) = cv.mom(1);
         momz(p.I) = cv.mom(2);
         tau(p.I) = cv.tau;
+        DYe(p.I) = cv.DYe;
         dBx(p.I) = cv.dBvec(0);
         dBy(p.I) = cv.dBvec(1);
-        dBz(p.I) = cv.dBvec(2); 
+        dBz(p.I) = cv.dBvec(2);
         DEnt(p.I) = cv.DEnt;
-
       });
-
 }
 
 extern "C" void AsterX_PsiZero_Initial(CCTK_ARGUMENTS) {

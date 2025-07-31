@@ -23,6 +23,7 @@ struct prim {
   CCTK_REAL rho;
   vec<CCTK_REAL, 3> vel;
   CCTK_REAL eps, press, entropy;
+  CCTK_REAL Ye;
   vec<CCTK_REAL, 3> Bvec;
 };
 
@@ -30,11 +31,12 @@ struct cons {
   CCTK_REAL dens;
   vec<CCTK_REAL, 3> mom;
   CCTK_REAL tau, DEnt;
+  CCTK_REAL DYe;
   vec<CCTK_REAL, 3> dBvec;
 };
 
-CCTK_DEVICE CCTK_HOST void prim2con(const smat<CCTK_REAL, 3> &g,
-                                    const prim &pv, cons &cv) {
+CCTK_DEVICE CCTK_HOST void prim2con(const smat<CCTK_REAL, 3> &g, const prim &pv,
+                                    cons &cv) {
 
   // determinant of spatial metric
   const CCTK_REAL sqrt_detg = sqrt(calc_det(g));
@@ -74,6 +76,7 @@ CCTK_DEVICE CCTK_HOST void prim2con(const smat<CCTK_REAL, 3> &g,
                         (pv.press + 0.5 * bs2) - bst * bst) -
            cv.dens;
 
+  cv.DYe = cv.dens * pv.Ye;
   cv.dBvec = sqrt_detg * pv.Bvec;
 
   cv.DEnt = pv.entropy * cv.dens;

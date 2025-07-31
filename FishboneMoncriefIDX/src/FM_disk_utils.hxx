@@ -20,9 +20,7 @@ inline CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_DEVICE CCTK_HOST T pow2(T x) {
   return x * x;
 }
 
-enum class atmosphere_t {isentropic_graded,
-	                 free_graded,
-		         constant };
+enum class atmosphere_t { isentropic_graded, free_graded, constant };
 
 } // namespace FMdisk
 

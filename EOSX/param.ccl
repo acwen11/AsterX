@@ -2,11 +2,19 @@
 
 restricted:
 
+KEYWORD initial_data_eos "Name of active EOS for initial data"
+{
+  "Polytropic" :: ""
+  "PWPolytropic" :: ""
+  "none" :: "No EOS available"
+} "Polytropic"
+
 KEYWORD evolution_eos "Equation of state employed during evolution" STEERABLE=never
 { 
-  "IdealGas" :: ""
-  "Hybrid" :: "" 
-  "Tabulated" :: ""
+  "IdealGas" :: "Ideal Gas"
+  "Hybrid" :: "Cold EOS plus thermal component" 
+  "Tabulated3d" :: "EOS Tabulated in (rho, T, Ye)"
+  "none" :: "No EOS available"
 } "IdealGas"
 
 #parameters for Polytropic EOS
@@ -58,9 +66,23 @@ CCTK_REAL ye_min "Validity region: min dummy electron fraction" STEERABLE=RECOVE
   0:* :: ""
 } 0.0
 
-# The default value is for a gas of nucleons with Y_e = 0.45
+# For a gas of nucleons with Y_e = 0.45, particle mass = 938.985 MeV
+# For ideal gas, we set particle mass = k_b
 CCTK_REAL particle_mass "mass used to formally compute temperature from kinetic gas theory"
 {
-  0:* :: "in MeV"
-} 938.985
+  (0:* :: ""
+} 1.0
 
+#parameters for Hybrid EOS
+
+CCTK_REAL gamma_th "Gamma for the thermal part"
+{
+  0:* :: ""
+} 2.0
+
+#parameters for Tabulated 3D EOS
+
+CCTK_STRING EOSTable_filename "File name of the 3D EOS table" STEERABLE=RECOVER 
+{  
+  ".+" :: ""
+} "."

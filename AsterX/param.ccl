@@ -121,18 +121,21 @@ BOOLEAN zero_psi "Set Psi, time component of 4-vector potential, to zero initial
 {
 } yes
 
+BOOLEAN excise "Avoid C2P and use BH values in masked region" STEERABLE=always
+{
+} no
+
+BOOLEAN use_mask "Use AsterMasks gridfunctions?" STEERABLE=always
+{
+} no
+
 SHARES: EOSX
-USES KEYWORD evolution_eos
 USES CCTK_REAL poly_gamma
 USES CCTK_REAL poly_k
 USES CCTK_REAL gl_gamma
-USES CCTK_REAL eps_min
-USES CCTK_REAL eps_max
-USES CCTK_REAL rho_min
-USES CCTK_REAL rho_max
-USES CCTK_REAL ye_min
-USES CCTK_REAL ye_max
-USES CCTK_REAL particle_mass
+USES KEYWORD initial_data_eos
+USES KEYWORD evolution_eos
+USES CCTK_STRING EOSTable_filename
 
 SHARES: Con2PrimFactory
 USES KEYWORD c2p_prime
@@ -141,15 +144,18 @@ USES CCTK_REAL rho_abs_min
 USES CCTK_REAL atmo_tol
 USES CCTK_REAL eps_atmo
 USES CCTK_REAL p_atmo
+USES CCTK_REAL t_atmo
 USES CCTK_REAL Ye_atmo
 USES CCTK_REAL B_lim
 USES CCTK_REAL vw_lim
 USES BOOLEAN Ye_lenient
 USES CCTK_INT max_iter
 USES CCTK_REAL c2p_tol
+USES BOOLEAN use_press_atmo
 USES CCTK_REAL r_atmo
 USES CCTK_REAL n_rho_atmo
 USES CCTK_REAL n_press_atmo
+USES CCTK_REAL n_temp_atmo
 USES BOOLEAN thermal_eos_atmo
 USES CCTK_REAL alp_thresh
 USES CCTK_REAL rho_BH
@@ -157,9 +163,12 @@ USES CCTK_REAL eps_BH
 USES CCTK_REAL vwlim_BH
 USES CCTK_REAL cons_error_limit
 USES BOOLEAN use_z
+USES BOOLEAN use_temperature
 
 SHARES: ReconX
 USES KEYWORD reconstruction_method
+USES KEYWORD loworder_method
+USES CCTK_BOOLEAN reconstruct_with_temperature
 USES CCTK_REAL ppm_eta1
 USES CCTK_REAL ppm_eta2
 USES CCTK_REAL ppm_eps
