@@ -9,7 +9,7 @@
 #include <array>
 
 #include "aster_utils.hxx"
-#include "eos.hxx"
+#include "setup_eos.hxx"
 
 namespace AsterX {
 using namespace Loop;
@@ -29,7 +29,7 @@ extern "C" void AsterX_CalcPhysEntropy(CCTK_ARGUMENTS) {
     eostype = eos_t::IdealGas;
   } else if (CCTK_EQUALS(evolution_eos, "Hybrid")) {
     eostype = eos_t::Hybrid;
-  } else if (CCTK_EQUALS(evolution_eos, "Tabulated")) {
+  } else if (CCTK_EQUALS(evolution_eos, "Tabulated3d")) {
     eostype = eos_t::Tabulated;
   } else {
     CCTK_ERROR("Unknown value for parameter \"evolution_eos\"");
@@ -49,8 +49,8 @@ extern "C" void AsterX_CalcPhysEntropy(CCTK_ARGUMENTS) {
           break;
         }
         case eos_t::Tabulated: {
-          printf("Tabulated EOS is not yet supported");
-          assert(0);
+          // Physical entropy is evolved entropy
+          phys_ent(p.I) = entropy(p.I);
           break;
         }
         default:

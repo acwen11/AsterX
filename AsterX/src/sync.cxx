@@ -12,4 +12,10 @@ extern "C" void AsterX_Sync(CCTK_ARGUMENTS) {
   // do nothing
 }
 
+// extern "C" void AsterX_SyncEFL(CCTK_ARGUMENTS) {
+//   DECLARE_CCTK_ARGUMENTSX_AsterX_SyncEFL;
+// 
+//   // do nothing
+// }
+
 } // namespace AsterX

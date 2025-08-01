@@ -55,6 +55,7 @@ CCTK_REAL fluxLO_x TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'
   fLOxdens
   fLOxmomx fLOxmomy fLOxmomz
   fLOxtau
+  fLOxDYe
   fLOxDEnt
 } "Low order fluxes in x direction for PP limiter"
 
@@ -73,6 +74,7 @@ CCTK_REAL fluxLO_y TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"'
   fLOydens
   fLOymomx fLOymomy fLOymomz
   fLOytau
+  fLOyDYe
   fLOyDEnt
 } "Low order fluxes in x direction for PP limiter"
 
@@ -91,6 +93,7 @@ CCTK_REAL fluxLO_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
   fLOzdens
   fLOzmomx fLOzmomy fLOzmomz
   fLOztau
+  fLOzDYe
   fLOzDEnt
 } "Low order fluxes in x direction for PP limiter"
 
@@ -100,7 +103,7 @@ CCTK_REAL thetas TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
 }
 
 CCTK_REAL r_ent TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Entropy residual for EFL"
-CCTK_REAL phys_ent TYPE=gf CENTERING={ccc} "Physical entropy (as opposed to evolved)"
+CCTK_REAL phys_ent TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Physical entropy (as opposed to evolved)"
 CCTK_REAL ent_m1 TYPE=gf CENTERING={ccc} "Prev entropy timelevel"
 CCTK_REAL ent_m2 TYPE=gf CENTERING={ccc} "Prev-prev entropy timelevel"
 
@@ -169,9 +172,6 @@ CCTK_REAL Aux_in_RHSof_A_Psi TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"'
 {
   Fx, Fy, Fz, Fbetax, Fbetay, Fbetaz, G
 } "Auxiliary vertices variables which appears in the rhs of Avec and Psi"
-
-CCTK_REAL volform TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "sqrt(detg)"
-CCTK_REAL w_lorentz TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Fluid Lorentz factor"
 
 #CCTK_REAL Ex TYPE=gf CENTERING={cvv} TAGS='checkpoint="no"' "x-component of electric field"
 #CCTK_REAL Ey TYPE=gf CENTERING={vcv} TAGS='checkpoint="no"' "y-component of electric field"

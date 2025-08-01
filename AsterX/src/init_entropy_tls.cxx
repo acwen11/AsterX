@@ -23,7 +23,7 @@ extern "C" void AsterX_InitEntropyTLs(CCTK_ARGUMENTS) {
     eostype = eos_t::IdealGas;
   } else if (CCTK_EQUALS(evolution_eos, "Hybrid")) {
     eostype = eos_t::Hybrid;
-  } else if (CCTK_EQUALS(evolution_eos, "Tabulated")) {
+  } else if (CCTK_EQUALS(evolution_eos, "Tabulated3d")) {
     eostype = eos_t::Tabulated;
   } else {
     CCTK_ERROR("Unknown value for parameter \"evolution_eos\"");
@@ -43,8 +43,8 @@ extern "C" void AsterX_InitEntropyTLs(CCTK_ARGUMENTS) {
           break;
         }
         case eos_t::Tabulated: {
-          printf("Tabulated EOS is not yet supported");
-          assert(0);
+          // Evolved entropy is physical entropy
+          phys_ent(p.I) = entropy(p.I);
           break;
         }
         default:

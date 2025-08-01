@@ -55,6 +55,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
   const vec<GF3D2<CCTK_REAL>, dim> thetagf{theta_x, theta_y, theta_z};
   const vec<GF3D2<CCTK_REAL>, dim> fluxLOdenss{fLOxdens, fLOydens, fLOzdens};
   const vec<GF3D2<CCTK_REAL>, dim> fluxLODEnts{fLOxDEnt, fLOyDEnt, fLOzDEnt};
+  const vec<GF3D2<CCTK_REAL>, dim> fluxLODYes{fLOxDYe, fLOyDYe, fLOzDYe};
   const vec<GF3D2<CCTK_REAL>, dim> fluxLOmomxs{fLOxmomx, fLOymomx, fLOzmomx};
   const vec<GF3D2<CCTK_REAL>, dim> fluxLOmomys{fLOxmomy, fLOymomy, fLOzmomy};
   const vec<GF3D2<CCTK_REAL>, dim> fluxLOmomzs{fLOxmomz, fLOymomz, fLOzmomz};
@@ -697,20 +698,27 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
       // Calc LO flux, currently only LLF
       fluxLOdenss(dir)(Ip) = laxf(lambda, dens_rc, flux_dens);
       fluxLODEnts(dir)(Ip) = laxf(lambda, DEnt_rc, flux_DEnt);
+      fluxLODYes(dir)(Ip) = laxf(lambda, DYe_rc, flux_DYe);
       fluxLOmomxs(dir)(Ip) = laxf(lambda, moms_rc(0), flux_moms(0));
       fluxLOmomys(dir)(Ip) = laxf(lambda, moms_rc(1), flux_moms(1));
       fluxLOmomzs(dir)(Ip) = laxf(lambda, moms_rc(2), flux_moms(2));
       fluxLOtaus(dir)(Ip) = laxf(lambda, tau_rc, flux_tau);
 
       if (use_pplim) {
+        // Get atmosphere
+        CCTK_REAL radial_distance = sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
+        CCTK_REAL rho_atm = (radial_distance > r_atmo)
+                      ? (rho_abs_min * pow((r_atmo / radial_distance), n_rho_atmo))
+                      : rho_abs_min;
+        rho_atm = std::max(eos_3p->rgrho.min, rho_atm);
+
         // Get 2 * \alpha * CFL with \alpha = 3
         const CCTK_REAL a2cfl = 6 * cctk_delta_time / p.DX[dir];
+        printf("DX = %e, a2cfl = %e", p.DX[dir], a2cfl);
 
         // Calc dens floor
-        const CCTK_REAL densmin_p =
-            volform(Ip) * w_lorentz(Ip) *
-            rho_abs_min; // TODO: is this the right floor?
-        const CCTK_REAL densmin_m = volform(Im) * w_lorentz(Im) * rho_abs_min;
+        const CCTK_REAL densmin_p = volform(Ip) * w_lorentz(Ip) * rho_atm;
+        const CCTK_REAL densmin_m = volform(Im) * w_lorentz(Im) * rho_atm;
 
         // Calc theta
         const CCTK_REAL newdens_p = dens(Ip) + a2cfl * fluxdenss(dir)(Ip);
@@ -767,6 +775,8 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
           (1 - theta) * fluxLOdenss(dir)(Ip) + theta * fluxdenss(dir)(Ip);
       fluxDEnts(dir)(Ip) =
           (1 - theta) * fluxLODEnts(dir)(Ip) + theta * fluxDEnts(dir)(Ip);
+      fluxDYes(dir)(Ip) =
+          (1 - theta) * fluxLODYes(dir)(Ip) + theta * fluxDYes(dir)(Ip);
       fluxmomxs(dir)(Ip) =
           (1 - theta) * fluxLOmomxs(dir)(Ip) + theta * fluxmomxs(dir)(Ip);
       fluxmomys(dir)(Ip) =

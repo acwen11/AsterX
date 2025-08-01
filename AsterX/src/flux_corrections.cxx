@@ -24,6 +24,7 @@ template <int dir> void CalcFluxCorrections(CCTK_ARGUMENTS) {
   /* grid functions for fluxes */
   const vec<GF3D2<CCTK_REAL>, dim> fluxdenss{fxdens, fydens, fzdens};
   const vec<GF3D2<CCTK_REAL>, dim> fluxDEnts{fxDEnt, fyDEnt, fzDEnt};
+  const vec<GF3D2<CCTK_REAL>, dim> fluxDYes{fxDYe, fyDYe, fzDYe};
   const vec<GF3D2<CCTK_REAL>, dim> fluxmomxs{fxmomx, fymomx, fzmomx};
   const vec<GF3D2<CCTK_REAL>, dim> fluxmomys{fxmomy, fymomy, fzmomy};
   const vec<GF3D2<CCTK_REAL>, dim> fluxmomzs{fxmomz, fymomz, fzmomz};
@@ -58,6 +59,8 @@ template <int dir> void CalcFluxCorrections(CCTK_ARGUMENTS) {
             higher_order_correction(fluxdenss(dir), p, dir, correction_order);
         fluxDEnts(dir)(p.I) =
             higher_order_correction(fluxDEnts(dir), p, dir, correction_order);
+        fluxDYes(dir)(p.I) =
+            higher_order_correction(fluxDYes(dir), p, dir, correction_order);
         fluxmomxs(dir)(p.I) =
             higher_order_correction(fluxmomxs(dir), p, dir, correction_order);
         fluxmomys(dir)(p.I) =
