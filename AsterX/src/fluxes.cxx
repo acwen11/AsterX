@@ -32,6 +32,171 @@ enum class flux_t { LxF, HLLE };
 enum class eos_3param { IdealGas, Hybrid, Tabulated };
 enum class rec_var_t { v_vec, z_vec, s_vec };
 
+template <int dir, typename EOSType>
+void CalcConsFluxesFromPrims(auto eos_3p, const bool use_temp_flag,
+ CCTK_REAL alp_avg, vec<CCTK_REAL, 3> betas_avg, smat<CCTK_REAL, 3> g_avg, CCTK_REAL sqrtg,
+ recon_prims& rcprims, recon_cons& rccons) {
+
+    /* vtilde^i = alpha * v^i - beta^i */
+    const vec<vec<CCTK_REAL, 2>, 3> vtildes_rc([&](int i) ARITH_INLINE {
+      return vec<CCTK_REAL, 2>([&](int f) ARITH_INLINE {
+        return alp_avg * rcprims.vels_rc(i)(f) - betas_avg(i);
+      });
+    });
+
+    /* alpha * b0 = W * B^i * v_i */
+    const vec<CCTK_REAL, 2> alp_b0_rc([&](int f) ARITH_INLINE {
+      return rcprims.w_lorentz_rc(f) * calc_contraction(rcprims.Bs_rc, rcprims.vlows_rc)(f);
+    });
+    /* covariant magnetic field measured by the Eulerian observer */
+    const vec<vec<CCTK_REAL, 2>, 3> Blows_rc = calc_contraction(g_avg, rcprims.Bs_rc);
+    /* B^2 = B^i * B_i */
+    const vec<CCTK_REAL, 2> B2_rc = calc_contraction(rcprims.Bs_rc, Blows_rc);
+    /* covariant magnetic field measured by the comoving observer:
+     *  b_i = B_i/W + alpha*b^0*v_i */
+    const vec<vec<CCTK_REAL, 2>, 3> blows_rc([&](int i) ARITH_INLINE {
+      return vec<CCTK_REAL, 2>([&](int f) ARITH_INLINE {
+        return Blows_rc(i)(f) / rcprims.w_lorentz_rc(f) + alp_b0_rc(f) * rcprims.vlows_rc(i)(f);
+      });
+    });
+    /* b^2 = b^{\mu} * b_{\mu} */
+    const vec<CCTK_REAL, 2> bsq_rc([&](int f) ARITH_INLINE {
+      return (B2_rc(f) + pow2(alp_b0_rc(f))) / pow2(rcprims.w_lorentz_rc(f));
+    });
+
+    /* componets correspond to the dir we are considering */
+    const CCTK_REAL beta_avg = betas_avg(dir);
+    const vec<CCTK_REAL, 2> vel_rc{rcprims.vels_rc(dir)};
+    const vec<CCTK_REAL, 2> B_rc{rcprims.Bs_rc(dir)};
+    const vec<CCTK_REAL, 2> vtilde_rc{vtildes_rc(dir)};
+
+    vec<CCTK_REAL, 2> cs2_rc;
+    if (use_temp_flag) {
+      const vec<CCTK_REAL, 2> cs_dummy([&](int f) ARITH_INLINE {
+        return eos_3p->csnd_from_valid_rho_temp_ye(rcprims.rho_rc(f), rcprims.eps_rc(f),
+                                                  rcprims.Ye_rc(f));
+      });
+      for (int i=0; i<=1; i++)
+        cs2_rc(i) = cs_dummy(i) * cs_dummy(i);
+    }
+    else {
+      const vec<CCTK_REAL, 2> cs2_rc([&](int f) ARITH_INLINE {
+        return eos_3p->csnd_from_valid_rho_eps_ye(rcprims.rho_rc(f), rcprims.eps_rc(f),
+                                                  rcprims.Ye_rc(f)) *
+               eos_3p->csnd_from_valid_rho_eps_ye(rcprims.rho_rc(f), rcprims.eps_rc(f), rcprims.Ye_rc(f));
+      });
+    }
+
+    const vec<CCTK_REAL, 2> h_rc([&](int f) ARITH_INLINE {
+      return 1 + rcprims.eps_rc(f) + rcprims.press_rc(f) / rcprims.rho_rc(f);
+    });
+
+    /* Computing conservatives from primitives: */
+
+    /* dens = sqrt(g) * D = sqrt(g) * (rho * W) */
+    const vec<CCTK_REAL, 2> dens_rc([&](int f) ARITH_INLINE {
+      return sqrtg * rcprims.rho_rc(f) * rcprims.w_lorentz_rc(f);
+    });
+
+    /* DEnt = sqrt(g) * D * s  = sqrt(g) * (rho * W) * s */
+    /*    s = entropy */
+    const vec<CCTK_REAL, 2> DEnt_rc([&](int f) ARITH_INLINE {
+      return sqrtg * rcprims.rho_rc(f) * rcprims.w_lorentz_rc(f) * rcprims.entropy_rc(f);
+    });
+
+    /* auxiliary: dens * h * W = sqrt(g) * rho * h * W^2 */
+    const vec<CCTK_REAL, 2> dens_h_W_rc([&](int f) ARITH_INLINE {
+      return dens_rc(f) * h_rc(f) * rcprims.w_lorentz_rc(f);
+    });
+    /* auxiliary: sqrt(g) * (rho*h + b^2)*W^2 */
+    const vec<CCTK_REAL, 2> dens_h_W_plus_sqrtg_W2b2_rc =
+        dens_h_W_rc + sqrtg * (pow2(alp_b0_rc) + B2_rc);
+    /* auxiliary: (pgas + pmag) */
+    const vec<CCTK_REAL, 2> press_plus_pmag_rc = rcprims.press_rc + 0.5 * bsq_rc;
+
+    /* mom_i = sqrt(g)*S_i = sqrt(g)((rho*h+b^2)*W^2*v_i - alpha*b^0*b_i) */
+    const vec<vec<CCTK_REAL, 2>, 3> moms_rc([&](int i) ARITH_INLINE {
+      return vec<CCTK_REAL, 2>([&](int f) ARITH_INLINE {
+        return dens_h_W_plus_sqrtg_W2b2_rc(f) * rcprims.vlows_rc(i)(f) -
+               sqrtg * alp_b0_rc(f) * blows_rc(i)(f);
+      });
+    });
+
+    /* tau = sqrt(g)*t =
+     *  sqrt(g)((rho*h + b^2)*W^2 - (pgas+pmag) - (alpha*b^0)^2 - D) */
+    const vec<CCTK_REAL, 2> tau_rc =
+        dens_h_W_rc - dens_rc + sqrtg * (B2_rc - press_plus_pmag_rc);
+
+    /* Btildes^i = sqrt(g) * B^i */
+    const vec<vec<CCTK_REAL, 2>, 3> Btildes_rc(
+        [&](int i) ARITH_INLINE { return sqrtg * rcprims.Bs_rc(i); });
+
+    /* Computing fluxes of conserved variables: */
+
+    /* auxiliary: unit in 'dir' */
+    const vec<CCTK_REAL, 3> unit_dir{vec<int, 3>::unit(dir)};
+    /* auxiliary: alpha * sqrt(g) */
+    const CCTK_REAL alp_sqrtg = alp_avg * sqrtg;
+    /* auxiliary: B^i / W */
+    const vec<CCTK_REAL, 2> B_over_w_lorentz_rc(
+        [&](int f) ARITH_INLINE { return B_rc(f) / rcprims.w_lorentz_rc(f); });
+
+    /* flux(dens) = sqrt(g) * D * vtilde^i = sqrt(g) * rho * W * vtilde^i */
+    const vec<CCTK_REAL, 2> flux_dens(
+        [&](int f) ARITH_INLINE { return dens_rc(f) * vtilde_rc(f); });
+
+    /* flux(DEnt) = sqrt(g) * D * s * vtilde^i = sqrt(g) * rho * W * s *
+     * vtilde^i */
+    const vec<CCTK_REAL, 2> flux_DEnt(
+        [&](int f) ARITH_INLINE { return DEnt_rc(f) * vtilde_rc(f); });
+
+    /* flux(mom_j)^i = sqrt(g)*(
+     *  S_j*vtilde^i + alpha*((pgas+pmag)*delta^i_j - b_jB^i/W) ) */
+    const vec<vec<CCTK_REAL, 2>, 3> flux_moms([&](int j) ARITH_INLINE {
+      return vec<CCTK_REAL, 2>([&](int f) ARITH_INLINE {
+        return moms_rc(j)(f) * vtilde_rc(f) +
+               alp_sqrtg * (press_plus_pmag_rc(f) * unit_dir(j) -
+                            blows_rc(j)(f) * B_over_w_lorentz_rc(f));
+      });
+    });
+
+    /* flux(tau) = sqrt(g)*(
+     *  t*vtilde^i + alpha*((pgas+pmag)*v^i-alpha*b0*B^i/W) ) */
+    const vec<CCTK_REAL, 2> flux_tau([&](int f) ARITH_INLINE {
+      return tau_rc(f) * vtilde_rc(f) +
+             alp_sqrtg * (press_plus_pmag_rc(f) * vel_rc(f) -
+                          alp_b0_rc(f) * B_over_w_lorentz_rc(f));
+    });
+
+    /* flux(DYe) = sqrt(g) * (D * Ye * vtilde^i) */
+    const vec<CCTK_REAL, 2> DYe_rc(
+        [&](int f) ARITH_INLINE { return dens_rc(f) * rcprims.Ye_rc(f); });
+    const vec<CCTK_REAL, 2> flux_DYe(
+        [&](int f) ARITH_INLINE { return DYe_rc(f) * vtilde_rc(f); });
+
+    /* electric field E_i = \tilde\epsilon_{ijk} Btilde_j * vtilde_k */
+    const vec<vec<CCTK_REAL, 2>, 3> Es_rc =
+        calc_cross_product(Btildes_rc, vtildes_rc);
+    /* flux(Btildes) = {{0, -Ez, Ey}, {Ez, 0, -Ex}, {-Ey, Ex, 0}} */
+    const vec<vec<CCTK_REAL, 2>, 3> flux_Btildes =
+        calc_cross_product(unit_dir, Es_rc);
+
+    /* Calculate eigenvalues: */
+
+    /* variable for either g^xx, g^yy or g^zz depending on the direction */
+    const CCTK_REAL u_avg = calc_inv(g_avg, sqrtg*sqrtg)(dir, dir);
+    /* eigenvalues */
+    vec<vec<CCTK_REAL, 4>, 2> lambda =
+        eigenvalues(alp_avg, beta_avg, u_avg, vel_rc, rcprims.rho_rc, cs2_rc,
+                    rcprims.w_lorentz_rc, h_rc, bsq_rc);
+
+    // Save cons and fluxes
+    recon_cons rccons_tmp{dens_rc, DEnt_rc, moms_rc, tau_rc, DYe_rc, Btildes_rc, vtildes_rc,
+     lambda, flux_dens, flux_DEnt, flux_moms, flux_tau, flux_DYe, flux_Btildes};
+    rccons = rccons_tmp; 
+}
+
+
 // Calculate the fluxes in direction `dir`. This function is more
 // complex because it has to handle any direction, but as reward,
 // there is only one function, not three.
@@ -108,6 +273,8 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
     reconstruction = reconstruction_t::mp5;
   else
     CCTK_ERROR("Unknown value for parameter \"reconstruction_method\"");
+
+  bool rc_temp = reconstruct_with_temperature;
 
   // Lower-order fallback for negative values
   reconstruction_t reconstruction_LO;
@@ -244,6 +411,146 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
     const CCTK_REAL detg_avg = calc_det(g_avg);
     const CCTK_REAL sqrtg = sqrt(detg_avg);
 
+    // ---------------------------- BEGIN LO FOR FLUX LIM -----------------------------------
+    // Reconstruct density
+    vec<CCTK_REAL, 2> rhoLO_rc{reconstruct_loworder(rho, p, true, true)};
+
+    // Reconstruct entropy
+    vec<CCTK_REAL, 2> entropyLO_rc{reconstruct_loworder(entropy, p, false, false)};
+
+    // Reconstruct Ye
+    vec<CCTK_REAL, 2> YeLO_rc{reconstruct_loworder(Ye, p, false, false)};
+
+    // Initialize variables for eps, pressure, and temperature
+    vec<CCTK_REAL, 2> epsLO_rc;
+    vec<CCTK_REAL, 2> pressLO_rc;
+    vec<CCTK_REAL, 2> tempLO_rc;
+
+    if (reconstruct_with_temperature) {
+
+      // Reconstruct temperature
+      vec<CCTK_REAL, 2> tempLO_rc{reconstruct_loworder(temperature, p, false, false)};
+
+      // Compute eps_rc and press_rc using lambdas
+      for (int f = 0; f < 2; ++f) {
+        epsLO_rc(f) =
+            eos_3p->eps_from_valid_rho_temp_ye(rhoLO_rc(f), tempLO_rc(f), YeLO_rc(f));
+        pressLO_rc(f) = eos_3p->press_from_valid_rho_temp_ye(
+            rhoLO_rc(f), tempLO_rc(f), YeLO_rc(f));
+      }
+
+    } else {
+      printf("Flux limiters only supported for temperature reconstruction for now.");
+      assert(0);
+    }
+
+    const vec<CCTK_REAL, 2> rhohLO_rc([&](int f) ARITH_INLINE {
+      return rhoLO_rc(f) + rhoLO_rc(f) * epsLO_rc(f) + pressLO_rc(f);
+    });
+
+    // Introduce reconstructed Bs
+    // Use staggered dB for i == dir
+    vec<vec<CCTK_REAL, 2>, 3> BsLO_rc;
+
+    // Assign the value for the primary direction
+    const CCTK_REAL val = gf_dBstags(dir)(p.I) / sqrtg;
+    BsLO_rc(dir)(0) = val;
+    BsLO_rc(dir)(1) = val;
+
+    // Lambda to assign the reconstructed values
+    auto assign_reconstructedLO = [&](int d) {
+      auto tmp = reconstruct_loworder(gf_Bvecs(d), p, false, false);
+      BsLO_rc(d)(0) = tmp[0];
+      BsLO_rc(d)(1) = tmp[1];
+    };
+
+    // Assign reconstructed values for the two perpendicular directions
+    assign_reconstructedLO(dir_arr[1]);
+    assign_reconstructedLO(dir_arr[2]);
+    // End of setting Bs
+    
+    vec<vec<CCTK_REAL, 2>, 3> velsLO_rc;
+    vec<vec<CCTK_REAL, 2>, 3> vlowsLO_rc;
+    vec<CCTK_REAL, 2> w_lorentzLO_rc;
+    switch (rec_var) {
+    case rec_var_t::v_vec: {
+
+      array<CCTK_REAL, 2>
+          vels_rc_dummy; // note: can't copy array<,2> to vec<,2>, only construct
+
+      for (int i = 0; i <= 2; ++i) { // loop over components
+        vels_rc_dummy = reconstruct_loworder(gf_vels(i), p, false, false);
+        velsLO_rc(i)(0) = vels_rc_dummy[0];
+        velsLO_rc(i)(1) = vels_rc_dummy[1];
+      }
+
+      /* co-velocity measured by Eulerian observer: v_j */
+      vlowsLO_rc = calc_contraction(g_avg, velsLO_rc);
+
+      /* Lorentz factor: W = 1 / sqrt(1 - v^2) */
+      w_lorentzLO_rc(0) = 1 / sqrt(1 - calc_contraction(vlowsLO_rc, velsLO_rc)(0));
+      w_lorentzLO_rc(1) = 1 / sqrt(1 - calc_contraction(vlowsLO_rc, velsLO_rc)(1));
+      break;
+    };
+    case rec_var_t::z_vec: {
+
+      vec<vec<CCTK_REAL, 2>, 3> zvec_rc([&](int i) ARITH_INLINE {
+        return vec<CCTK_REAL, 2>{reconstruct_loworder(gf_zvec(i), p, false, false)};
+      });
+
+      const vec<vec<CCTK_REAL, 2>, 3> zveclow_rc =
+          calc_contraction(g_avg, zvec_rc);
+
+      w_lorentzLO_rc(0) = sqrt(1 + calc_contraction(zveclow_rc, zvec_rc)(0));
+      w_lorentzLO_rc(1) = sqrt(1 + calc_contraction(zveclow_rc, zvec_rc)(1));
+
+      for (int i = 0; i <= 2; ++i) {   // loop over components
+        for (int j = 0; j <= 1; ++j) { // loop over left and right state
+          velsLO_rc(i)(j) = zvec_rc(i)(j) / w_lorentzLO_rc(j);
+          vlowsLO_rc(i)(j) = zveclow_rc(i)(j) / w_lorentzLO_rc(j);
+        }
+      }
+      break;
+    };
+    case rec_var_t::s_vec: {
+
+      vec<vec<CCTK_REAL, 2>, 3> svec_rc([&](int i) ARITH_INLINE {
+        return vec<CCTK_REAL, 2>{reconstruct_loworder(gf_svec(i), p, false, false)};
+      });
+
+      const vec<vec<CCTK_REAL, 2>, 3> sveclow_rc =
+          calc_contraction(g_avg, svec_rc);
+
+      w_lorentzLO_rc(0) =
+          sqrt(0.5 + sqrt(0.25 + calc_contraction(sveclow_rc, svec_rc)(0) /
+                                     rhohLO_rc(0) / rhohLO_rc(0)));
+      w_lorentzLO_rc(1) =
+          sqrt(0.5 + sqrt(0.25 + calc_contraction(sveclow_rc, svec_rc)(1) /
+                                     rhohLO_rc(1) / rhohLO_rc(1)));
+
+      for (int i = 0; i <= 2; ++i) {   // loop over components
+        for (int j = 0; j <= 1; ++j) { // loop over left and right state
+          velsLO_rc(i)(j) =
+              svec_rc(i)(j) / w_lorentzLO_rc(j) / w_lorentzLO_rc(j) / rhohLO_rc(j);
+          vlowsLO_rc(i)(j) =
+              sveclow_rc(i)(j) / w_lorentzLO_rc(j) / w_lorentzLO_rc(j) / rhohLO_rc(j);
+        }
+      }
+      break;
+    };
+    }
+
+    recon_prims rcprimsLO{rhoLO_rc, entropyLO_rc, YeLO_rc, epsLO_rc, pressLO_rc, tempLO_rc, BsLO_rc,
+      velsLO_rc, vlowsLO_rc, w_lorentzLO_rc};
+    recon_cons rcconsLO;
+
+    CalcConsFluxesFromPrims(eos_3p, rc_temp,
+     alp_avg, betas_avg, g_avg, sqrtg,
+     rcprimsLO, rcconsLO);
+    // ---------------------------- END LO FOR FLUX LIM -----------------------------------
+    
+    
+    
     // Booleans to decide whether to use low order
     // reconstruction
     bool useLO_0 = false;
@@ -372,7 +679,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
     vec<vec<CCTK_REAL, 2>, 3> Bs_rc;
 
     // Assign the value for the primary direction
-    const CCTK_REAL val = gf_dBstags(dir)(p.I) / sqrtg;
+    // const CCTK_REAL val = gf_dBstags(dir)(p.I) / sqrtg;
     Bs_rc(dir)(0) = val;
     Bs_rc(dir)(1) = val;
 
@@ -525,166 +832,174 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
     };
     }
 
-    /* vtilde^i = alpha * v^i - beta^i */
-    const vec<vec<CCTK_REAL, 2>, 3> vtildes_rc([&](int i) ARITH_INLINE {
-      return vec<CCTK_REAL, 2>([&](int f) ARITH_INLINE {
-        return alp_avg * vels_rc(i)(f) - betas_avg(i);
-      });
-    });
+    // /* vtilde^i = alpha * v^i - beta^i */
+    // const vec<vec<CCTK_REAL, 2>, 3> vtildes_rc([&](int i) ARITH_INLINE {
+    //   return vec<CCTK_REAL, 2>([&](int f) ARITH_INLINE {
+    //     return alp_avg * vels_rc(i)(f) - betas_avg(i);
+    //   });
+    // });
 
-    /* alpha * b0 = W * B^i * v_i */
-    const vec<CCTK_REAL, 2> alp_b0_rc([&](int f) ARITH_INLINE {
-      return w_lorentz_rc(f) * calc_contraction(Bs_rc, vlows_rc)(f);
-    });
-    /* covariant magnetic field measured by the Eulerian observer */
-    const vec<vec<CCTK_REAL, 2>, 3> Blows_rc = calc_contraction(g_avg, Bs_rc);
-    /* B^2 = B^i * B_i */
-    const vec<CCTK_REAL, 2> B2_rc = calc_contraction(Bs_rc, Blows_rc);
-    /* covariant magnetic field measured by the comoving observer:
-     *  b_i = B_i/W + alpha*b^0*v_i */
-    const vec<vec<CCTK_REAL, 2>, 3> blows_rc([&](int i) ARITH_INLINE {
-      return vec<CCTK_REAL, 2>([&](int f) ARITH_INLINE {
-        return Blows_rc(i)(f) / w_lorentz_rc(f) + alp_b0_rc(f) * vlows_rc(i)(f);
-      });
-    });
-    /* b^2 = b^{\mu} * b_{\mu} */
-    const vec<CCTK_REAL, 2> bsq_rc([&](int f) ARITH_INLINE {
-      return (B2_rc(f) + pow2(alp_b0_rc(f))) / pow2(w_lorentz_rc(f));
-    });
+    // /* alpha * b0 = W * B^i * v_i */
+    // const vec<CCTK_REAL, 2> alp_b0_rc([&](int f) ARITH_INLINE {
+    //   return w_lorentz_rc(f) * calc_contraction(Bs_rc, vlows_rc)(f);
+    // });
+    // /* covariant magnetic field measured by the Eulerian observer */
+    // const vec<vec<CCTK_REAL, 2>, 3> Blows_rc = calc_contraction(g_avg, Bs_rc);
+    // /* B^2 = B^i * B_i */
+    // const vec<CCTK_REAL, 2> B2_rc = calc_contraction(Bs_rc, Blows_rc);
+    // /* covariant magnetic field measured by the comoving observer:
+    //  *  b_i = B_i/W + alpha*b^0*v_i */
+    // const vec<vec<CCTK_REAL, 2>, 3> blows_rc([&](int i) ARITH_INLINE {
+    //   return vec<CCTK_REAL, 2>([&](int f) ARITH_INLINE {
+    //     return Blows_rc(i)(f) / w_lorentz_rc(f) + alp_b0_rc(f) * vlows_rc(i)(f);
+    //   });
+    // });
+    // /* b^2 = b^{\mu} * b_{\mu} */
+    // const vec<CCTK_REAL, 2> bsq_rc([&](int f) ARITH_INLINE {
+    //   return (B2_rc(f) + pow2(alp_b0_rc(f))) / pow2(w_lorentz_rc(f));
+    // });
 
-    /* componets correspond to the dir we are considering */
-    const CCTK_REAL beta_avg = betas_avg(dir);
-    const vec<CCTK_REAL, 2> vel_rc{vels_rc(dir)};
-    const vec<CCTK_REAL, 2> B_rc{Bs_rc(dir)};
-    const vec<CCTK_REAL, 2> vtilde_rc{vtildes_rc(dir)};
+    // /* componets correspond to the dir we are considering */
+    // const CCTK_REAL beta_avg = betas_avg(dir);
+    // const vec<CCTK_REAL, 2> vel_rc{vels_rc(dir)};
+    // const vec<CCTK_REAL, 2> B_rc{Bs_rc(dir)};
+    // const vec<CCTK_REAL, 2> vtilde_rc{vtildes_rc(dir)};
 
-    // TODO: Compute pressure based on user-specified EOS.
-    // Currently, computing press for classical ideal gas from reconstructed
-    // vars
+    // // TODO: Compute pressure based on user-specified EOS.
+    // // Currently, computing press for classical ideal gas from reconstructed
+    // // vars
 
-    const vec<CCTK_REAL, 2> cs2_rc([&](int f) ARITH_INLINE {
-      return eos_3p->csnd_from_valid_rho_eps_ye(rho_rc(f), eps_rc(f),
-                                                Ye_rc(f)) *
-             eos_3p->csnd_from_valid_rho_eps_ye(rho_rc(f), eps_rc(f), Ye_rc(f));
-    });
+    // const vec<CCTK_REAL, 2> cs2_rc([&](int f) ARITH_INLINE {
+    //   return eos_3p->csnd_from_valid_rho_eps_ye(rho_rc(f), eps_rc(f),
+    //                                             Ye_rc(f)) *
+    //          eos_3p->csnd_from_valid_rho_eps_ye(rho_rc(f), eps_rc(f), Ye_rc(f));
+    // });
 
-    const vec<CCTK_REAL, 2> h_rc([&](int f) ARITH_INLINE {
-      return 1 + eps_rc(f) + press_rc(f) / rho_rc(f);
-    });
+    // const vec<CCTK_REAL, 2> h_rc([&](int f) ARITH_INLINE {
+    //   return 1 + eps_rc(f) + press_rc(f) / rho_rc(f);
+    // });
 
-    /* Computing conservatives from primitives: */
+    // /* Computing conservatives from primitives: */
 
-    /* dens = sqrt(g) * D = sqrt(g) * (rho * W) */
-    const vec<CCTK_REAL, 2> dens_rc([&](int f) ARITH_INLINE {
-      return sqrtg * rho_rc(f) * w_lorentz_rc(f);
-    });
+    // /* dens = sqrt(g) * D = sqrt(g) * (rho * W) */
+    // const vec<CCTK_REAL, 2> dens_rc([&](int f) ARITH_INLINE {
+    //   return sqrtg * rho_rc(f) * w_lorentz_rc(f);
+    // });
 
-    /* DEnt = sqrt(g) * D * s  = sqrt(g) * (rho * W) * s */
-    /*    s = entropy */
-    const vec<CCTK_REAL, 2> DEnt_rc([&](int f) ARITH_INLINE {
-      return sqrtg * rho_rc(f) * w_lorentz_rc(f) * entropy_rc(f);
-    });
+    // /* DEnt = sqrt(g) * D * s  = sqrt(g) * (rho * W) * s */
+    // /*    s = entropy */
+    // const vec<CCTK_REAL, 2> DEnt_rc([&](int f) ARITH_INLINE {
+    //   return sqrtg * rho_rc(f) * w_lorentz_rc(f) * entropy_rc(f);
+    // });
 
-    /* auxiliary: dens * h * W = sqrt(g) * rho * h * W^2 */
-    const vec<CCTK_REAL, 2> dens_h_W_rc([&](int f) ARITH_INLINE {
-      return dens_rc(f) * h_rc(f) * w_lorentz_rc(f);
-    });
-    /* auxiliary: sqrt(g) * (rho*h + b^2)*W^2 */
-    const vec<CCTK_REAL, 2> dens_h_W_plus_sqrtg_W2b2_rc =
-        dens_h_W_rc + sqrtg * (pow2(alp_b0_rc) + B2_rc);
-    /* auxiliary: (pgas + pmag) */
-    const vec<CCTK_REAL, 2> press_plus_pmag_rc = press_rc + 0.5 * bsq_rc;
+    // /* auxiliary: dens * h * W = sqrt(g) * rho * h * W^2 */
+    // const vec<CCTK_REAL, 2> dens_h_W_rc([&](int f) ARITH_INLINE {
+    //   return dens_rc(f) * h_rc(f) * w_lorentz_rc(f);
+    // });
+    // /* auxiliary: sqrt(g) * (rho*h + b^2)*W^2 */
+    // const vec<CCTK_REAL, 2> dens_h_W_plus_sqrtg_W2b2_rc =
+    //     dens_h_W_rc + sqrtg * (pow2(alp_b0_rc) + B2_rc);
+    // /* auxiliary: (pgas + pmag) */
+    // const vec<CCTK_REAL, 2> press_plus_pmag_rc = press_rc + 0.5 * bsq_rc;
 
-    /* mom_i = sqrt(g)*S_i = sqrt(g)((rho*h+b^2)*W^2*v_i - alpha*b^0*b_i) */
-    const vec<vec<CCTK_REAL, 2>, 3> moms_rc([&](int i) ARITH_INLINE {
-      return vec<CCTK_REAL, 2>([&](int f) ARITH_INLINE {
-        return dens_h_W_plus_sqrtg_W2b2_rc(f) * vlows_rc(i)(f) -
-               sqrtg * alp_b0_rc(f) * blows_rc(i)(f);
-      });
-    });
+    // /* mom_i = sqrt(g)*S_i = sqrt(g)((rho*h+b^2)*W^2*v_i - alpha*b^0*b_i) */
+    // const vec<vec<CCTK_REAL, 2>, 3> moms_rc([&](int i) ARITH_INLINE {
+    //   return vec<CCTK_REAL, 2>([&](int f) ARITH_INLINE {
+    //     return dens_h_W_plus_sqrtg_W2b2_rc(f) * vlows_rc(i)(f) -
+    //            sqrtg * alp_b0_rc(f) * blows_rc(i)(f);
+    //   });
+    // });
 
-    /* tau = sqrt(g)*t =
-     *  sqrt(g)((rho*h + b^2)*W^2 - (pgas+pmag) - (alpha*b^0)^2 - D) */
-    const vec<CCTK_REAL, 2> tau_rc =
-        dens_h_W_rc - dens_rc + sqrtg * (B2_rc - press_plus_pmag_rc);
+    // /* tau = sqrt(g)*t =
+    //  *  sqrt(g)((rho*h + b^2)*W^2 - (pgas+pmag) - (alpha*b^0)^2 - D) */
+    // const vec<CCTK_REAL, 2> tau_rc =
+    //     dens_h_W_rc - dens_rc + sqrtg * (B2_rc - press_plus_pmag_rc);
 
-    /* Btildes^i = sqrt(g) * B^i */
-    const vec<vec<CCTK_REAL, 2>, 3> Btildes_rc(
-        [&](int i) ARITH_INLINE { return sqrtg * Bs_rc(i); });
+    // /* Btildes^i = sqrt(g) * B^i */
+    // const vec<vec<CCTK_REAL, 2>, 3> Btildes_rc(
+    //     [&](int i) ARITH_INLINE { return sqrtg * Bs_rc(i); });
 
-    /* Computing fluxes of conserved variables: */
+    // /* Computing fluxes of conserved variables: */
 
-    /* auxiliary: unit in 'dir' */
-    const vec<CCTK_REAL, 3> unit_dir{vec<int, 3>::unit(dir)};
-    /* auxiliary: alpha * sqrt(g) */
-    const CCTK_REAL alp_sqrtg = alp_avg * sqrtg;
-    /* auxiliary: B^i / W */
-    const vec<CCTK_REAL, 2> B_over_w_lorentz_rc(
-        [&](int f) ARITH_INLINE { return B_rc(f) / w_lorentz_rc(f); });
+    // /* auxiliary: unit in 'dir' */
+    // const vec<CCTK_REAL, 3> unit_dir{vec<int, 3>::unit(dir)};
+    // /* auxiliary: alpha * sqrt(g) */
+    // const CCTK_REAL alp_sqrtg = alp_avg * sqrtg;
+    // /* auxiliary: B^i / W */
+    // const vec<CCTK_REAL, 2> B_over_w_lorentz_rc(
+    //     [&](int f) ARITH_INLINE { return B_rc(f) / w_lorentz_rc(f); });
 
-    /* flux(dens) = sqrt(g) * D * vtilde^i = sqrt(g) * rho * W * vtilde^i */
-    const vec<CCTK_REAL, 2> flux_dens(
-        [&](int f) ARITH_INLINE { return dens_rc(f) * vtilde_rc(f); });
+    // /* flux(dens) = sqrt(g) * D * vtilde^i = sqrt(g) * rho * W * vtilde^i */
+    // const vec<CCTK_REAL, 2> flux_dens(
+    //     [&](int f) ARITH_INLINE { return dens_rc(f) * vtilde_rc(f); });
 
-    /* flux(DEnt) = sqrt(g) * D * s * vtilde^i = sqrt(g) * rho * W * s *
-     * vtilde^i */
-    const vec<CCTK_REAL, 2> flux_DEnt(
-        [&](int f) ARITH_INLINE { return DEnt_rc(f) * vtilde_rc(f); });
+    // /* flux(DEnt) = sqrt(g) * D * s * vtilde^i = sqrt(g) * rho * W * s *
+    //  * vtilde^i */
+    // const vec<CCTK_REAL, 2> flux_DEnt(
+    //     [&](int f) ARITH_INLINE { return DEnt_rc(f) * vtilde_rc(f); });
 
-    /* flux(mom_j)^i = sqrt(g)*(
-     *  S_j*vtilde^i + alpha*((pgas+pmag)*delta^i_j - b_jB^i/W) ) */
-    const vec<vec<CCTK_REAL, 2>, 3> flux_moms([&](int j) ARITH_INLINE {
-      return vec<CCTK_REAL, 2>([&](int f) ARITH_INLINE {
-        return moms_rc(j)(f) * vtilde_rc(f) +
-               alp_sqrtg * (press_plus_pmag_rc(f) * unit_dir(j) -
-                            blows_rc(j)(f) * B_over_w_lorentz_rc(f));
-      });
-    });
+    // /* flux(mom_j)^i = sqrt(g)*(
+    //  *  S_j*vtilde^i + alpha*((pgas+pmag)*delta^i_j - b_jB^i/W) ) */
+    // const vec<vec<CCTK_REAL, 2>, 3> flux_moms([&](int j) ARITH_INLINE {
+    //   return vec<CCTK_REAL, 2>([&](int f) ARITH_INLINE {
+    //     return moms_rc(j)(f) * vtilde_rc(f) +
+    //            alp_sqrtg * (press_plus_pmag_rc(f) * unit_dir(j) -
+    //                         blows_rc(j)(f) * B_over_w_lorentz_rc(f));
+    //   });
+    // });
 
-    /* flux(tau) = sqrt(g)*(
-     *  t*vtilde^i + alpha*((pgas+pmag)*v^i-alpha*b0*B^i/W) ) */
-    const vec<CCTK_REAL, 2> flux_tau([&](int f) ARITH_INLINE {
-      return tau_rc(f) * vtilde_rc(f) +
-             alp_sqrtg * (press_plus_pmag_rc(f) * vel_rc(f) -
-                          alp_b0_rc(f) * B_over_w_lorentz_rc(f));
-    });
+    // /* flux(tau) = sqrt(g)*(
+    //  *  t*vtilde^i + alpha*((pgas+pmag)*v^i-alpha*b0*B^i/W) ) */
+    // const vec<CCTK_REAL, 2> flux_tau([&](int f) ARITH_INLINE {
+    //   return tau_rc(f) * vtilde_rc(f) +
+    //          alp_sqrtg * (press_plus_pmag_rc(f) * vel_rc(f) -
+    //                       alp_b0_rc(f) * B_over_w_lorentz_rc(f));
+    // });
 
-    /* flux(DYe) = sqrt(g) * (D * Ye * vtilde^i) */
-    const vec<CCTK_REAL, 2> DYe_rc(
-        [&](int f) ARITH_INLINE { return dens_rc(f) * Ye_rc(f); });
-    const vec<CCTK_REAL, 2> flux_DYe(
-        [&](int f) ARITH_INLINE { return DYe_rc(f) * vtilde_rc(f); });
+    // /* flux(DYe) = sqrt(g) * (D * Ye * vtilde^i) */
+    // const vec<CCTK_REAL, 2> DYe_rc(
+    //     [&](int f) ARITH_INLINE { return dens_rc(f) * Ye_rc(f); });
+    // const vec<CCTK_REAL, 2> flux_DYe(
+    //     [&](int f) ARITH_INLINE { return DYe_rc(f) * vtilde_rc(f); });
 
-    /* electric field E_i = \tilde\epsilon_{ijk} Btilde_j * vtilde_k */
-    const vec<vec<CCTK_REAL, 2>, 3> Es_rc =
-        calc_cross_product(Btildes_rc, vtildes_rc);
-    /* flux(Btildes) = {{0, -Ez, Ey}, {Ez, 0, -Ex}, {-Ey, Ex, 0}} */
-    const vec<vec<CCTK_REAL, 2>, 3> flux_Btildes =
-        calc_cross_product(unit_dir, Es_rc);
+    // /* electric field E_i = \tilde\epsilon_{ijk} Btilde_j * vtilde_k */
+    // const vec<vec<CCTK_REAL, 2>, 3> Es_rc =
+    //     calc_cross_product(Btildes_rc, vtildes_rc);
+    // /* flux(Btildes) = {{0, -Ez, Ey}, {Ez, 0, -Ex}, {-Ey, Ex, 0}} */
+    // const vec<vec<CCTK_REAL, 2>, 3> flux_Btildes =
+    //     calc_cross_product(unit_dir, Es_rc);
 
-    /* Calculate eigenvalues: */
+    // /* Calculate eigenvalues: */
 
-    /* variable for either g^xx, g^yy or g^zz depending on the direction */
-    const CCTK_REAL u_avg = calc_inv(g_avg, detg_avg)(dir, dir);
-    /* eigenvalues */
-    vec<vec<CCTK_REAL, 4>, 2> lambda =
-        eigenvalues(alp_avg, beta_avg, u_avg, vel_rc, rho_rc, cs2_rc,
-                    w_lorentz_rc, h_rc, bsq_rc);
+    // /* variable for either g^xx, g^yy or g^zz depending on the direction */
+    // const CCTK_REAL u_avg = calc_inv(g_avg, detg_avg)(dir, dir);
+    // /* eigenvalues */
+    // vec<vec<CCTK_REAL, 4>, 2> lambda =
+    //     eigenvalues(alp_avg, beta_avg, u_avg, vel_rc, rho_rc, cs2_rc,
+    //                 w_lorentz_rc, h_rc, bsq_rc);
+
+    recon_prims rcprimsHO{rho_rc, entropy_rc, Ye_rc, eps_rc, press_rc, temp_rc, Bs_rc,
+      vels_rc, vlows_rc, w_lorentz_rc};
+    recon_cons rcconsHO;
+
+    CalcConsFluxesFromPrims(eos_3p, rc_temp,
+     alp_avg, betas_avg, g_avg, sqrtg,
+     rcprimsHO, rcconsHO);
 
     /* Calculate numerical fluxes */
-    fluxdenss(dir)(p.I) = calcflux(lambda, dens_rc, flux_dens);
-    fluxDEnts(dir)(p.I) = calcflux(lambda, DEnt_rc, flux_DEnt);
-    fluxmomxs(dir)(p.I) = calcflux(lambda, moms_rc(0), flux_moms(0));
-    fluxmomys(dir)(p.I) = calcflux(lambda, moms_rc(1), flux_moms(1));
-    fluxmomzs(dir)(p.I) = calcflux(lambda, moms_rc(2), flux_moms(2));
-    fluxtaus(dir)(p.I) = calcflux(lambda, tau_rc, flux_tau);
-    fluxDYes(dir)(p.I) = calcflux(lambda, DYe_rc, flux_DYe);
+    fluxdenss(dir)(p.I) = calcflux(rcconsHO.lambda, rcconsHO.dens_rc,       rcconsHO.flux_dens);
+    fluxDEnts(dir)(p.I) = calcflux(rcconsHO.lambda, rcconsHO.DEnt_rc,       rcconsHO.flux_DEnt);
+    fluxmomxs(dir)(p.I) = calcflux(rcconsHO.lambda, rcconsHO.moms_rc(0),    rcconsHO.flux_moms(0));
+    fluxmomys(dir)(p.I) = calcflux(rcconsHO.lambda, rcconsHO.moms_rc(1),    rcconsHO.flux_moms(1));
+    fluxmomzs(dir)(p.I) = calcflux(rcconsHO.lambda, rcconsHO.moms_rc(2),    rcconsHO.flux_moms(2));
+    fluxtaus(dir)(p.I) =  calcflux(rcconsHO.lambda, rcconsHO.tau_rc,        rcconsHO.flux_tau);
+    fluxDYes(dir)(p.I) =  calcflux(rcconsHO.lambda, rcconsHO.DYe_rc,        rcconsHO.flux_DYe);
     fluxBxs(dir)(p.I) =
-        (dir != 0) * calcflux(lambda, Btildes_rc(0), flux_Btildes(0));
+             (dir != 0) * calcflux(rcconsHO.lambda, rcconsHO.Btildes_rc(0), rcconsHO.flux_Btildes(0));
     fluxBys(dir)(p.I) =
-        (dir != 1) * calcflux(lambda, Btildes_rc(1), flux_Btildes(1));
+             (dir != 1) * calcflux(rcconsHO.lambda, rcconsHO.Btildes_rc(1), rcconsHO.flux_Btildes(1));
     fluxBzs(dir)(p.I) =
-        (dir != 2) * calcflux(lambda, Btildes_rc(2), flux_Btildes(2));
+             (dir != 2) * calcflux(rcconsHO.lambda, rcconsHO.Btildes_rc(2), rcconsHO.flux_Btildes(2));
 
     /* Limit Fluxes */
     if (use_pplim || use_efl) {
@@ -696,13 +1011,13 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
       CCTK_REAL theta_p = 1.0;
 
       // Calc LO flux, currently only LLF
-      fluxLOdenss(dir)(Ip) = laxf(lambda, dens_rc, flux_dens);
-      fluxLODEnts(dir)(Ip) = laxf(lambda, DEnt_rc, flux_DEnt);
-      fluxLODYes(dir)(Ip) = laxf(lambda, DYe_rc, flux_DYe);
-      fluxLOmomxs(dir)(Ip) = laxf(lambda, moms_rc(0), flux_moms(0));
-      fluxLOmomys(dir)(Ip) = laxf(lambda, moms_rc(1), flux_moms(1));
-      fluxLOmomzs(dir)(Ip) = laxf(lambda, moms_rc(2), flux_moms(2));
-      fluxLOtaus(dir)(Ip) = laxf(lambda, tau_rc, flux_tau);
+      fluxLOdenss(dir)(Ip) = laxf(rcconsLO.lambda, rcconsLO.dens_rc,    rcconsLO.flux_dens);
+      fluxLODEnts(dir)(Ip) = laxf(rcconsLO.lambda, rcconsLO.DEnt_rc,    rcconsLO.flux_DEnt);
+      fluxLODYes(dir)(Ip) =  laxf(rcconsLO.lambda, rcconsLO.DYe_rc,     rcconsLO.flux_DYe);
+      fluxLOmomxs(dir)(Ip) = laxf(rcconsLO.lambda, rcconsLO.moms_rc(0), rcconsLO.flux_moms(0));
+      fluxLOmomys(dir)(Ip) = laxf(rcconsLO.lambda, rcconsLO.moms_rc(1), rcconsLO.flux_moms(1));
+      fluxLOmomzs(dir)(Ip) = laxf(rcconsLO.lambda, rcconsLO.moms_rc(2), rcconsLO.flux_moms(2));
+      fluxLOtaus(dir)(Ip) =  laxf(rcconsLO.lambda, rcconsLO.tau_rc,     rcconsLO.flux_tau);
 
       if (use_pplim) {
         // Get atmosphere
@@ -813,6 +1128,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
       thetagf(dir)(p.I) = 1.0;
     }
 
+    /* TODO: def NaN check in recon structs
     if (isnan(dens_rc(0)) || isnan(dens_rc(1)) || isnan(moms_rc(0)(0)) ||
         isnan(moms_rc(0)(1)) || isnan(moms_rc(1)(0)) || isnan(moms_rc(1)(1)) ||
         isnan(moms_rc(2)(0)) || isnan(moms_rc(2)(1)) || isnan(tau_rc(0)) ||
@@ -833,50 +1149,52 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
         isnan(fluxBxs(dir)(p.I)) || isnan(fluxBys(dir)(p.I)) ||
         isnan(fluxBzs(dir)(p.I)) || rho_rc(0) < 0.0 || rho_rc(1) < 0.0 ||
         press_rc(0) < 0.0 || press_rc(1) < 0.0) {
+      */
+    if (isnan(rcconsHO.dens_rc(0)) || isnan(rcconsHO.dens_rc(1)) || isnan(rcconsHO.moms_rc(0)(0))) {
       printf("cctk_iteration = %i,  dir = %i,  ijk = %i, %i, %i, "
              "x, y, z = %16.8e, %16.8e, %16.8e.\n",
              cctk_iteration, dir, p.i, p.j, p.k, p.x, p.y, p.z);
-      printf("  fluxdenss = %16.8e,\n", fluxdenss(dir)(p.I));
-      printf("  fluxmoms  = %16.8e, %16.8e, %16.8e,\n", fluxmomxs(dir)(p.I),
-             fluxmomys(dir)(p.I), fluxmomzs(dir)(p.I));
-      printf("  fluxtaus  = %16.8e,\n", fluxtaus(dir)(p.I));
-      printf("  fluxBs    = %16.8e, %16.8e, %16.8e\n", fluxBxs(dir)(p.I),
-             fluxBys(dir)(p.I), fluxBzs(dir)(p.I));
-      printf("  flux_denss = %16.8e, %16.8e,\n", flux_dens(0), flux_dens(1));
-      printf("  flux_moms  = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e,\n",
-             flux_moms(0)(0), flux_moms(0)(1), flux_moms(1)(0), flux_moms(1)(1),
-             flux_moms(2)(0), flux_moms(2)(1));
-      printf("  flux_taus  = %16.8e, %16.8e,\n", flux_tau(0), flux_tau(1));
-      printf("  flux_DYes  = %16.8e, %16.8e,\n", flux_DYe(0), flux_DYe(1));
-      printf("  flux_Bts   = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e,\n",
-             flux_Btildes(0)(0), flux_Btildes(0)(1), flux_Btildes(1)(0),
-             flux_Btildes(1)(1), flux_Btildes(2)(0), flux_Btildes(2)(1));
-      printf("  dens_rc = %16.8e, %16.8e,\n", dens_rc(0), dens_rc(1));
-      printf("  moms_rc = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e,\n",
-             moms_rc(0)(0), moms_rc(0)(1), moms_rc(1)(0), moms_rc(1)(1),
-             moms_rc(2)(0), moms_rc(2)(1));
-      printf("  tau_rc  = %16.8e, %16.8e,\n", tau_rc(0), tau_rc(1));
-      printf("  DYe_rc  = %16.8e, %16.8e,\n", DYe_rc(0), DYe_rc(1));
-      printf("  Bs_rc  = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e,\n",
-             Bs_rc(0)(0), Bs_rc(0)(1), Bs_rc(1)(0), Bs_rc(1)(1), Bs_rc(2)(0),
-             Bs_rc(2)(1));
-      printf("  Bts_rc  = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e,\n",
-             Btildes_rc(0)(0), Btildes_rc(0)(1), Btildes_rc(1)(0),
-             Btildes_rc(1)(1), Btildes_rc(2)(0), Btildes_rc(2)(1));
-      printf("  lam = %16.8e, %16.8e, %16.8e, %16.8e,\n"
-             "        %16.8e, %16.8e, %16.8e, %16.8e.\n",
-             lambda(0)(0), lambda(0)(1), lambda(0)(2), lambda(0)(3),
-             lambda(1)(0), lambda(1)(1), lambda(1)(2), lambda(1)(3));
-      printf("  alp_avg = %16.8e, beta_avg = %16.8e, u_avg = %16.8e \n",
-             alp_avg, beta_avg, u_avg);
-      printf("  vel_rc  = %16.8e, %16.8e \n", vel_rc(0), vel_rc(1));
-      printf("  rho_rc  = %16.8e, %16.8e \n", rho_rc(0), rho_rc(1));
-      printf("  cs2_rc  = %16.8e, %16.8e \n", cs2_rc(0), cs2_rc(1));
-      printf("  wlor_rc = %16.8e, %16.8e \n", w_lorentz_rc(0), w_lorentz_rc(1));
-      printf("  h_rc    = %16.8e, %16.8e \n", h_rc(0), h_rc(1));
-      printf("  bsq_rc  = %16.8e, %16.8e \n", bsq_rc(0), bsq_rc(1));
-      printf("  press_rc = %16.8e, %16.8e \n", press_rc(0), press_rc(1));
-      printf("  eps_rc   = %16.8e, %16.8e \n", eps_rc(0), eps_rc(1));
+      // printf("  fluxdenss = %16.8e,\n", fluxdenss(dir)(p.I));
+      // printf("  fluxmoms  = %16.8e, %16.8e, %16.8e,\n", fluxmomxs(dir)(p.I),
+      //        fluxmomys(dir)(p.I), fluxmomzs(dir)(p.I));
+      // printf("  fluxtaus  = %16.8e,\n", fluxtaus(dir)(p.I));
+      // printf("  fluxBs    = %16.8e, %16.8e, %16.8e\n", fluxBxs(dir)(p.I),
+      //        fluxBys(dir)(p.I), fluxBzs(dir)(p.I));
+      // printf("  flux_denss = %16.8e, %16.8e,\n", flux_dens(0), flux_dens(1));
+      // printf("  flux_moms  = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e,\n",
+      //        flux_moms(0)(0), flux_moms(0)(1), flux_moms(1)(0), flux_moms(1)(1),
+      //        flux_moms(2)(0), flux_moms(2)(1));
+      // printf("  flux_taus  = %16.8e, %16.8e,\n", flux_tau(0), flux_tau(1));
+      // printf("  flux_DYes  = %16.8e, %16.8e,\n", flux_DYe(0), flux_DYe(1));
+      // printf("  flux_Bts   = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e,\n",
+      //        flux_Btildes(0)(0), flux_Btildes(0)(1), flux_Btildes(1)(0),
+      //        flux_Btildes(1)(1), flux_Btildes(2)(0), flux_Btildes(2)(1));
+      // printf("  dens_rc = %16.8e, %16.8e,\n", dens_rc(0), dens_rc(1));
+      // printf("  moms_rc = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e,\n",
+      //        moms_rc(0)(0), moms_rc(0)(1), moms_rc(1)(0), moms_rc(1)(1),
+      //        moms_rc(2)(0), moms_rc(2)(1));
+      // printf("  tau_rc  = %16.8e, %16.8e,\n", tau_rc(0), tau_rc(1));
+      // printf("  DYe_rc  = %16.8e, %16.8e,\n", DYe_rc(0), DYe_rc(1));
+      // printf("  Bs_rc  = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e,\n",
+      //        Bs_rc(0)(0), Bs_rc(0)(1), Bs_rc(1)(0), Bs_rc(1)(1), Bs_rc(2)(0),
+      //        Bs_rc(2)(1));
+      // printf("  Bts_rc  = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e,\n",
+      //        Btildes_rc(0)(0), Btildes_rc(0)(1), Btildes_rc(1)(0),
+      //        Btildes_rc(1)(1), Btildes_rc(2)(0), Btildes_rc(2)(1));
+      // printf("  lam = %16.8e, %16.8e, %16.8e, %16.8e,\n"
+      //        "        %16.8e, %16.8e, %16.8e, %16.8e.\n",
+      //        lambda(0)(0), lambda(0)(1), lambda(0)(2), lambda(0)(3),
+      //        lambda(1)(0), lambda(1)(1), lambda(1)(2), lambda(1)(3));
+      // printf("  alp_avg = %16.8e, beta_avg = %16.8e, u_avg = %16.8e \n",
+      //        alp_avg, beta_avg, u_avg);
+      // printf("  vel_rc  = %16.8e, %16.8e \n", vel_rc(0), vel_rc(1));
+      // printf("  rho_rc  = %16.8e, %16.8e \n", rho_rc(0), rho_rc(1));
+      // printf("  cs2_rc  = %16.8e, %16.8e \n", cs2_rc(0), cs2_rc(1));
+      // printf("  wlor_rc = %16.8e, %16.8e \n", w_lorentz_rc(0), w_lorentz_rc(1));
+      // printf("  h_rc    = %16.8e, %16.8e \n", h_rc(0), h_rc(1));
+      // printf("  bsq_rc  = %16.8e, %16.8e \n", bsq_rc(0), bsq_rc(1));
+      // printf("  press_rc = %16.8e, %16.8e \n", press_rc(0), press_rc(1));
+      // printf("  eps_rc   = %16.8e, %16.8e \n", eps_rc(0), eps_rc(1));
       printf("  rho = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e;\n",
              rho(p.I - p.DI[dir] * 3), rho(p.I - p.DI[dir] * 2),
              rho(p.I - p.DI[dir]), rho(p.I), rho(p.I + p.DI[dir]),
@@ -895,13 +1213,13 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
              g_avg(0, 0), g_avg(0, 1), g_avg(0, 2), g_avg(1, 1), g_avg(1, 2),
              g_avg(2, 2));
       printf("  sqrtg = %16.8e,\n", sqrtg);
-      printf("  vlows_rc  = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e.\n",
-             vlows_rc(0)(0), vlows_rc(0)(1), vlows_rc(1)(0), vlows_rc(1)(1),
-             vlows_rc(2)(0), vlows_rc(2)(1));
-      printf("  vups_rc   = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e.\n",
-             vels_rc(0)(0), vels_rc(0)(1), vels_rc(1)(0), vels_rc(1)(1),
-             vels_rc(2)(0), vels_rc(2)(1));
-      printf("  vtilde_rc = %16.8e, %16.8e.\n", vtilde_rc(0), vtilde_rc(1));
+      // printf("  vlows_rc  = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e.\n",
+      //        vlows_rc(0)(0), vlows_rc(0)(1), vlows_rc(1)(0), vlows_rc(1)(1),
+      //        vlows_rc(2)(0), vlows_rc(2)(1));
+      // printf("  vups_rc   = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e.\n",
+      //        vels_rc(0)(0), vels_rc(0)(1), vels_rc(1)(0), vels_rc(1)(1),
+      //        vels_rc(2)(0), vels_rc(2)(1));
+      // printf("  vtilde_rc = %16.8e, %16.8e.\n", vtilde_rc(0), vtilde_rc(1));
       assert(0);
     }
 
@@ -911,6 +1229,9 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
 
     const int dir1 = (dir == 0) ? 1 : ((dir == 1) ? 2 : 0);
     const int dir2 = (dir == 0) ? 2 : ((dir == 1) ? 0 : 1);
+
+    vec<vec<CCTK_REAL, 4>, 2> lambda = rcconsHO.lambda;
+    vec<vec<CCTK_REAL, 2>, 3> vtildes_rc = rcconsHO.vtildes_rc;
 
     amax(dir)(p.I) = max({CCTK_REAL(0), lambda(0)(0), lambda(0)(1),
                           lambda(0)(2), lambda(0)(3), lambda(1)(0),
