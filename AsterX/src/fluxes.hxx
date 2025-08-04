@@ -70,6 +70,7 @@ struct recon_prims {
     vec<vec<CCTK_REAL, 2>, 3> vlows_rc_, vec<CCTK_REAL, 2> w_lorentz_rc_)
     : rho_rc(rho_rc_), entropy_rc(entropy_rc_), Ye_rc(Ye_rc_), eps_rc(eps_rc_), press_rc(press_rc_), temp_rc(temp_rc_),
     Bs_rc(Bs_rc_), vels_rc(vels_rc_), vlows_rc(vlows_rc_), w_lorentz_rc(w_lorentz_rc_){};
+
 };
   
 struct recon_cons {
@@ -125,6 +126,18 @@ struct recon_cons {
     return *this;
   }
   
+  // NaN Check
+  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline 
+  bool nancheck() {
+    return isnan(dens_rc(0)+dens_rc(1)+DEnt_rc(0)+DEnt_rc(1)+moms_rc(0)(0)+moms_rc(0)(1)
+      +moms_rc(1)(0)+moms_rc(1)(1)+moms_rc(2)(0)+moms_rc(2)(1)+tau_rc(0)+tau_rc(1)+DYe_rc(0)+DYe_rc(1)
+      +Btildes_rc(0)(0)+Btildes_rc(0)(1)+Btildes_rc(1)(0)+Btildes_rc(1)(1)+Btildes_rc(2)(0)+Btildes_rc(2)(1)
+      +flux_dens(0)+flux_dens(1)+flux_DEnt(0)+flux_DEnt(1)+flux_moms(0)(0)+flux_moms(0)(1)
+      +flux_moms(1)(0)+flux_moms(1)(1)+flux_moms(2)(0)+flux_moms(2)(1)+flux_tau(0)+flux_tau(1)+flux_tau(0)+flux_tau(1)
+      +flux_Btildes(0)(0)+flux_Btildes(0)(1)+flux_Btildes(1)(0)+flux_Btildes(1)(1)
+      +flux_Btildes(2)(0)+flux_Btildes(2)(1));
+  }
+
 };
 
 

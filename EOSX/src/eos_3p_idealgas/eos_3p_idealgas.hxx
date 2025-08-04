@@ -38,6 +38,13 @@ public:
       ) const;
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
+  csnd_from_valid_rho_temp_ye(
+      const CCTK_REAL rho, // This should never be called.
+      CCTK_REAL &temp,      
+      const CCTK_REAL ye   
+      ) const;
+
+  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   temp_from_valid_rho_eps_ye(
       const CCTK_REAL rho, ///< Rest mass density  \f$ \rho \f$
       CCTK_REAL &eps,      ///< Specific internal energy \f$ \epsilon \f$
@@ -152,6 +159,14 @@ CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
 eos_3p_idealgas::csnd_from_valid_rho_eps_ye(const CCTK_REAL rho, CCTK_REAL &eps,
                                             const CCTK_REAL ye) const {
   return sqrt(gm1 * eps / (eps + inv_gamma));
+}
+
+CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
+eos_3p_idealgas::csnd_from_valid_rho_temp_ye(const CCTK_REAL rho, CCTK_REAL &temp,
+                                            const CCTK_REAL ye) const {
+  printf("c_s from rho, temp, Ye should not be called when using IGL!!!");
+  assert(0);
+  return 0.0;
 }
 
 CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL

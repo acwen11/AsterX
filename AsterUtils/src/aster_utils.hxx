@@ -165,12 +165,13 @@ calc_avg_neighbors(const vec<T, D> flag, const vec<T, D> u_nbs,
 }
 
 // Higher order corrections
-template <typename T>
-CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
-higher_order_correction(const GF3D2<T> &gf, const PointDesc &p, int dir,
+// template <typename T>
+CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
+higher_order_correction(const GF3D2<const CCTK_REAL> &gf, const PointDesc &p, int dir,
                         int correction_order) {
-  T correction;
+  CCTK_REAL correction;
   correction = 0.0;
+  /*
   if (correction_order == 4) {
     correction = (13.0 / 12.0) * gf(p.I) -
                  (1.0 / 24.0) * (gf(p.I - p.DI[dir]) + gf(p.I + p.DI[dir]));
@@ -181,6 +182,26 @@ higher_order_correction(const GF3D2<T> &gf, const PointDesc &p, int dir,
         (3.0 / 640.0) * (gf(p.I - 2 * p.DI[dir]) + gf(p.I + 2 * p.DI[dir]));
   } else {
     correction = gf(p.I);
+  }
+  */
+  
+  // New code combines above stencils at two faces to directly add to RHS
+  // Here, p.I is the cell center index, gf(p.I) is the left face, gf(p.I + p.DI) is the right
+  const auto Im3 = p.I - 2 * p.DI[dir];
+  const auto Im2 = p.I - p.DI[dir];
+  const auto Im = p.I;
+  const auto Ip = p.I + p.DI[dir];
+  const auto Ip2 = p.I + 2 * p.DI[dir];
+  const auto Ip3 = p.I + 3 * p.DI[dir];
+  if (correction_order == 4) {
+    correction = 
+      (9.0/8.0) * (gf(Ip) - gf(Im)) - (1.0/24.0) * (gf(Ip2) - gf(Im2)); 
+  } else if (correction_order == 6) {
+    correction = 
+      (75.0/64.0) * (gf(Ip) - gf(Im)) - (25.0/384.0) * (gf(Ip2) - gf(Im2)) +
+      (3.0/640.0) * (gf(Ip3) - gf(Im3));
+  } else {
+    correction = gf(Ip) - gf(Im);
   }
   return correction;
 }

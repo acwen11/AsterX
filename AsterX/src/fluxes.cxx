@@ -14,6 +14,8 @@
 #include <cassert>
 #include <cmath>
 
+#include <ctime>
+
 #include "aster_utils.hxx"
 #include "eigenvalues.hxx"
 #include "fluxes.hxx"
@@ -32,8 +34,9 @@ enum class flux_t { LxF, HLLE };
 enum class eos_3param { IdealGas, Hybrid, Tabulated };
 enum class rec_var_t { v_vec, z_vec, s_vec };
 
-template <int dir, typename EOSType>
-void CalcConsFluxesFromPrims(auto eos_3p, const bool use_temp_flag,
+template <typename EOSType>
+CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline
+void CalcConsFluxesFromPrims(const int dir, EOSType eos_3p, const bool use_temp_flag,
  CCTK_REAL alp_avg, vec<CCTK_REAL, 3> betas_avg, smat<CCTK_REAL, 3> g_avg, CCTK_REAL sqrtg,
  recon_prims& rcprims, recon_cons& rccons) {
 
@@ -274,7 +277,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
   else
     CCTK_ERROR("Unknown value for parameter \"reconstruction_method\"");
 
-  bool rc_temp = reconstruct_with_temperature;
+  // bool rc_temp = reconstruct_with_temperature;
 
   // Lower-order fallback for negative values
   reconstruction_t reconstruction_LO;
@@ -284,6 +287,8 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
     reconstruction_LO = reconstruction_t::minmod;
   else if (CCTK_EQUALS(loworder_method, "monocentral"))
     reconstruction_LO = reconstruction_t::monocentral;
+  else if (CCTK_EQUALS(loworder_method, "wenoz"))
+    reconstruction_LO = reconstruction_t::wenoz;
   else
     CCTK_ERROR("Unknown value for parameter \"loworder_method\"");
 
@@ -389,6 +394,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
   }};
   constexpr auto dir_arr = dir_arr_table[dir];
 
+  clock_t start = clock();
   grid.loop_int_device<
       face_centred[0], face_centred[1],
       face_centred
@@ -412,6 +418,10 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
     const CCTK_REAL sqrtg = sqrt(detg_avg);
 
     // ---------------------------- BEGIN LO FOR FLUX LIM -----------------------------------
+    // if (p.i == 100 && p.j == 100 && p.k == 15) {
+    //   clock_t duration = clock() - start;
+    //   printf("Starting LO recon after time %e\n", (float)duration / CLOCKS_PER_SEC);
+    // }
     // Reconstruct density
     vec<CCTK_REAL, 2> rhoLO_rc{reconstruct_loworder(rho, p, true, true)};
 
@@ -440,7 +450,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
       }
 
     } else {
-      printf("Flux limiters only supported for temperature reconstruction for now.");
+      printf("Flux limiters only supported for temperature reconstruction for now.\n");
       assert(0);
     }
 
@@ -540,17 +550,29 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
     };
     }
 
+    // if (p.i == 100 && p.j == 100 && p.k == 15) {
+    //   clock_t duration = clock() - start;
+    //   printf("Ending LO recon after time %e\n", (float)duration / CLOCKS_PER_SEC);
+    // }
     recon_prims rcprimsLO{rhoLO_rc, entropyLO_rc, YeLO_rc, epsLO_rc, pressLO_rc, tempLO_rc, BsLO_rc,
       velsLO_rc, vlowsLO_rc, w_lorentzLO_rc};
     recon_cons rcconsLO;
 
-    CalcConsFluxesFromPrims(eos_3p, rc_temp,
+    // if (p.i == 100 && p.j == 100 && p.k == 15) {
+    //   clock_t duration = clock() - start;
+    //   printf("Starting LO CalcConsFluxes after time %e\n", (float)duration / CLOCKS_PER_SEC);
+    // }
+    CalcConsFluxesFromPrims(dir, eos_3p, reconstruct_with_temperature,
      alp_avg, betas_avg, g_avg, sqrtg,
      rcprimsLO, rcconsLO);
     // ---------------------------- END LO FOR FLUX LIM -----------------------------------
     
     
     
+    // if (p.i == 100 && p.j == 100 && p.k == 15) {
+    //   clock_t duration = clock() - start;
+    //   printf("Starting HO recon after time %e\n", (float)duration / CLOCKS_PER_SEC);
+    // }
     // Booleans to decide whether to use low order
     // reconstruction
     bool useLO_0 = false;
@@ -978,11 +1000,19 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
     //     eigenvalues(alp_avg, beta_avg, u_avg, vel_rc, rho_rc, cs2_rc,
     //                 w_lorentz_rc, h_rc, bsq_rc);
 
+    // if (p.i == 100 && p.j == 100 && p.k == 15) {
+    //   clock_t duration = clock() - start;
+    //   printf("Ending HO recon after time %e\n", (float)duration / CLOCKS_PER_SEC);
+    // }
     recon_prims rcprimsHO{rho_rc, entropy_rc, Ye_rc, eps_rc, press_rc, temp_rc, Bs_rc,
       vels_rc, vlows_rc, w_lorentz_rc};
     recon_cons rcconsHO;
 
-    CalcConsFluxesFromPrims(eos_3p, rc_temp,
+    // if (p.i == 100 && p.j == 100 && p.k == 15) {
+    //   clock_t duration = clock() - start;
+    //   printf("Starting HO CalcConsFluxes after time %e\n", (float)duration / CLOCKS_PER_SEC);
+    // }
+    CalcConsFluxesFromPrims(dir, eos_3p, reconstruct_with_temperature,
      alp_avg, betas_avg, g_avg, sqrtg,
      rcprimsHO, rcconsHO);
 
@@ -1001,8 +1031,13 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
     fluxBzs(dir)(p.I) =
              (dir != 2) * calcflux(rcconsHO.lambda, rcconsHO.Btildes_rc(2), rcconsHO.flux_Btildes(2));
 
+    // if (p.i == 100 && p.j == 100 && p.k == 15) {
+    //   clock_t duration = clock() - start;
+    //   printf("Starting flux limiter after time %e\n", (float)duration / CLOCKS_PER_SEC);
+    // }
     /* Limit Fluxes */
     if (use_pplim || use_efl) {
+      // At face Ip, Ip refers to the right cell and Im refers to the left
       const auto Ip = p.I;
       const auto Im = p.I - p.DI[dir];
 
@@ -1028,12 +1063,36 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
         rho_atm = std::max(eos_3p->rgrho.min, rho_atm);
 
         // Get 2 * \alpha * CFL with \alpha = 3
-        const CCTK_REAL a2cfl = 6 * cctk_delta_time / p.DX[dir];
-        printf("DX = %e, a2cfl = %e", p.DX[dir], a2cfl);
+        // const CCTK_REAL a2cfl = 6 * cctk_delta_time / p.DX[dir];
+        // if (p.i == 10 && p.j == 10 && p.k == 10) {
+        //   printf("a2cfl = %e\n", a2cfl_test);
+        // }
+        // TODO: Fix this!!!
+        const CCTK_REAL a2cfl = 6 * 0.35;
 
         // Calc dens floor
-        const CCTK_REAL densmin_p = volform(Ip) * w_lorentz(Ip) * rho_atm;
-        const CCTK_REAL densmin_m = volform(Im) * w_lorentz(Im) * rho_atm;
+        const smat<CCTK_REAL, 3> g_avg_p([&](int i, int j) ARITH_INLINE {
+          return calc_avg_v2c(gf_g(i, j), p);
+        });
+        const CCTK_REAL detg_avg_p = calc_det(g_avg_p);
+        const CCTK_REAL sqrtg_p = sqrt(detg_avg_p);
+
+        const smat<CCTK_REAL, 3> g_avg_m([&](int i, int j) ARITH_INLINE {
+          return calc_avg_v2c(gf_g(i, j), p, Im);
+        });
+        const CCTK_REAL detg_avg_m = calc_det(g_avg_m);
+        const CCTK_REAL sqrtg_m = sqrt(detg_avg_m);
+
+        vec<CCTK_REAL, 3> vup_p{velx(Ip), vely(Ip), velz(Ip)};
+        vec<CCTK_REAL, 3> vlow_p = calc_contraction(g_avg_p, vup_p);
+        const CCTK_REAL w_lor_p = 1 / sqrt(1 - calc_contraction(vlow_p, vup_p));
+
+        vec<CCTK_REAL, 3> vup_m{velx(Im), vely(Im), velz(Im)};
+        vec<CCTK_REAL, 3> vlow_m = calc_contraction(g_avg_m, vup_m);
+        const CCTK_REAL w_lor_m = 1 / sqrt(1 - calc_contraction(vlow_m, vup_m));
+
+        const CCTK_REAL densmin_p = sqrtg_p * w_lor_p * rho_atm;
+        const CCTK_REAL densmin_m = sqrtg_m * w_lor_m * rho_atm;
 
         // Calc theta
         const CCTK_REAL newdens_p = dens(Ip) + a2cfl * fluxdenss(dir)(Ip);
@@ -1041,6 +1100,10 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
 
         const CCTK_REAL newdensLO_p = dens(Ip) + a2cfl * fluxLOdenss(dir)(Ip);
         const CCTK_REAL newdensLO_m = dens(Im) - a2cfl * fluxLOdenss(dir)(Ip);
+        // if (rho(p.I > rho_atm) {
+        //   printf("densmin+ = %e; newdens+ = %e; newdensLO+ = %e\n", densmin_p, newdens_p, newdensLO_p);
+        //   printf("densmin- = %e; newdens- = %e; newdensLO- = %e\n", densmin_m, newdens_m, newdensLO_m);
+        // }
 
         if (newdens_p < densmin_p)
           theta_p = std::min(
@@ -1150,7 +1213,12 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
         isnan(fluxBzs(dir)(p.I)) || rho_rc(0) < 0.0 || rho_rc(1) < 0.0 ||
         press_rc(0) < 0.0 || press_rc(1) < 0.0) {
       */
-    if (isnan(rcconsHO.dens_rc(0)) || isnan(rcconsHO.dens_rc(1)) || isnan(rcconsHO.moms_rc(0)(0))) {
+    if (rcconsHO.nancheck() || isnan(fluxdenss(dir)(p.I)) ||
+        isnan(fluxmomxs(dir)(p.I)) || isnan(fluxmomys(dir)(p.I)) ||
+        isnan(fluxmomzs(dir)(p.I)) || isnan(fluxtaus(dir)(p.I)) ||
+        isnan(fluxBxs(dir)(p.I)) || isnan(fluxBys(dir)(p.I)) ||
+        isnan(fluxBzs(dir)(p.I)) || rcprimsHO.rho_rc(0) < 0.0 || rcprimsHO.rho_rc(1) < 0.0 ||
+        rcprimsHO.press_rc(0) < 0.0 || rcprimsHO.press_rc(1) < 0.0) {
       printf("cctk_iteration = %i,  dir = %i,  ijk = %i, %i, %i, "
              "x, y, z = %16.8e, %16.8e, %16.8e.\n",
              cctk_iteration, dir, p.i, p.j, p.k, p.x, p.y, p.z);
@@ -1299,24 +1367,24 @@ extern "C" void AsterX_Fluxes(CCTK_ARGUMENTS) {
   }
 
   switch (eos_3p_type) {
-  case eos_3param::IdealGas: {
-    // Get local eos object
-    auto eos_3p_ig = global_eos_3p_ig;
+  // case eos_3param::IdealGas: {
+  //   // Get local eos object
+  //   auto eos_3p_ig = global_eos_3p_ig;
 
-    CalcFlux<0>(cctkGH, eos_3p_ig);
-    CalcFlux<1>(cctkGH, eos_3p_ig);
-    CalcFlux<2>(cctkGH, eos_3p_ig);
-    break;
-  }
-  case eos_3param::Hybrid: {
-    // Get local eos object
-    auto eos_3p_hyb = global_eos_3p_hyb;
+  //   CalcFlux<0>(cctkGH, eos_3p_ig);
+  //   CalcFlux<1>(cctkGH, eos_3p_ig);
+  //   CalcFlux<2>(cctkGH, eos_3p_ig);
+  //   break;
+  // }
+  // case eos_3param::Hybrid: {
+  //   // Get local eos object
+  //   auto eos_3p_hyb = global_eos_3p_hyb;
 
-    CalcFlux<0>(cctkGH, eos_3p_hyb);
-    CalcFlux<1>(cctkGH, eos_3p_hyb);
-    CalcFlux<2>(cctkGH, eos_3p_hyb);
-    break;
-  }
+  //   CalcFlux<0>(cctkGH, eos_3p_hyb);
+  //   CalcFlux<1>(cctkGH, eos_3p_hyb);
+  //   CalcFlux<2>(cctkGH, eos_3p_hyb);
+  //   break;
+  // }
   case eos_3param::Tabulated: {
     // Get local eos object
     auto eos_3p_tab3d = global_eos_3p_tab3d;

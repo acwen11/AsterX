@@ -18,6 +18,7 @@ KEYWORD loworder_method "Lower-order reconstruction method" STEERABLE=never
   "Godunov" :: ""
   "minmod" :: ""
   "monocentral" :: ""
+  "wenoz" :: ""
 } "Godunov"
 
 CCTK_BOOLEAN reconstruct_with_temperature "Whether to reconstruct temperature and derive other EOS quantities from it" STEERABLE=ALWAYS

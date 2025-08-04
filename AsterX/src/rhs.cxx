@@ -108,7 +108,8 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
       [=] CCTK_DEVICE(const vec<GF3D2<const CCTK_REAL>, dim> &gf_fluxes,
                       const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         vec<CCTK_REAL, 3> dfluxes([&](int i) ARITH_INLINE {
-          return gf_fluxes(i)(p.I + p.DI[i]) - gf_fluxes(i)(p.I);
+          // return gf_fluxes(i)(p.I + p.DI[i]) - gf_fluxes(i)(p.I);
+          return higher_order_correction(gf_fluxes(i), p, i, correction_order);
         });
         return -calc_contraction(idx, dfluxes);
       };
