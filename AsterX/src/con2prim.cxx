@@ -456,10 +456,6 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     volform(p.I) = sqrt_detg;
     w_lorentz(p.I) = wlor;
 
-    // Update auxillary GFs
-    volform(p.I) = sqrt_detg;
-    w_lorentz(p.I) = wlor;
-
   }); // Loop
 }
 

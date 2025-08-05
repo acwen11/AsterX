@@ -1100,10 +1100,13 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
 
         const CCTK_REAL newdensLO_p = dens(Ip) + a2cfl * fluxLOdenss(dir)(Ip);
         const CCTK_REAL newdensLO_m = dens(Im) - a2cfl * fluxLOdenss(dir)(Ip);
-        // if (rho(p.I > rho_atm) {
-        //   printf("densmin+ = %e; newdens+ = %e; newdensLO+ = %e\n", densmin_p, newdens_p, newdensLO_p);
-        //   printf("densmin- = %e; newdens- = %e; newdensLO- = %e\n", densmin_m, newdens_m, newdensLO_m);
-        // }
+        //if (rho(p.I) <= rho_atm) {
+        if (newdensLO_m < densmin_m || newdensLO_p < densmin_p) {
+          printf("sqrtg+ = %e; wlor+ = %e; densmin+ = %e; newdens+ = %e; newdensLO+ = %e\n", sqrtg_p, w_lor_p, densmin_p, newdens_p, newdensLO_p);
+          printf("sqrtg- = %e; wlor- = %e; densmin- = %e; newdens- = %e; newdensLO- = %e\n", sqrtg_m, w_lor_m, densmin_m, newdens_m, newdensLO_m);
+          // printf("densmin+ = %e; newdens+ = %e; newdensLO+ = %e\n", densmin_p, newdens_p, newdensLO_p);
+          // printf("densmin- = %e; newdens- = %e; newdensLO- = %e\n", densmin_m, newdens_m, newdensLO_m);
+        }
 
         if (newdens_p < densmin_p)
           theta_p = std::min(
