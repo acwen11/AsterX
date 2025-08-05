@@ -274,6 +274,7 @@ SpacetimeX/Z4c
 !URL      = https://github.com/jaykalinani/AsterX.git
 !REPO_PATH= $2
 !CHECKOUT =
+AsterX/AsterMasks
 AsterX/AsterSeeds
 AsterX/AsterUtils
 AsterX/AsterX
