@@ -169,14 +169,17 @@ void CheckPrims(CCTK_ARGUMENTS, EOSIDType *eos_1p, EOSType *eos_3p) {
         if (use_temperature) {
           // check the validity of the computed temperature
           if (tempL > tempmax) {
-            tempL = tempmax;
-          } else if (tempL < temp_atm) {
-            tempL = temp_atm;
+            tempL = tempmax;            
+	    epsL = eos_3p->eps_from_valid_rho_temp_ye(rhoL, tempL, YeL);
+            pressL = eos_3p->press_from_valid_rho_temp_ye(rhoL, tempL, YeL);
+            entropyL = eos_3p->kappa_from_valid_rho_eps_ye(rhoL, epsL, YeL);
+          } 
+	  if (tempL < temp_atm) {
+            tempL = temp_atm;            
+	    epsL = eos_3p->eps_from_valid_rho_temp_ye(rhoL, tempL, YeL);
+            pressL = eos_3p->press_from_valid_rho_temp_ye(rhoL, tempL, YeL);
+            entropyL = eos_3p->kappa_from_valid_rho_eps_ye(rhoL, epsL, YeL);
           }
-            
-	  epsL = eos_3p->eps_from_valid_rho_temp_ye(rhoL, tempL, YeL);
-          pressL = eos_3p->press_from_valid_rho_temp_ye(rhoL, tempL, YeL);
-          entropyL = eos_3p->kappa_from_valid_rho_eps_ye(rhoL, epsL, YeL);
         }
 
         // ----------
