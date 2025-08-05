@@ -229,8 +229,8 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
 
     if (alp_avg < alp_thresh) {
       mask_local = 0.0;
-      aster_mask_cc(p.I) = mask_local;
     }
+    aster_mask_cc(p.I) = mask_local;
 
     if (excise) {
 
