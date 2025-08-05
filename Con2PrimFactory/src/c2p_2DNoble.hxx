@@ -309,6 +309,9 @@ c2p_2DNoble::solve(const EOSType *eos_3p, prim_vars &pv, prim_vars &pv_seeds,
 
   const smat<CCTK_REAL, 3> gup = calc_inv(glo, spatial_detg);
 
+  /* Copy cons vector, prevent round-off errors */
+  const cons_vars cv_const = cv;
+
   /* Undensitize the conserved vars */
   /* Make sure to return densitized values later on! */
   cv.dens /= sqrt_detg;
@@ -518,12 +521,13 @@ c2p_2DNoble::solve(const EOSType *eos_3p, prim_vars &pv, prim_vars &pv_seeds,
     // set status to root not converged
     rep.set_root_conv();
     // status = ROOTSTAT::NOT_CONVERGED;
-    cv.dens *= sqrt_detg;
-    cv.tau *= sqrt_detg;
-    cv.mom *= sqrt_detg;
-    cv.dBvec *= sqrt_detg;
-    cv.DYe *= sqrt_detg;
-    cv.DEnt *= sqrt_detg;
+    //cv.dens *= sqrt_detg;
+    //cv.tau *= sqrt_detg;
+    //cv.mom *= sqrt_detg;
+    //cv.dBvec *= sqrt_detg;
+    //cv.DYe *= sqrt_detg;
+    //cv.DEnt *= sqrt_detg;
+    cv = cv_const;
     return;
   }
 
@@ -545,12 +549,13 @@ c2p_2DNoble::solve(const EOSType *eos_3p, prim_vars &pv, prim_vars &pv_seeds,
   if (pv.rho <= 0.0) {
     // set status to rho is out of range
     rep.set_range_rho(cv.dens, pv.rho);
-    cv.dens *= sqrt_detg;
-    cv.tau *= sqrt_detg;
-    cv.mom *= sqrt_detg;
-    cv.dBvec *= sqrt_detg;
-    cv.DYe *= sqrt_detg;
-    cv.DEnt *= sqrt_detg;
+    cv = cv_const;
+    //cv.dens *= sqrt_detg;
+    //cv.tau *= sqrt_detg;
+    //cv.mom *= sqrt_detg;
+    //cv.dBvec *= sqrt_detg;
+    //cv.DYe *= sqrt_detg;
+    //cv.DEnt *= sqrt_detg;
     return;
   }
 
@@ -558,17 +563,15 @@ c2p_2DNoble::solve(const EOSType *eos_3p, prim_vars &pv, prim_vars &pv_seeds,
   if (pv.eps <= 0.0) {
     // set status to eps is out of range
     rep.set_range_eps(pv.eps);
-    cv.dens *= sqrt_detg;
-    cv.tau *= sqrt_detg;
-    cv.mom *= sqrt_detg;
-    cv.dBvec *= sqrt_detg;
-    cv.DYe *= sqrt_detg;
-    cv.DEnt *= sqrt_detg;
+    cv = cv_const;
+    //cv.dens *= sqrt_detg;
+    //cv.tau *= sqrt_detg;
+    //cv.mom *= sqrt_detg;
+    //cv.dBvec *= sqrt_detg;
+    //cv.DYe *= sqrt_detg;
+    //cv.DEnt *= sqrt_detg;
     return;
   }
-
-  // Conserved entropy must be consistent with new prims
-  cv.DEnt = cv.dens * pv.entropy;
 
   // set to atmo if computed rho is below floor density
   if (pv.rho < atmo.rho_cut) {
@@ -583,13 +586,16 @@ c2p_2DNoble::solve(const EOSType *eos_3p, prim_vars &pv, prim_vars &pv_seeds,
   if (rep.adjust_cons) {
     cv.from_prim(pv, glo);
   } else {
+    cv = cv_const;
+    // Conserved entropy must be consistent with new prims
+    cv.DEnt = cv.dens * pv.entropy;
     /* If not adjusted, densitize back the original conserved vars */
-    cv.dens *= sqrt_detg;
-    cv.tau *= sqrt_detg;
-    cv.mom *= sqrt_detg;
-    cv.dBvec *= sqrt_detg;
-    cv.DYe *= sqrt_detg;
-    cv.DEnt *= sqrt_detg;
+    //cv.dens *= sqrt_detg;
+    //cv.tau *= sqrt_detg;
+    //cv.mom *= sqrt_detg;
+    //cv.dBvec *= sqrt_detg;
+    //cv.DYe *= sqrt_detg;
+    //cv.DEnt *= sqrt_detg;
   }
 }
 
