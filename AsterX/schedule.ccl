@@ -273,6 +273,7 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   WRITES: Aux_in_RHSof_A_Psi(interior)
   WRITES: vtilde_xface(interior) vtilde_yface(interior) vtilde_zface(interior)
   WRITES: a_xface(interior) a_yface(interior) a_zface(interior)
+  WRITES: volform(interior) w_lorentz(interior)
   SYNC: Aux_in_RHSof_A_Psi
   SYNC: flux_x flux_y flux_z
   SYNC: vtilde_xface vtilde_yface vtilde_zface a_xface a_yface a_zface
