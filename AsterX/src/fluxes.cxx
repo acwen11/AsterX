@@ -1111,15 +1111,25 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
                    "x, y, z = %16.8e, %16.8e, %16.8e.\n",
                    cctk_iteration, dir, p.i, p.j, p.k, Im[0], Im[1], Im[2], p.x, p.y, p.z);
             // printf("sqrtg- = %e; wlor- = %e; densmin- = %e; newdens- = %e; newdensLO- = %e\n", sqrtg_m, w_lor_m, densmin_m, newdens_m, newdensLO_m);
-            printf("sqrtg- = %e; wlor- = %e; densmin- = %e; newdens- = %e; newdensLO- = %e\n", volform(Im), w_lorentz(Im), densmin_m, newdens_m, newdensLO_m);
+            vec<vec<CCTK_REAL, 4>, 2> lam = rcconsLO.lambda;
+            const CCTK_REAL charmax =
+                  max({CCTK_REAL(0), fabs(lam(0)(0)), fabs(lam(0)(1)), fabs(lam(0)(2)),
+                             fabs(lam(0)(3)), fabs(lam(1)(0)), fabs(lam(1)(1)), fabs(lam(1)(2)),
+                                        fabs(lam(1)(3))});
+            printf("Dmin = %e, Dnew = %e, Di = %e, Di+1 = %e, Fi = %e, Fi+1 = %e, c = %e\n", densmin_m, newdensLO_m, dens(Im), dens(Ip), rcconsLO.flux_dens(0), rcconsLO.flux_dens(1), charmax);
           }
-          if (newdensLO_p < densmin_p) {
-            printf("positivity violated at Ip: cctk_iteration = %i,  dir = %i,  ijk = %i, %i, %i; Im = %i, %i, %i;"
-                   "x, y, z = %16.8e, %16.8e, %16.8e.\n",
-                   cctk_iteration, dir, p.i, p.j, p.k, Ip[0], Ip[1], Ip[2], p.x, p.y, p.z);
-            // printf("sqrtg+ = %e; wlor+ = %e; densmin+ = %e; newdens+ = %e; newdensLO+ = %e\n", sqrtg_p, w_lor_p, densmin_p, newdens_p, newdensLO_p);
-            printf("sqrtg+ = %e; wlor+ = %e; densmin+ = %e; newdens+ = %e; newdensLO+ = %e\n", volform(Ip), w_lorentz(Ip), densmin_p, newdens_p, newdensLO_p);
-          }
+          // if (newdensLO_p < densmin_p) {
+          //   printf("positivity violated at Ip: cctk_iteration = %i,  dir = %i,  ijk = %i, %i, %i; Im = %i, %i, %i;"
+          //          "x, y, z = %16.8e, %16.8e, %16.8e.\n",
+          //          cctk_iteration, dir, p.i, p.j, p.k, Ip[0], Ip[1], Ip[2], p.x, p.y, p.z);
+          //   // printf("sqrtg+ = %e; wlor+ = %e; densmin+ = %e; newdens+ = %e; newdensLO+ = %e\n", sqrtg_p, w_lor_p, densmin_p, newdens_p, newdensLO_p);
+          //   vec<vec<CCTK_REAL, 4>, 2> lam = rcconsLO.lambda;
+          //   const CCTK_REAL charmax =
+          //         max({CCTK_REAL(0), fabs(lam(0)(0)), fabs(lam(0)(1)), fabs(lam(0)(2)),
+          //                    fabs(lam(0)(3)), fabs(lam(1)(0)), fabs(lam(1)(1)), fabs(lam(1)(2)),
+          //                               fabs(lam(1)(3))});
+          //   printf("Di = %e; Di+1 = %e; Fi = %e; Fi+1 = %e; c = %e\n", dens(Im), dens(Ip), rcconsLO.flux_dens(0), rcconsLO.flux_dens(1), charmax);
+          // }
 
           if (newdens_p < densmin_p)
             theta_p = std::min(
