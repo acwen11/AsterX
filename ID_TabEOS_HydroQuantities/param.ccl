@@ -24,10 +24,9 @@
 #----------------- Initial data type ------------------
 KEYWORD id_temperature_type "Type of initial temperature"
 {
-  "atmosphere"  :: "Set to atmosphere values from Con2PrimFactory"
-  "from file" :: "Read initial temperature from file (as a function of density)"
+  "from temperature"  :: "Set to atmosphere values from Con2PrimFactory"
   "from entropy" :: "Set constant entropy, calculate temperature"
-} "atmosphere"
+} "from temperature"
 
 CCTK_REAL id_entropy "constant entropy value"
 {
@@ -37,12 +36,6 @@ CCTK_REAL id_entropy "constant entropy value"
 #----------------- Initial data files -----------------
 restricted:
 CCTK_STRING Y_e_filename "Initial data file for electron fraction"
-{
-  ".+" :: "Any nonempty string"
-  ""   :: "Forbidden value"
-} ""
-
-CCTK_STRING temperature_filename "Initial data file for temperature"
 {
   ".+" :: "Any nonempty string"
   ""   :: "Forbidden value"

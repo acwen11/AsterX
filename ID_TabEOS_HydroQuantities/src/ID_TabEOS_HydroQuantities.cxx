@@ -17,7 +17,7 @@ using namespace amrex;
 using namespace EOSX;
 using namespace Loop;
 
-enum class temp_ID_t { Atmosphere, Table, Entropy };
+enum class TS_ID_t { Temperature, Entropy };
 
 extern "C" void ID_TabEOS_HydroQuantities__initial_Y_e(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_ID_TabEOS_HydroQuantities__initial_Y_e;
@@ -87,14 +87,12 @@ extern "C" void ID_TabEOS_HydroQuantities__initial_temp_ent(CCTK_ARGUMENTS) {
 
   auto eos_3p_tab3d = global_eos_3p_tab3d;
 
-  temp_ID_t temp_ID;
+  TS_ID_t temp_ID;
 
-  if (CCTK_EQUALS(id_temperature_type, "atmosphere")) {
-    temp_ID = temp_ID_t::Atmosphere;
-  } else if (CCTK_EQUALS(id_temperature_type, "from table")) {
-    temp_ID = temp_ID_t::Table;
+  if (CCTK_EQUALS(id_temperature_type, "from temperature")) {
+    temp_ID = TS_ID_t::Temperature;
   } else if (CCTK_EQUALS(id_temperature_type, "from entropy")) {
-    temp_ID = temp_ID_t::Entropy;
+    temp_ID = TS_ID_t::Entropy;
   } else {
     CCTK_ERROR("Unknown value for parameter \"id_temperature_type\"");
   }
@@ -121,14 +119,14 @@ extern "C" void ID_TabEOS_HydroQuantities__initial_temp_ent(CCTK_ARGUMENTS) {
         CCTK_REAL yeL = Ye(p.I);
 
         switch(temp_ID) {
-        case temp_ID_t::Atmosphere: {
+        case TS_ID_t::Temperature: {
           temperature(p.I) = temp_atm;
           CCTK_REAL ent_val =
               eos_3p_tab3d->entropy_from_valid_rho_temp_ye(rhoL, temp_atm, yeL);
           entropy(p.I) = ent_val;
           break;
         }
-        case temp_ID_t::Entropy: {
+        case TS_ID_t::Entropy: {
           const CCTK_REAL rho_atmo_cut = rho_atm * (1 + atmo_tol);
           if (rhoL > rho_atmo_cut) {
             CCTK_REAL ent_val = id_entropy;

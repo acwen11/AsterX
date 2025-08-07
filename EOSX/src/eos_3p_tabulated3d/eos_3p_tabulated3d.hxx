@@ -314,13 +314,6 @@ public:
     return sqrt(v);
   }
 
-  // CCTK_HOST CCTK_DEVICE inline CCTK_REAL
-  // temp_from_valid_rho_eps_ye(const CCTK_REAL rho, CCTK_REAL &eps,
-  //                            const CCTK_REAL ye) const {
-  //   CCTK_REAL lt = logtemp_from_valid_rho_eps_ye(rho, eps, ye);
-  //   return exp(lt);
-  // }
-
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
   press_derivs_from_valid_rho_eps_ye(CCTK_REAL &press, CCTK_REAL &dpdrho,
                                      CCTK_REAL &dpdeps, const CCTK_REAL rho,
@@ -340,12 +333,12 @@ public:
 
   CCTK_HOST CCTK_DEVICE inline void
   mu_pne_from_valid_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
-                                 const CCTK_REAL ye, CCTK_REAL* mup, CCTK_REAL* mun, CCTK_REAL* mue) const {
+                                 const CCTK_REAL ye, CCTK_REAL &mup, CCTK_REAL &mun, CCTK_REAL &mue) const {
     CCTK_REAL lr = std::log(std::fmin(std::fmax(rho, rgrho.min), rgrho.max));
     CCTK_REAL lt = std::log(std::fmin(std::fmax(temp, rgtemp.min), rgtemp.max));
-    *mup = interptable->interpolate<EV::MU_P>(lr, lt, ye)[0];
-    *mun = interptable->interpolate<EV::MU_N>(lr, lt, ye)[0];
-    *mue = interptable->interpolate<EV::MU_E>(lr, lt, ye)[0];
+    mup = interptable->interpolate<EV::MU_P>(lr, lt, ye)[0];
+    mun = interptable->interpolate<EV::MU_N>(lr, lt, ye)[0];
+    mue = interptable->interpolate<EV::MU_E>(lr, lt, ye)[0];
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
