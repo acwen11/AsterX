@@ -22,7 +22,7 @@
 # }
 
 #----------------- Initial data type ------------------
-KEYWORD id_temperature_type "Type of initial temperature"
+KEYWORD id_temp_ent_type "Method to initialize temperature and entropy"
 {
   "from temperature"  :: "Set to atmosphere values from Con2PrimFactory"
   "from entropy" :: "Set constant entropy, calculate temperature"
