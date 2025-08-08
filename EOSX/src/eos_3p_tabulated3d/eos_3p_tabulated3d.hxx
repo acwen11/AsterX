@@ -120,9 +120,9 @@ public:
           for (int i = 0; i < nrho; i++) {
             int indold = i + nrho * (j + ntemp * (k + nye * iv));
             int indnew = iv + NTABLES * (i + nrho * (j + ntemp * k));
-            alltables[indnew] = alltables_temp[indold];
+            alltables[indnew] = alltables_tmp[indold];
           }
-    amrex::The_Managed_Arena()->free(alltables_temp);
+    amrex::The_Managed_Arena()->free(alltables_tmp);
 
     CHECK_ERROR(H5Fclose(file_id));
     CHECK_ERROR(H5Pclose(fapl_id));
