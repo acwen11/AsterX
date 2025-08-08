@@ -24,9 +24,9 @@
 #----------------- Initial data type ------------------
 KEYWORD id_temp_ent_type "Method to initialize temperature and entropy"
 {
-  "from temperature"  :: "Set to atmosphere values from Con2PrimFactory"
-  "from entropy" :: "Set constant entropy, calculate temperature"
-} "from temperature"
+  "constant temperature"  :: "Set to atmosphere values from Con2PrimFactory"
+  "constant entropy" :: "Set constant entropy, calculate temperature"
+} "constant temperature"
 
 CCTK_REAL id_entropy "constant entropy value"
 {

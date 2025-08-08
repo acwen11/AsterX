@@ -19,8 +19,8 @@ using namespace Loop;
 
 enum class TS_ID_t { Temperature, Entropy };
 
-extern "C" void ID_TabEOS_HydroQuantities__initial_Y_e(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_ID_TabEOS_HydroQuantities__initial_Y_e;
+extern "C" void ID_TabEOS_HydroQuantities_initial_Y_e(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_ID_TabEOS_HydroQuantities_initial_Y_e;
   DECLARE_CCTK_PARAMETERS;
 
   CCTK_VInfo(CCTK_THORNSTRING, "Y_e initialization is ENABLED!");
@@ -78,8 +78,8 @@ extern "C" void ID_TabEOS_HydroQuantities__initial_Y_e(CCTK_ARGUMENTS) {
 }
 
 // Set initial temperature to be constant everywhere (TODO: add other options)
-extern "C" void ID_TabEOS_HydroQuantities__initial_temp_ent(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_ID_TabEOS_HydroQuantities__initial_temp_ent;
+extern "C" void ID_TabEOS_HydroQuantities_initial_temp_ent(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_ID_TabEOS_HydroQuantities_initial_temp_ent;
   DECLARE_CCTK_PARAMETERS;
 
   CCTK_VInfo(CCTK_THORNSTRING,
@@ -87,12 +87,12 @@ extern "C" void ID_TabEOS_HydroQuantities__initial_temp_ent(CCTK_ARGUMENTS) {
 
   auto eos_3p_tab3d = global_eos_3p_tab3d;
 
-  TS_ID_t temp_ID;
+  TS_ID_t ts_ID;
 
-  if (CCTK_EQUALS(id_temp_ent_type, "from temperature")) {
-    temp_ID = TS_ID_t::Temperature;
-  } else if (CCTK_EQUALS(id_temp_ent_type, "from entropy")) {
-    temp_ID = TS_ID_t::Entropy;
+  if (CCTK_EQUALS(id_temp_ent_type, "constant temperature")) {
+    ts_ID = TS_ID_t::Temperature;
+  } else if (CCTK_EQUALS(id_temp_ent_type, "constant entropy")) {
+    ts_ID = TS_ID_t::Entropy;
   } else {
     CCTK_ERROR("Unknown value for parameter \"id_temp_ent_type\"");
   }
@@ -118,7 +118,7 @@ extern "C" void ID_TabEOS_HydroQuantities__initial_temp_ent(CCTK_ARGUMENTS) {
         CCTK_REAL rhoL = rho(p.I);
         CCTK_REAL yeL = Ye(p.I);
 
-        switch (temp_ID) {
+        switch (ts_ID) {
         case TS_ID_t::Temperature: {
           temperature(p.I) = temp_atm;
           CCTK_REAL ent_val =
@@ -156,8 +156,8 @@ extern "C" void ID_TabEOS_HydroQuantities__initial_temp_ent(CCTK_ARGUMENTS) {
 
 // Now recompute all HydroQuantities, to ensure consistent initial data
 extern "C" void
-ID_TabEOS_HydroQuantities__recompute_HydroBase_variables(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_ID_TabEOS_HydroQuantities__recompute_HydroBase_variables;
+ID_TabEOS_HydroQuantities_recompute_HydroBase_variables(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_ID_TabEOS_HydroQuantities_recompute_HydroBase_variables;
   DECLARE_CCTK_PARAMETERS;
 
   CCTK_VInfo(CCTK_THORNSTRING, "Recomputing all HydroBase quantities ...");
