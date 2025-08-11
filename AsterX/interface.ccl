@@ -97,10 +97,13 @@ CCTK_REAL fluxLO_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
   fLOzDEnt
 } "Low order fluxes in x direction for PP limiter"
 
+#CCTK_REAL theta_x TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"' "flux limiter theta"
+#CCTK_REAL theta_y TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"' "flux limiter theta"
+#CCTK_REAL theta_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"' "flux limiter theta"
 CCTK_REAL thetas TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
 {
-	theta_x, theta_y, theta_z
-}
+  theta_x, theta_y, theta_z
+} "flux limiter theta"
 
 CCTK_REAL r_ent TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Entropy residual for EFL"
 CCTK_REAL phys_ent TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Physical entropy (as opposed to evolved)"

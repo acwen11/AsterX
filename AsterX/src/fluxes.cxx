@@ -1040,11 +1040,31 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
       // At face Ip, Ip refers to the right cell and Im refers to the left
       const auto Ip = p.I;
       const auto Im = p.I - p.DI[dir];
+  
+      // Get local c_light
+      //// At Ip
+      const CCTK_REAL alp_p = calc_avg_v2c(alp, p);
+      const vec<CCTK_REAL, 3> betas_p(
+          [&](int i) ARITH_INLINE { return calc_avg_v2c(gf_beta(i), p); });
+      const smat<CCTK_REAL, 3> g_avg_p([&](int i, int j) ARITH_INLINE {
+        return calc_avg_v2c(gf_g(i, j), p);
+      });
+      const CCTK_REAL detg_avg_p = calc_det(g_avg_p);
+      const CCTK_REAL u_avg_p = calc_inv(g_avg_p, detg_avg_p)(dir, dir);
+      const CCTK_REAL c_p = max({fabs(alp_p * sqrt(u_avg_p) - betas_p(dir)), fabs(-alp_p * sqrt(u_avg_p) - betas_p(dir))});
 
-      CCTK_REAL theta = 1.0;
-      CCTK_REAL theta_m = 1.0;
-      CCTK_REAL theta_p = 1.0;
+      //// At Im
+      const CCTK_REAL alp_m = calc_avg_v2c(alp, p, Im);
+      const vec<CCTK_REAL, 3> betas_m(
+          [&](int i) ARITH_INLINE { return calc_avg_v2c(gf_beta(i), p, Im); });
+      const smat<CCTK_REAL, 3> g_avg_m([&](int i, int j) ARITH_INLINE {
+        return calc_avg_v2c(gf_g(i, j), p, Im);
+      });
+      const CCTK_REAL detg_avg_m = calc_det(g_avg_m);
+      const CCTK_REAL u_avg_m = calc_inv(g_avg_m, detg_avg_m)(dir, dir);
+      const CCTK_REAL c_m = max({fabs(alp_m * sqrt(u_avg_m) - betas_m(dir)), fabs(-alp_m * sqrt(u_avg_m) - betas_m(dir))});
 
+      const CCTK_REAL cc = max(c_p, c_m);
       // Calc LO flux, currently only LLF
       fluxLOdenss(dir)(Ip) = laxf(rcconsLO.lambda, rcconsLO.dens_rc,    rcconsLO.flux_dens);
       fluxLODEnts(dir)(Ip) = laxf(rcconsLO.lambda, rcconsLO.DEnt_rc,    rcconsLO.flux_DEnt);
@@ -1054,16 +1074,20 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
       fluxLOmomzs(dir)(Ip) = laxf(rcconsLO.lambda, rcconsLO.moms_rc(2), rcconsLO.flux_moms(2));
       fluxLOtaus(dir)(Ip) =  laxf(rcconsLO.lambda, rcconsLO.tau_rc,     rcconsLO.flux_tau);
 
+      CCTK_REAL theta = 1.0;
+      CCTK_REAL theta_m = 1.0;
+      CCTK_REAL theta_p = 1.0;
+
       if (use_pplim) {
         // Get atmosphere
         CCTK_REAL radial_distance = sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
         CCTK_REAL rho_atm = (radial_distance > r_atmo)
                       ? (rho_abs_min * pow((r_atmo / radial_distance), n_rho_atmo))
                       : rho_abs_min;
-        rho_atm = std::max(eos_3p->rgrho.min, rho_atm);
+        rho_atm = max(eos_3p->rgrho.min, rho_atm);
         CCTK_REAL rho_atm_cut = rho_atm * (1 + atmo_tol);
 
-        if (rho(p.I) >= rho_atm_cut) {
+        if (rho(Ip) > rho_atm && rho(Im) > rho_atm) {
           // Get 2 * \alpha * CFL with \alpha = 3
           // const CCTK_REAL a2cfl = 6 * cctk_delta_time / p.DX[dir];
           // if (p.i == 10 && p.j == 10 && p.k == 10) {
@@ -1073,31 +1097,21 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
           const CCTK_REAL a2cfl = 6 * 0.35;
 
           // Calc dens floor
-          const smat<CCTK_REAL, 3> g_avg_p([&](int i, int j) ARITH_INLINE {
-            return calc_avg_v2c(gf_g(i, j), p);
-          });
-          const CCTK_REAL detg_avg_p = calc_det(g_avg_p);
           const CCTK_REAL sqrtg_p = sqrt(detg_avg_p);
-
-          const smat<CCTK_REAL, 3> g_avg_m([&](int i, int j) ARITH_INLINE {
-            return calc_avg_v2c(gf_g(i, j), p, Im);
-          });
-          const CCTK_REAL detg_avg_m = calc_det(g_avg_m);
-          const CCTK_REAL sqrtg_m = sqrt(detg_avg_m);
-
           vec<CCTK_REAL, 3> vup_p{velx(Ip), vely(Ip), velz(Ip)};
           vec<CCTK_REAL, 3> vlow_p = calc_contraction(g_avg_p, vup_p);
           const CCTK_REAL w_lor_p = 1 / sqrt(1 - calc_contraction(vlow_p, vup_p));
 
+          const CCTK_REAL sqrtg_m = sqrt(detg_avg_m);
           vec<CCTK_REAL, 3> vup_m{velx(Im), vely(Im), velz(Im)};
           vec<CCTK_REAL, 3> vlow_m = calc_contraction(g_avg_m, vup_m);
           const CCTK_REAL w_lor_m = 1 / sqrt(1 - calc_contraction(vlow_m, vup_m));
 
-          // const CCTK_REAL densmin_p = sqrtg_p * w_lor_p * rho_atm;
-          // const CCTK_REAL densmin_m = sqrtg_m * w_lor_m * rho_atm;
+          const CCTK_REAL densmin_p = sqrtg_p * w_lor_p * rho_atm;
+          const CCTK_REAL densmin_m = sqrtg_m * w_lor_m * rho_atm;
 
-          const CCTK_REAL densmin_p = volform(Ip) * w_lorentz(Ip) * rho_atm;
-          const CCTK_REAL densmin_m = volform(Im) * w_lorentz(Im) * rho_atm;
+          // const CCTK_REAL densmin_p = volform(Ip) * w_lorentz(Ip) * rho_atm;
+          // const CCTK_REAL densmin_m = volform(Im) * w_lorentz(Im) * rho_atm;
 
           // Calc theta
           const CCTK_REAL newdens_p = dens(Ip) + a2cfl * fluxdenss(dir)(Ip);
@@ -1106,18 +1120,18 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
           const CCTK_REAL newdensLO_p = dens(Ip) + a2cfl * fluxLOdenss(dir)(Ip);
           const CCTK_REAL newdensLO_m = dens(Im) - a2cfl * fluxLOdenss(dir)(Ip);
 
-          if (newdensLO_m < densmin_m) {
-            printf("positivity violated at Im: cctk_iteration = %i,  dir = %i,  ijk = %i, %i, %i; Im = %i, %i, %i;"
-                   "x, y, z = %16.8e, %16.8e, %16.8e.\n",
-                   cctk_iteration, dir, p.i, p.j, p.k, Im[0], Im[1], Im[2], p.x, p.y, p.z);
-            // printf("sqrtg- = %e; wlor- = %e; densmin- = %e; newdens- = %e; newdensLO- = %e\n", sqrtg_m, w_lor_m, densmin_m, newdens_m, newdensLO_m);
-            vec<vec<CCTK_REAL, 4>, 2> lam = rcconsLO.lambda;
-            const CCTK_REAL charmax =
-                  max({CCTK_REAL(0), fabs(lam(0)(0)), fabs(lam(0)(1)), fabs(lam(0)(2)),
-                             fabs(lam(0)(3)), fabs(lam(1)(0)), fabs(lam(1)(1)), fabs(lam(1)(2)),
-                                        fabs(lam(1)(3))});
-            printf("Dmin = %e, Dnew = %e, Di = %e, Di+1 = %e, Fi = %e, Fi+1 = %e, c = %e\n", densmin_m, newdensLO_m, dens(Im), dens(Ip), rcconsLO.flux_dens(0), rcconsLO.flux_dens(1), charmax);
-          }
+          // if (newdensLO_m < densmin_m) {
+          //   printf("positivity violated at Im: cctk_iteration = %i,  dir = %i,  ijk = %i, %i, %i; Im = %i, %i, %i;"
+          //          "x, y, z = %16.8e, %16.8e, %16.8e.\n",
+          //          cctk_iteration, dir, p.i, p.j, p.k, Im[0], Im[1], Im[2], p.x, p.y, p.z);
+          //   // printf("sqrtg- = %e; wlor- = %e; densmin- = %e; newdens- = %e; newdensLO- = %e\n", sqrtg_m, w_lor_m, densmin_m, newdens_m, newdensLO_m);
+          //   // vec<vec<CCTK_REAL, 4>, 2> lam = rcconsLO.lambda;
+          //   // const CCTK_REAL charmax =
+          //   //       max({CCTK_REAL(0), fabs(lam(0)(0)), fabs(lam(0)(1)), fabs(lam(0)(2)),
+          //   //                  fabs(lam(0)(3)), fabs(lam(1)(0)), fabs(lam(1)(1)), fabs(lam(1)(2)),
+          //   //                             fabs(lam(1)(3))});
+          //   printf("Dmin = %e, Dnew = %e, fluxLLF = %e, Di = %e, Di+1 = %e, Fi = %e, Fi+1 = %e, c = %e\n", densmin_m, newdensLO_m, fluxLOdenss(dir)(Ip), dens(Im), dens(Ip), rcconsLO.flux_dens(0), rcconsLO.flux_dens(1), cc);
+          // }
           // if (newdensLO_p < densmin_p) {
           //   printf("positivity violated at Ip: cctk_iteration = %i,  dir = %i,  ijk = %i, %i, %i; Im = %i, %i, %i;"
           //          "x, y, z = %16.8e, %16.8e, %16.8e.\n",
@@ -1132,18 +1146,25 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
           // }
 
           if (newdens_p < densmin_p)
-            theta_p = std::min(
-                theta, std::max(0.0, (densmin_p - newdensLO_p) /
-                                         (a2cfl * (fluxdenss(dir)(Ip) -
-                                                   fluxLOdenss(dir)(Ip)))));
+            theta_p = min(
+                theta, max(0.0, (newdensLO_p - densmin_p) /
+                                         (a2cfl * (fluxLOdenss(dir)(Ip) -
+                                                   fluxdenss(dir)(Ip)))));
 
           if (newdens_m < densmin_m)
-            theta_m = std::min(
-                theta, std::max(0.0, -(densmin_m - newdensLO_m) /
+            theta_m = min(
+                theta, max(0.0, (newdensLO_m - densmin_m) /
                                          (a2cfl * (fluxdenss(dir)(Ip) -
                                                    fluxLOdenss(dir)(Ip)))));
 
-          theta = std::min(theta_m, theta_p);
+          theta = min(theta_m, theta_p);
+          // if (theta < 1.0) {
+          //   printf("cctk_iteration = %i,  dir = %i,  ijk = %i, %i, %i, "
+          //          "x, y, z = %16.8e, %16.8e, %16.8e.\n",
+          //          cctk_iteration, dir, p.i, p.j, p.k, p.x, p.y, p.z);
+          //   printf("  theta = %16.8e, theta_m = %16.8e, theta_p = %16.8e\n", theta, theta_m, theta_p);
+          // }
+
 
           if (isnan(theta) || isnan(theta_m) || isnan(theta_p) || isnan(a2cfl) ||
               isnan(fluxLOdenss(dir)(Ip)) || isnan(fluxLODEnts(dir)(Ip)) ||
@@ -1170,9 +1191,9 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
       if (use_efl) {
         // If use_ppl, theta = theta_ppl. Else, theta = 1.
         // This is the limiter from Doulis et al. 2022. efl_ce is typically 1.
-        const CCTK_REAL nu_m = std::min(1.0, efl_ce * r_ent(Im));
-        const CCTK_REAL nu_p = std::min(1.0, efl_ce * r_ent(Ip));
-        theta = std::min(theta, 1 - 0.5 * (nu_m + nu_p));
+        const CCTK_REAL nu_m = min(1.0, efl_ce * r_ent(Im));
+        const CCTK_REAL nu_p = min(1.0, efl_ce * r_ent(Ip));
+        theta = min(theta, 1 - 0.5 * (nu_m + nu_p));
       }
 
       // Update flux GF
@@ -1347,28 +1368,28 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
   });
 }
 
-void CalcW_DetG(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_AsterX_Fluxes;
-  DECLARE_CCTK_PARAMETERS;
-
-  const smat<GF3D2<const CCTK_REAL>, dim> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
-
-  grid.loop_all_device<1, 1, 1>(
-      grid.nghostzones,
-      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-
-        const smat<CCTK_REAL, 3> g_avg([&](int i, int j) ARITH_INLINE {
-          return calc_avg_v2c(gf_g(i, j), p);
-        });
-        const CCTK_REAL detg = calc_det(g_avg);
-        volform(p.I) = sqrt(detg);
-
-        vec<CCTK_REAL, 3> vup{velx(p.I), vely(p.I), velz(p.I)};
-        vec<CCTK_REAL, 3> vlow = calc_contraction(g_avg, vup);
-        w_lorentz(p.I) = 1 / sqrt(1 - calc_contraction(vlow, vup));
-
-      });
-}
+// void CalcW_DetG(CCTK_ARGUMENTS) {
+//   DECLARE_CCTK_ARGUMENTSX_AsterX_Fluxes;
+//   DECLARE_CCTK_PARAMETERS;
+// 
+//   const smat<GF3D2<const CCTK_REAL>, dim> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
+// 
+//   grid.loop_all_device<1, 1, 1>(
+//       grid.nghostzones,
+//       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+// 
+//         const smat<CCTK_REAL, 3> g_avg([&](int i, int j) ARITH_INLINE {
+//           return calc_avg_v2c(gf_g(i, j), p);
+//         });
+//         const CCTK_REAL detg = calc_det(g_avg);
+//         volform(p.I) = sqrt(detg);
+// 
+//         vec<CCTK_REAL, 3> vup{velx(p.I), vely(p.I), velz(p.I)};
+//         vec<CCTK_REAL, 3> vlow = calc_contraction(g_avg, vup);
+//         w_lorentz(p.I) = 1 / sqrt(1 - calc_contraction(vlow, vup));
+// 
+//       });
+// }
 
 void CalcAuxForAvecPsi(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_Fluxes;
@@ -1404,7 +1425,7 @@ extern "C" void AsterX_Fluxes(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTS_AsterX_Fluxes;
   DECLARE_CCTK_PARAMETERS;
 
-  CalcW_DetG(cctkGH);
+  // CalcW_DetG(cctkGH);
 
   eos_3param eos_3p_type;
 

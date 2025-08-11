@@ -28,6 +28,20 @@ laxf(vec<vec<CCTK_REAL, 4>, 2> lam, vec<CCTK_REAL, 2> var,
   return 0.5 * ((flux(0) + flux(1)) - charmax * (var(1) - var(0)));
 }
 
+// Lax-Friedrichs solver with c = clight
+inline CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_DEVICE CCTK_HOST CCTK_REAL
+laxf_c(CCTK_REAL clight, vec<CCTK_REAL, 2> var,
+     vec<CCTK_REAL, 2> flux) {
+  return 0.5 * ((flux(0) + flux(1)) - clight * (var(1) - var(0)));
+}
+
+// Lax-Friedrichs solver with c = 1
+inline CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_DEVICE CCTK_HOST CCTK_REAL
+laxf_maxspeed(vec<vec<CCTK_REAL, 4>, 2> lam, vec<CCTK_REAL, 2> var,
+     vec<CCTK_REAL, 2> flux) {
+  return 0.5 * ((flux(0) + flux(1)) - (var(1) - var(0)));
+}
+
 // HLLE solver
 inline CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_DEVICE CCTK_HOST CCTK_REAL
 hlle(vec<vec<CCTK_REAL, 4>, 2> lam, vec<CCTK_REAL, 2> var,
