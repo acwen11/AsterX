@@ -33,6 +33,10 @@ BOOLEAN use_efl "Use entropy flux limiter?" STEERABLE=always
 {
 } "no"
 
+BOOLEAN use_HOrecon_LOflux "Use HO recon values to compute LO flux" STEERABLE=always
+{
+} "no"
+
 CCTK_INT efl_deriv_order "Order of entropy spatial finite differencing for EFL" STEERABLE=always
 {
   2 :: "Second order finite difference"

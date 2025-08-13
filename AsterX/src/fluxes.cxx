@@ -417,158 +417,6 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
     const CCTK_REAL detg_avg = calc_det(g_avg);
     const CCTK_REAL sqrtg = sqrt(detg_avg);
 
-    // ---------------------------- BEGIN LO FOR FLUX LIM -----------------------------------
-    // if (p.i == 100 && p.j == 100 && p.k == 15) {
-    //   clock_t duration = clock() - start;
-    //   printf("Starting LO recon after time %e\n", (float)duration / CLOCKS_PER_SEC);
-    // }
-    // Reconstruct density
-    vec<CCTK_REAL, 2> rhoLO_rc{reconstruct_loworder(rho, p, true, true)};
-
-    // Reconstruct entropy
-    vec<CCTK_REAL, 2> entropyLO_rc{reconstruct_loworder(entropy, p, false, false)};
-
-    // Reconstruct Ye
-    vec<CCTK_REAL, 2> YeLO_rc{reconstruct_loworder(Ye, p, false, false)};
-
-    // Initialize variables for eps, pressure, and temperature
-    vec<CCTK_REAL, 2> epsLO_rc;
-    vec<CCTK_REAL, 2> pressLO_rc;
-    vec<CCTK_REAL, 2> tempLO_rc;
-
-    if (reconstruct_with_temperature) {
-
-      // Reconstruct temperature
-      vec<CCTK_REAL, 2> tempLO_rc{reconstruct_loworder(temperature, p, false, false)};
-
-      // Compute eps_rc and press_rc using lambdas
-      for (int f = 0; f < 2; ++f) {
-        epsLO_rc(f) =
-            eos_3p->eps_from_valid_rho_temp_ye(rhoLO_rc(f), tempLO_rc(f), YeLO_rc(f));
-        pressLO_rc(f) = eos_3p->press_from_valid_rho_temp_ye(
-            rhoLO_rc(f), tempLO_rc(f), YeLO_rc(f));
-      }
-
-    } else {
-      printf("Flux limiters only supported for temperature reconstruction for now.\n");
-      assert(0);
-    }
-
-    const vec<CCTK_REAL, 2> rhohLO_rc([&](int f) ARITH_INLINE {
-      return rhoLO_rc(f) + rhoLO_rc(f) * epsLO_rc(f) + pressLO_rc(f);
-    });
-
-    // Introduce reconstructed Bs
-    // Use staggered dB for i == dir
-    vec<vec<CCTK_REAL, 2>, 3> BsLO_rc;
-
-    // Assign the value for the primary direction
-    const CCTK_REAL val = gf_dBstags(dir)(p.I) / sqrtg;
-    BsLO_rc(dir)(0) = val;
-    BsLO_rc(dir)(1) = val;
-
-    // Lambda to assign the reconstructed values
-    auto assign_reconstructedLO = [&](int d) {
-      auto tmp = reconstruct_loworder(gf_Bvecs(d), p, false, false);
-      BsLO_rc(d)(0) = tmp[0];
-      BsLO_rc(d)(1) = tmp[1];
-    };
-
-    // Assign reconstructed values for the two perpendicular directions
-    assign_reconstructedLO(dir_arr[1]);
-    assign_reconstructedLO(dir_arr[2]);
-    // End of setting Bs
-    
-    vec<vec<CCTK_REAL, 2>, 3> velsLO_rc;
-    vec<vec<CCTK_REAL, 2>, 3> vlowsLO_rc;
-    vec<CCTK_REAL, 2> w_lorentzLO_rc;
-    switch (rec_var) {
-    case rec_var_t::v_vec: {
-
-      array<CCTK_REAL, 2>
-          vels_rc_dummy; // note: can't copy array<,2> to vec<,2>, only construct
-
-      for (int i = 0; i <= 2; ++i) { // loop over components
-        vels_rc_dummy = reconstruct_loworder(gf_vels(i), p, false, false);
-        velsLO_rc(i)(0) = vels_rc_dummy[0];
-        velsLO_rc(i)(1) = vels_rc_dummy[1];
-      }
-
-      /* co-velocity measured by Eulerian observer: v_j */
-      vlowsLO_rc = calc_contraction(g_avg, velsLO_rc);
-
-      /* Lorentz factor: W = 1 / sqrt(1 - v^2) */
-      w_lorentzLO_rc(0) = 1 / sqrt(1 - calc_contraction(vlowsLO_rc, velsLO_rc)(0));
-      w_lorentzLO_rc(1) = 1 / sqrt(1 - calc_contraction(vlowsLO_rc, velsLO_rc)(1));
-      break;
-    };
-    case rec_var_t::z_vec: {
-
-      vec<vec<CCTK_REAL, 2>, 3> zvec_rc([&](int i) ARITH_INLINE {
-        return vec<CCTK_REAL, 2>{reconstruct_loworder(gf_zvec(i), p, false, false)};
-      });
-
-      const vec<vec<CCTK_REAL, 2>, 3> zveclow_rc =
-          calc_contraction(g_avg, zvec_rc);
-
-      w_lorentzLO_rc(0) = sqrt(1 + calc_contraction(zveclow_rc, zvec_rc)(0));
-      w_lorentzLO_rc(1) = sqrt(1 + calc_contraction(zveclow_rc, zvec_rc)(1));
-
-      for (int i = 0; i <= 2; ++i) {   // loop over components
-        for (int j = 0; j <= 1; ++j) { // loop over left and right state
-          velsLO_rc(i)(j) = zvec_rc(i)(j) / w_lorentzLO_rc(j);
-          vlowsLO_rc(i)(j) = zveclow_rc(i)(j) / w_lorentzLO_rc(j);
-        }
-      }
-      break;
-    };
-    case rec_var_t::s_vec: {
-
-      vec<vec<CCTK_REAL, 2>, 3> svec_rc([&](int i) ARITH_INLINE {
-        return vec<CCTK_REAL, 2>{reconstruct_loworder(gf_svec(i), p, false, false)};
-      });
-
-      const vec<vec<CCTK_REAL, 2>, 3> sveclow_rc =
-          calc_contraction(g_avg, svec_rc);
-
-      w_lorentzLO_rc(0) =
-          sqrt(0.5 + sqrt(0.25 + calc_contraction(sveclow_rc, svec_rc)(0) /
-                                     rhohLO_rc(0) / rhohLO_rc(0)));
-      w_lorentzLO_rc(1) =
-          sqrt(0.5 + sqrt(0.25 + calc_contraction(sveclow_rc, svec_rc)(1) /
-                                     rhohLO_rc(1) / rhohLO_rc(1)));
-
-      for (int i = 0; i <= 2; ++i) {   // loop over components
-        for (int j = 0; j <= 1; ++j) { // loop over left and right state
-          velsLO_rc(i)(j) =
-              svec_rc(i)(j) / w_lorentzLO_rc(j) / w_lorentzLO_rc(j) / rhohLO_rc(j);
-          vlowsLO_rc(i)(j) =
-              sveclow_rc(i)(j) / w_lorentzLO_rc(j) / w_lorentzLO_rc(j) / rhohLO_rc(j);
-        }
-      }
-      break;
-    };
-    }
-
-    // if (p.i == 100 && p.j == 100 && p.k == 15) {
-    //   clock_t duration = clock() - start;
-    //   printf("Ending LO recon after time %e\n", (float)duration / CLOCKS_PER_SEC);
-    // }
-    recon_prims rcprimsLO{rhoLO_rc, entropyLO_rc, YeLO_rc, epsLO_rc, pressLO_rc, tempLO_rc, BsLO_rc,
-      velsLO_rc, vlowsLO_rc, w_lorentzLO_rc};
-    recon_cons rcconsLO;
-
-    // if (p.i == 100 && p.j == 100 && p.k == 15) {
-    //   clock_t duration = clock() - start;
-    //   printf("Starting LO CalcConsFluxes after time %e\n", (float)duration / CLOCKS_PER_SEC);
-    // }
-    CalcConsFluxesFromPrims(dir, eos_3p, reconstruct_with_temperature,
-     alp_avg, betas_avg, g_avg, sqrtg,
-     rcprimsLO, rcconsLO);
-    // ---------------------------- END LO FOR FLUX LIM -----------------------------------
-    
-    
-    
     // if (p.i == 100 && p.j == 100 && p.k == 15) {
     //   clock_t duration = clock() - start;
     //   printf("Starting HO recon after time %e\n", (float)duration / CLOCKS_PER_SEC);
@@ -701,7 +549,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
     vec<vec<CCTK_REAL, 2>, 3> Bs_rc;
 
     // Assign the value for the primary direction
-    // const CCTK_REAL val = gf_dBstags(dir)(p.I) / sqrtg;
+    const CCTK_REAL val = gf_dBstags(dir)(p.I) / sqrtg;
     Bs_rc(dir)(0) = val;
     Bs_rc(dir)(1) = val;
 
@@ -1016,6 +864,160 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
      alp_avg, betas_avg, g_avg, sqrtg,
      rcprimsHO, rcconsHO);
 
+    recon_cons rcconsLO;
+    if (use_HOrecon_LOflux) {
+      rcconsLO = rcconsHO;
+    } else {
+      // ---------------------------- BEGIN LO FOR FLUX LIM -----------------------------------
+      // if (p.i == 100 && p.j == 100 && p.k == 15) {
+      //   clock_t duration = clock() - start;
+      //   printf("Starting LO recon after time %e\n", (float)duration / CLOCKS_PER_SEC);
+      // }
+      // Reconstruct density
+      vec<CCTK_REAL, 2> rhoLO_rc{reconstruct_loworder(rho, p, true, true)};
+
+      // Reconstruct entropy
+      vec<CCTK_REAL, 2> entropyLO_rc{reconstruct_loworder(entropy, p, false, false)};
+
+      // Reconstruct Ye
+      vec<CCTK_REAL, 2> YeLO_rc{reconstruct_loworder(Ye, p, false, false)};
+
+      // Initialize variables for eps, pressure, and temperature
+      vec<CCTK_REAL, 2> epsLO_rc;
+      vec<CCTK_REAL, 2> pressLO_rc;
+      vec<CCTK_REAL, 2> tempLO_rc;
+
+      if (reconstruct_with_temperature) {
+
+        // Reconstruct temperature
+        vec<CCTK_REAL, 2> tempLO_rc{reconstruct_loworder(temperature, p, false, false)};
+
+        // Compute eps_rc and press_rc using lambdas
+        for (int f = 0; f < 2; ++f) {
+          epsLO_rc(f) =
+              eos_3p->eps_from_valid_rho_temp_ye(rhoLO_rc(f), tempLO_rc(f), YeLO_rc(f));
+          pressLO_rc(f) = eos_3p->press_from_valid_rho_temp_ye(
+              rhoLO_rc(f), tempLO_rc(f), YeLO_rc(f));
+        }
+
+      } else {
+        printf("Flux limiters only supported for temperature reconstruction for now.\n");
+        assert(0);
+      }
+
+      const vec<CCTK_REAL, 2> rhohLO_rc([&](int f) ARITH_INLINE {
+        return rhoLO_rc(f) + rhoLO_rc(f) * epsLO_rc(f) + pressLO_rc(f);
+      });
+
+      // Introduce reconstructed Bs
+      // Use staggered dB for i == dir
+      vec<vec<CCTK_REAL, 2>, 3> BsLO_rc;
+
+      // Assign the value for the primary direction
+      // const CCTK_REAL val = gf_dBstags(dir)(p.I) / sqrtg;
+      BsLO_rc(dir)(0) = val;
+      BsLO_rc(dir)(1) = val;
+
+      // Lambda to assign the reconstructed values
+      auto assign_reconstructedLO = [&](int d) {
+        auto tmp = reconstruct_loworder(gf_Bvecs(d), p, false, false);
+        BsLO_rc(d)(0) = tmp[0];
+        BsLO_rc(d)(1) = tmp[1];
+      };
+
+      // Assign reconstructed values for the two perpendicular directions
+      assign_reconstructedLO(dir_arr[1]);
+      assign_reconstructedLO(dir_arr[2]);
+      // End of setting Bs
+      
+      vec<vec<CCTK_REAL, 2>, 3> velsLO_rc;
+      vec<vec<CCTK_REAL, 2>, 3> vlowsLO_rc;
+      vec<CCTK_REAL, 2> w_lorentzLO_rc;
+      switch (rec_var) {
+      case rec_var_t::v_vec: {
+
+        array<CCTK_REAL, 2>
+            vels_rc_dummy; // note: can't copy array<,2> to vec<,2>, only construct
+
+        for (int i = 0; i <= 2; ++i) { // loop over components
+          vels_rc_dummy = reconstruct_loworder(gf_vels(i), p, false, false);
+          velsLO_rc(i)(0) = vels_rc_dummy[0];
+          velsLO_rc(i)(1) = vels_rc_dummy[1];
+        }
+
+        /* co-velocity measured by Eulerian observer: v_j */
+        vlowsLO_rc = calc_contraction(g_avg, velsLO_rc);
+
+        /* Lorentz factor: W = 1 / sqrt(1 - v^2) */
+        w_lorentzLO_rc(0) = 1 / sqrt(1 - calc_contraction(vlowsLO_rc, velsLO_rc)(0));
+        w_lorentzLO_rc(1) = 1 / sqrt(1 - calc_contraction(vlowsLO_rc, velsLO_rc)(1));
+        break;
+      };
+      case rec_var_t::z_vec: {
+
+        vec<vec<CCTK_REAL, 2>, 3> zvec_rc([&](int i) ARITH_INLINE {
+          return vec<CCTK_REAL, 2>{reconstruct_loworder(gf_zvec(i), p, false, false)};
+        });
+
+        const vec<vec<CCTK_REAL, 2>, 3> zveclow_rc =
+            calc_contraction(g_avg, zvec_rc);
+
+        w_lorentzLO_rc(0) = sqrt(1 + calc_contraction(zveclow_rc, zvec_rc)(0));
+        w_lorentzLO_rc(1) = sqrt(1 + calc_contraction(zveclow_rc, zvec_rc)(1));
+
+        for (int i = 0; i <= 2; ++i) {   // loop over components
+          for (int j = 0; j <= 1; ++j) { // loop over left and right state
+            velsLO_rc(i)(j) = zvec_rc(i)(j) / w_lorentzLO_rc(j);
+            vlowsLO_rc(i)(j) = zveclow_rc(i)(j) / w_lorentzLO_rc(j);
+          }
+        }
+        break;
+      };
+      case rec_var_t::s_vec: {
+
+        vec<vec<CCTK_REAL, 2>, 3> svec_rc([&](int i) ARITH_INLINE {
+          return vec<CCTK_REAL, 2>{reconstruct_loworder(gf_svec(i), p, false, false)};
+        });
+
+        const vec<vec<CCTK_REAL, 2>, 3> sveclow_rc =
+            calc_contraction(g_avg, svec_rc);
+
+        w_lorentzLO_rc(0) =
+            sqrt(0.5 + sqrt(0.25 + calc_contraction(sveclow_rc, svec_rc)(0) /
+                                       rhohLO_rc(0) / rhohLO_rc(0)));
+        w_lorentzLO_rc(1) =
+            sqrt(0.5 + sqrt(0.25 + calc_contraction(sveclow_rc, svec_rc)(1) /
+                                       rhohLO_rc(1) / rhohLO_rc(1)));
+
+        for (int i = 0; i <= 2; ++i) {   // loop over components
+          for (int j = 0; j <= 1; ++j) { // loop over left and right state
+            velsLO_rc(i)(j) =
+                svec_rc(i)(j) / w_lorentzLO_rc(j) / w_lorentzLO_rc(j) / rhohLO_rc(j);
+            vlowsLO_rc(i)(j) =
+                sveclow_rc(i)(j) / w_lorentzLO_rc(j) / w_lorentzLO_rc(j) / rhohLO_rc(j);
+          }
+        }
+        break;
+      };
+      }
+
+      // if (p.i == 100 && p.j == 100 && p.k == 15) {
+      //   clock_t duration = clock() - start;
+      //   printf("Ending LO recon after time %e\n", (float)duration / CLOCKS_PER_SEC);
+      // }
+      recon_prims rcprimsLO{rhoLO_rc, entropyLO_rc, YeLO_rc, epsLO_rc, pressLO_rc, tempLO_rc, BsLO_rc,
+        velsLO_rc, vlowsLO_rc, w_lorentzLO_rc};
+
+      // if (p.i == 100 && p.j == 100 && p.k == 15) {
+      //   clock_t duration = clock() - start;
+      //   printf("Starting LO CalcConsFluxes after time %e\n", (float)duration / CLOCKS_PER_SEC);
+      // }
+      CalcConsFluxesFromPrims(dir, eos_3p, reconstruct_with_temperature,
+       alp_avg, betas_avg, g_avg, sqrtg,
+       rcprimsLO, rcconsLO);
+      // ---------------------------- END LO FOR FLUX LIM -----------------------------------
+    }
+    
     /* Calculate numerical fluxes */
     fluxdenss(dir)(p.I) = calcflux(rcconsHO.lambda, rcconsHO.dens_rc,       rcconsHO.flux_dens);
     fluxDEnts(dir)(p.I) = calcflux(rcconsHO.lambda, rcconsHO.DEnt_rc,       rcconsHO.flux_DEnt);
