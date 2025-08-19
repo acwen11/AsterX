@@ -76,18 +76,19 @@ void CalcConsFluxesFromPrims(const int dir, EOSType eos_3p, const bool use_temp_
     vec<CCTK_REAL, 2> cs2_rc;
     if (use_temp_flag) {
       const vec<CCTK_REAL, 2> cs_dummy([&](int f) ARITH_INLINE {
-        return eos_3p->csnd_from_valid_rho_temp_ye(rcprims.rho_rc(f), rcprims.eps_rc(f),
+        return eos_3p->csnd_from_valid_rho_temp_ye(rcprims.rho_rc(f), rcprims.temp_rc(f),
                                                   rcprims.Ye_rc(f));
       });
       for (int i=0; i<=1; i++)
         cs2_rc(i) = cs_dummy(i) * cs_dummy(i);
     }
     else {
-      const vec<CCTK_REAL, 2> cs2_rc([&](int f) ARITH_INLINE {
+      const vec<CCTK_REAL, 2> cs_dummy([&](int f) ARITH_INLINE {
         return eos_3p->csnd_from_valid_rho_eps_ye(rcprims.rho_rc(f), rcprims.eps_rc(f),
-                                                  rcprims.Ye_rc(f)) *
-               eos_3p->csnd_from_valid_rho_eps_ye(rcprims.rho_rc(f), rcprims.eps_rc(f), rcprims.Ye_rc(f));
+                                                  rcprims.Ye_rc(f));
       });
+      for (int i=0; i<=1; i++)
+        cs2_rc(i) = cs_dummy(i) * cs_dummy(i);
     }
 
     const vec<CCTK_REAL, 2> h_rc([&](int f) ARITH_INLINE {
@@ -193,6 +194,13 @@ void CalcConsFluxesFromPrims(const int dir, EOSType eos_3p, const bool use_temp_
         eigenvalues(alp_avg, beta_avg, u_avg, vel_rc, rcprims.rho_rc, cs2_rc,
                     rcprims.w_lorentz_rc, h_rc, bsq_rc);
 
+    // printf("lambda check! cs2_rc = (%e, %e), h_rc = (%e, %e), bsq_rc = (%e, %e)\n", 
+    //   cs2_rc(0), cs2_rc(1), h_rc(0), h_rc(1), bsq_rc(0), bsq_rc(1));
+    // if (isnan(lambda(0)(0) * lambda(0)(1) * lambda(0)(2) * lambda(0)(3) *
+    //   lambda(1)(0) * lambda(1)(1) * lambda(1)(2) * lambda(1)(3)))
+    // if (isnan(cs2_rc(0) * cs2_rc(1) * h_rc(0) * h_rc(1)))
+    //   printf("NaN in lambda! cs2_rc = (%e, %e), h_rc = (%e, %e), bsq_rc = (%e, %e)\n", 
+    //     cs2_rc(0), cs2_rc(1), h_rc(0), h_rc(1), bsq_rc(0), bsq_rc(1));
     // Save cons and fluxes
     recon_cons rccons_tmp{dens_rc, DEnt_rc, moms_rc, tau_rc, DYe_rc, Btildes_rc, vtildes_rc,
      lambda, flux_dens, flux_DEnt, flux_moms, flux_tau, flux_DYe, flux_Btildes};
@@ -1272,47 +1280,44 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
       printf("cctk_iteration = %i,  dir = %i,  ijk = %i, %i, %i, "
              "x, y, z = %16.8e, %16.8e, %16.8e.\n",
              cctk_iteration, dir, p.i, p.j, p.k, p.x, p.y, p.z);
-      // printf("  fluxdenss = %16.8e,\n", fluxdenss(dir)(p.I));
-      // printf("  fluxmoms  = %16.8e, %16.8e, %16.8e,\n", fluxmomxs(dir)(p.I),
-      //        fluxmomys(dir)(p.I), fluxmomzs(dir)(p.I));
-      // printf("  fluxtaus  = %16.8e,\n", fluxtaus(dir)(p.I));
-      // printf("  fluxBs    = %16.8e, %16.8e, %16.8e\n", fluxBxs(dir)(p.I),
-      //        fluxBys(dir)(p.I), fluxBzs(dir)(p.I));
-      // printf("  flux_denss = %16.8e, %16.8e,\n", flux_dens(0), flux_dens(1));
-      // printf("  flux_moms  = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e,\n",
-      //        flux_moms(0)(0), flux_moms(0)(1), flux_moms(1)(0), flux_moms(1)(1),
-      //        flux_moms(2)(0), flux_moms(2)(1));
-      // printf("  flux_taus  = %16.8e, %16.8e,\n", flux_tau(0), flux_tau(1));
-      // printf("  flux_DYes  = %16.8e, %16.8e,\n", flux_DYe(0), flux_DYe(1));
-      // printf("  flux_Bts   = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e,\n",
-      //        flux_Btildes(0)(0), flux_Btildes(0)(1), flux_Btildes(1)(0),
-      //        flux_Btildes(1)(1), flux_Btildes(2)(0), flux_Btildes(2)(1));
-      // printf("  dens_rc = %16.8e, %16.8e,\n", dens_rc(0), dens_rc(1));
-      // printf("  moms_rc = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e,\n",
-      //        moms_rc(0)(0), moms_rc(0)(1), moms_rc(1)(0), moms_rc(1)(1),
-      //        moms_rc(2)(0), moms_rc(2)(1));
-      // printf("  tau_rc  = %16.8e, %16.8e,\n", tau_rc(0), tau_rc(1));
-      // printf("  DYe_rc  = %16.8e, %16.8e,\n", DYe_rc(0), DYe_rc(1));
-      // printf("  Bs_rc  = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e,\n",
-      //        Bs_rc(0)(0), Bs_rc(0)(1), Bs_rc(1)(0), Bs_rc(1)(1), Bs_rc(2)(0),
-      //        Bs_rc(2)(1));
-      // printf("  Bts_rc  = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e,\n",
-      //        Btildes_rc(0)(0), Btildes_rc(0)(1), Btildes_rc(1)(0),
-      //        Btildes_rc(1)(1), Btildes_rc(2)(0), Btildes_rc(2)(1));
-      // printf("  lam = %16.8e, %16.8e, %16.8e, %16.8e,\n"
-      //        "        %16.8e, %16.8e, %16.8e, %16.8e.\n",
-      //        lambda(0)(0), lambda(0)(1), lambda(0)(2), lambda(0)(3),
-      //        lambda(1)(0), lambda(1)(1), lambda(1)(2), lambda(1)(3));
-      // printf("  alp_avg = %16.8e, beta_avg = %16.8e, u_avg = %16.8e \n",
-      //        alp_avg, beta_avg, u_avg);
-      // printf("  vel_rc  = %16.8e, %16.8e \n", vel_rc(0), vel_rc(1));
-      // printf("  rho_rc  = %16.8e, %16.8e \n", rho_rc(0), rho_rc(1));
-      // printf("  cs2_rc  = %16.8e, %16.8e \n", cs2_rc(0), cs2_rc(1));
-      // printf("  wlor_rc = %16.8e, %16.8e \n", w_lorentz_rc(0), w_lorentz_rc(1));
-      // printf("  h_rc    = %16.8e, %16.8e \n", h_rc(0), h_rc(1));
-      // printf("  bsq_rc  = %16.8e, %16.8e \n", bsq_rc(0), bsq_rc(1));
-      // printf("  press_rc = %16.8e, %16.8e \n", press_rc(0), press_rc(1));
-      // printf("  eps_rc   = %16.8e, %16.8e \n", eps_rc(0), eps_rc(1));
+      printf("  fluxdenss = %16.8e,\n", fluxdenss(dir)(p.I));
+      printf("  fluxmoms  = %16.8e, %16.8e, %16.8e,\n", fluxmomxs(dir)(p.I),
+             fluxmomys(dir)(p.I), fluxmomzs(dir)(p.I));
+      printf("  fluxtaus  = %16.8e,\n", fluxtaus(dir)(p.I));
+      printf("  fluxBs    = %16.8e, %16.8e, %16.8e\n", fluxBxs(dir)(p.I),
+             fluxBys(dir)(p.I), fluxBzs(dir)(p.I));
+      printf("  flux_denss = %16.8e, %16.8e,\n", rcconsHO.flux_dens(0), rcconsHO.flux_dens(1));
+      printf("  flux_moms  = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e,\n",
+             rcconsHO.flux_moms(0)(0), rcconsHO.flux_moms(0)(1), rcconsHO.flux_moms(1)(0), rcconsHO.flux_moms(1)(1),
+             rcconsHO.flux_moms(2)(0), rcconsHO.flux_moms(2)(1));
+      printf("  flux_taus  = %16.8e, %16.8e,\n", rcconsHO.flux_tau(0), rcconsHO.flux_tau(1));
+      printf("  flux_DYes  = %16.8e, %16.8e,\n", rcconsHO.flux_DYe(0), rcconsHO.flux_DYe(1));
+      printf("  flux_Bts   = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e,\n",
+             rcconsHO.flux_Btildes(0)(0), rcconsHO.flux_Btildes(0)(1), rcconsHO.flux_Btildes(1)(0),
+             rcconsHO.flux_Btildes(1)(1), rcconsHO.flux_Btildes(2)(0), rcconsHO.flux_Btildes(2)(1));
+      printf("  dens_rc = %16.8e, %16.8e,\n", rcconsHO.dens_rc(0), rcconsHO.dens_rc(1));
+      printf("  moms_rc = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e,\n",
+             rcconsHO.moms_rc(0)(0), rcconsHO.moms_rc(0)(1), rcconsHO.moms_rc(1)(0), rcconsHO.moms_rc(1)(1),
+             rcconsHO.moms_rc(2)(0), rcconsHO.moms_rc(2)(1));
+      printf("  tau_rc  = %16.8e, %16.8e,\n", rcconsHO.tau_rc(0), rcconsHO.tau_rc(1));
+      printf("  DYe_rc  = %16.8e, %16.8e,\n", rcconsHO.DYe_rc(0), rcconsHO.DYe_rc(1));
+      printf("  Bs_rc  = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e,\n",
+             rcprimsHO.Bs_rc(0)(0), rcprimsHO.Bs_rc(0)(1), rcprimsHO.Bs_rc(1)(0), rcprimsHO.Bs_rc(1)(1), rcprimsHO.Bs_rc(2)(0),
+             rcprimsHO.Bs_rc(2)(1));
+      printf("  Bts_rc  = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e,\n",
+             rcconsHO.Btildes_rc(0)(0), rcconsHO.Btildes_rc(0)(1), rcconsHO.Btildes_rc(1)(0),
+             rcconsHO.Btildes_rc(1)(1), rcconsHO.Btildes_rc(2)(0), rcconsHO.Btildes_rc(2)(1));
+      printf("  lam = %16.8e, %16.8e, %16.8e, %16.8e,\n"
+             "        %16.8e, %16.8e, %16.8e, %16.8e.\n",
+             rcconsHO.lambda(0)(0), rcconsHO.lambda(0)(1), rcconsHO.lambda(0)(2), rcconsHO.lambda(0)(3),
+             rcconsHO.lambda(1)(0), rcconsHO.lambda(1)(1), rcconsHO.lambda(1)(2), rcconsHO.lambda(1)(3));
+      printf("  vel_rc  = %16.8e, %16.8e \n", rcprimsHO.vels_rc(dir)(0), rcprimsHO.vels_rc(dir)(1));
+      printf("  rho_rc  = %16.8e, %16.8e \n", rcprimsHO.rho_rc(0), rcprimsHO.rho_rc(1));
+      // printf("  cs2_rc  = %16.8e, %16.8e \n", rcprimsHO.cs2_rc(0), rcprimsHO.cs2_rc(1));
+      printf("  wlor_rc = %16.8e, %16.8e \n", rcprimsHO.w_lorentz_rc(0), rcprimsHO.w_lorentz_rc(1));
+      // printf("  bsq_rc  = %16.8e, %16.8e \n",rcprimsHO.bsq_rc(0), rcprimsHO.bsq_rc(1));
+      printf("  press_rc = %16.8e, %16.8e \n", rcprimsHO.press_rc(0), rcprimsHO.press_rc(1));
+      printf("  eps_rc   = %16.8e, %16.8e \n", rcprimsHO.eps_rc(0), rcprimsHO.eps_rc(1));
       printf("  rho = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e;\n",
              rho(p.I - p.DI[dir] * 3), rho(p.I - p.DI[dir] * 2),
              rho(p.I - p.DI[dir]), rho(p.I), rho(p.I + p.DI[dir]),
@@ -1326,7 +1331,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
              eps(p.I - p.DI[dir]), eps(p.I), eps(p.I + p.DI[dir]),
              eps(p.I + p.DI[dir] * 2));
       printf("  alp_avg, beta_avg = %16.8e, %16.8e, %16.8e, %16.8e,\n", alp_avg,
-             betas_avg(0), betas_avg(1), betas_avg(2));
+                   betas_avg(0), betas_avg(1), betas_avg(2));
       printf("  g_avg = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e.\n",
              g_avg(0, 0), g_avg(0, 1), g_avg(0, 2), g_avg(1, 1), g_avg(1, 2),
              g_avg(2, 2));
@@ -1442,15 +1447,15 @@ extern "C" void AsterX_Fluxes(CCTK_ARGUMENTS) {
   }
 
   switch (eos_3p_type) {
-  // case eos_3param::IdealGas: {
-  //   // Get local eos object
-  //   auto eos_3p_ig = global_eos_3p_ig;
+  case eos_3param::IdealGas: {
+    // Get local eos object
+    auto eos_3p_ig = global_eos_3p_ig;
 
-  //   CalcFlux<0>(cctkGH, eos_3p_ig);
-  //   CalcFlux<1>(cctkGH, eos_3p_ig);
-  //   CalcFlux<2>(cctkGH, eos_3p_ig);
-  //   break;
-  // }
+    CalcFlux<0>(cctkGH, eos_3p_ig);
+    CalcFlux<1>(cctkGH, eos_3p_ig);
+    CalcFlux<2>(cctkGH, eos_3p_ig);
+    break;
+  }
   // case eos_3param::Hybrid: {
   //   // Get local eos object
   //   auto eos_3p_hyb = global_eos_3p_hyb;

@@ -41,15 +41,6 @@ CCTK_STRING Y_e_filename "Initial data file for electron fraction"
   ""   :: "Forbidden value"
 } ""
 
-<<<<<<< HEAD
-CCTK_STRING temperature_filename "Initial data file for temperature"
-{
-  ".+" :: "Any nonempty string"
-  ""   :: "Forbidden value"
-} ""
-
-=======
->>>>>>> main
 SHARES: Con2PrimFactory
 USES CCTK_REAL rho_abs_min
 USES CCTK_REAL atmo_tol

@@ -111,9 +111,13 @@ extern "C" void AsterX_CalcEntropyResidual(CCTK_ARGUMENTS) {
             calc_contraction(alp_avg * vels - betas_avg, di_s);
 
         // Calculate d_t s
+        // printf("here, dt = %e\n", cctk_delta_time);
         const CCTK_REAL i2dt = 1 / (2 * cctk_delta_time);
         const CCTK_REAL dts =
             i2dt * (3 * phys_ent(p.I) - 4 * ent_m1(p.I) + ent_m2(p.I));
+
+        efl_dts(p.I) = dts;
+        efl_dis(p.I) = v_dis;
 
         // Calculate R
         r_ent(p.I) = std::abs(dts + v_dis);
