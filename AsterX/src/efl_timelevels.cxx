@@ -57,8 +57,6 @@ extern "C" void AsterX_InitEntropyTLs(CCTK_ARGUMENTS) {
 
         // Init Residual to 0
         r_ent(p.I) = 0.0;
-        efl_dts(p.I) = 0.0;
-        efl_dis(p.I) = 0.0;
       });
 }
 

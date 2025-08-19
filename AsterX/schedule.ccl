@@ -181,7 +181,6 @@ SCHEDULE AsterX_InitEntropyTLs IN AsterX_InitialGroup AFTER AsterX_CheckPrims
   LANG: C
   READS: HydroBaseX::entropy(everywhere)
   WRITES: r_ent(everywhere) phys_ent(everywhere) ent_m1(everywhere) ent_m2(everywhere)
-  WRITES: efl_dts(everywhere) efl_dis(everywhere) 
 } "Initialize previous entropy timelevels for EFL"
 
 SCHEDULE AsterX_CalcPhysicalEntropy IN AsterX_RHSGroup BEFORE AsterX_CalcEntropyResidual
@@ -199,8 +198,7 @@ SCHEDULE AsterX_CalcEntropyResidual IN AsterX_RHSGroup BEFORE AsterX_Fluxes
   READS: HydroBaseX::rho(everywhere) HydroBaseX::entropy(everywhere) HydroBaseX::vel(everywhere)
   READS: phys_ent(everywhere) ent_m1(everywhere) ent_m2(everywhere) #phys_ent_p(everywhere) phys_ent_p_p(everywhere)
   WRITES: r_ent(interior) 
-  WRITES: efl_dts(interior) efl_dis(interior)
-  SYNC: r_ent phys_ent efl_dts efl_dis ent_m1 ent_m2
+  SYNC: r_ent phys_ent ent_m1 ent_m2
 } "Calculate local entropy gain for EFL"
 
 SCHEDULE AsterX_CycleEntropyTLs IN CCTK_PRESTEP

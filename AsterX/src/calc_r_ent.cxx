@@ -60,63 +60,26 @@ void AsterX_CalcEntropyResidual_typeEoS(CCTK_ARGUMENTS, EOSType *eos_3p) {
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
 
-        // Set low density residual (see Eq. 23 of Guercilena+ 2017)
-        CCTK_REAL radial_distance = sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
-        CCTK_REAL rho_atm = (radial_distance > r_atmo)
-                  ? (rho_abs_min * pow((r_atmo / radial_distance), n_rho_atmo))
-                  : rho_abs_min;
-        rho_atm = std::max(eos_3p->rgrho.min, rho_atm);
-        CCTK_REAL efl_rho_cut = rho_atm * efl_atm_factor;
-        // Yes, the atmosphere can change across these points, but it should not matter for our purposes.
-        bool is_low = (rho(p.I) < efl_rho_cut) 
-          && (rho(p.I - p.DI[0] < efl_rho_cut)) && (rho(p.I + p.DI[0]) < efl_rho_cut)
-          && (rho(p.I - p.DI[1] < efl_rho_cut)) && (rho(p.I + p.DI[1]) < efl_rho_cut)
-          && (rho(p.I - p.DI[2] < efl_rho_cut)) && (rho(p.I + p.DI[2]) < efl_rho_cut);
+        // Calculate spatial contraction
+        const GF3D5index index5(layout5, p.I);
+        const vec<CCTK_REAL, 3> di_s = t5_ds(index5);
 
-        if (is_low) {
-          r_ent(p.I) = efl_rmin;
-          efl_dts(p.I) = 0.0;
-          efl_dis(p.I) = 0.0;
-        }
-        else {
-          // Calculate spatial contraction
-          const GF3D5index index5(layout5, p.I);
-          const vec<CCTK_REAL, 3> di_s = t5_ds(index5);
+        
+        const CCTK_REAL alp_avg = calc_avg_v2c(alp, p);
+        const vec<CCTK_REAL, 3> betas_avg(
+            [&](int i) ARITH_INLINE { return calc_avg_v2c(gf_beta(i), p); });
+        const vec<CCTK_REAL, 3> vels{velx(p.I), vely(p.I), velx(p.I)};
 
-          
-          const CCTK_REAL alp_avg = calc_avg_v2c(alp, p);
-          const vec<CCTK_REAL, 3> betas_avg(
-              [&](int i) ARITH_INLINE { return calc_avg_v2c(gf_beta(i), p); });
-          const vec<CCTK_REAL, 3> vels{velx(p.I), vely(p.I), velx(p.I)};
+        const CCTK_REAL v_dis =
+            calc_contraction(alp_avg * vels - betas_avg, di_s);
 
-          const CCTK_REAL v_dis =
-              calc_contraction(alp_avg * vels - betas_avg, di_s);
-
-          // Calculate d_t s
-          // printf("here, dt = %e\n", cctk_delta_time);
-          const CCTK_REAL i2dt = 1 / (2 * cctk_delta_time);
-          // const CCTK_REAL dts =
-          //     i2dt * (3 * phys_ent(p.I) - 4 * phys_ent_p(p.I) + phys_ent_p_p(p.I));
-          const CCTK_REAL dts =
-              i2dt * (3 * phys_ent(p.I) - 4 * ent_m1(p.I) + ent_m2(p.I));
-          
-          if (p.i == 67 && p.j == 78 && p.k == 63) {
-             printf("dt_s check! ijk = (%i, %i, %i), xyz = (%e, %e, %e), dt = %e, s = %e, s_p = %e, s_pp = %e\n",
-               p.i, p.j, p.k, p.x, p.y, p.z, cctk_delta_time, 
-               phys_ent(p.I), ent_m1(p.I), ent_m2(p.I));
-          }
-          // if (dts > 10) {
-          //   printf("Large dt_s! ijk = (%i, %i, %i), xyz = (%e, %e, %e), dt = %e, s = %e, s_p = %e, s_pp = %e\n",
-          //     p.i, p.j, p.k, p.x, p.y, p.z, cctk_delta_time, 
-          //     phys_ent(p.I), phys_ent_p(p.I), phys_ent_p_p(p.I));
-          // }
-
-          efl_dts(p.I) = dts;
-          efl_dis(p.I) = v_dis;
-
-          // Calculate R
-          r_ent(p.I) = std::abs(dts + v_dis);
-        }
+        // Calculate d_t s
+        const CCTK_REAL i2dt = 1 / (2 * cctk_delta_time);
+        const CCTK_REAL dts =
+            i2dt * (3 * phys_ent(p.I) - 4 * ent_m1(p.I) + ent_m2(p.I));
+        
+        // Calculate R
+        r_ent(p.I) = std::abs(dts + v_dis);
       });
 }
 

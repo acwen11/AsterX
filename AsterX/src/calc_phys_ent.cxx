@@ -20,14 +20,9 @@ void AsterX_CalcPhysicalEntropy_typeEoS(CCTK_ARGUMENTS, EOSType *eos_3p) {
   DECLARE_CCTK_PARAMETERS;
 
   // Calculate "physical" entropy from "evolved" entropy
-  // and cycle time levels?
   grid.loop_all_device<1, 1, 1>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        // phys_ent_p_p(p.I) = phys_ent_p(p.I);
-        // phys_ent_p(p.I) = phys_ent(p.I);
-        // ent_m2(p.I) = ent_m1(p.I);
-        // ent_m1(p.I) = phys_ent(p.I);
         phys_ent(p.I) = eos_3p->physical_from_evolved_ent(entropy(p.I));
       });
 }

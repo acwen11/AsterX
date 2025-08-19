@@ -43,16 +43,6 @@ CCTK_REAL efl_ce "Scaling of entropy residual for EFL" STEERABLE=always
   0:* :: "Should be positive"
 } 1.0
 
-CCTK_REAL efl_atm_factor "Sets density range where EFL is set constant" STEERABLE=always
-{
-  [0:* :: "0 => EFL always active"
-} 0.0
-
-CCTK_REAL efl_rmin "Constant entropy residual in low density region" STEERABLE=always
-{
-  0:* :: "Should be positive"
-} 1.0e-12
-
 CCTK_INT efl_deriv_order "Order of entropy spatial finite differencing for EFL" STEERABLE=always
 {
   2 :: "Second order finite difference"
