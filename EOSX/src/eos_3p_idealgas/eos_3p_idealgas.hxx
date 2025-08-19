@@ -112,6 +112,9 @@ public:
   kappa_from_valid_rho_eps_ye(const CCTK_REAL rho, CCTK_REAL &eps,
                               const CCTK_REAL ye) const;
 
+  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
+  physical_from_evolved_ent(const CCTK_REAL ent) const;
+
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline range
   range_eps_from_valid_rho_ye(
       const CCTK_REAL rho, ///< Rest mass density  \f$ \rho \f$
@@ -241,6 +244,11 @@ eos_3p_idealgas::kappa_from_valid_rho_eps_ye(const CCTK_REAL rho,
                                              CCTK_REAL &eps,
                                              const CCTK_REAL ye) const {
   return (gamma - 1.0) * eps * pow(rho, 1.0 - gamma);
+};
+
+CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
+eos_3p_idealgas::physical_from_evolved_ent(const CCTK_REAL kappa) const {
+  return log(kappa);
 };
 
 CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline eos_3p::range

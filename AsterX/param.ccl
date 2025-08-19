@@ -25,6 +25,11 @@ KEYWORD flux_type "Flux solver" STEERABLE=always
   "HLLE" :: ""
 } "LxF"
 
+
+BOOLEAN use_HOrecon_LOflux "Use HO recon values to compute LO flux" STEERABLE=always
+{
+} "no"
+
 BOOLEAN use_pplim "Use positivity-preserving limiter?" STEERABLE=always
 {
 } "no"
@@ -33,9 +38,20 @@ BOOLEAN use_efl "Use entropy flux limiter?" STEERABLE=always
 {
 } "no"
 
-BOOLEAN use_HOrecon_LOflux "Use HO recon values to compute LO flux" STEERABLE=always
+CCTK_REAL efl_ce "Scaling of entropy residual for EFL" STEERABLE=always
 {
-} "no"
+  0:* :: "Should be positive"
+} 1.0
+
+CCTK_REAL efl_atm_factor "Sets density range where EFL is set constant" STEERABLE=always
+{
+  [0:* :: "0 => EFL always active"
+} 0.0
+
+CCTK_REAL efl_rmin "Constant entropy residual in low density region" STEERABLE=always
+{
+  0:* :: "Should be positive"
+} 1.0e-12
 
 CCTK_INT efl_deriv_order "Order of entropy spatial finite differencing for EFL" STEERABLE=always
 {
@@ -51,11 +67,6 @@ CCTK_INT correction_order "Order of accuracy to check if higher order correction
   4 :: "Fourth order accurate"
   6 :: "Sixth order accurate"
 } 2
-
-CCTK_REAL efl_ce "Scaling of entropy residual for EFL" STEERABLE=always
-{
-  0:* :: "Should be positive"
-} 1.0
 
 KEYWORD recon_type "Vector field used in reconstruction" STEERABLE=always
 {

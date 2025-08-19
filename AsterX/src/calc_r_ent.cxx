@@ -15,51 +15,12 @@ namespace AsterX {
 using namespace Loop;
 using namespace Arith;
 using namespace AsterUtils;
+using namespace EOSX;
 
-enum class eos_t { IdealGas, Hybrid, Tabulated };
+enum class eos_3param { IdealGas, Hybrid, Tabulated };
 
-extern "C" void AsterX_CalcPhysEntropy(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_AsterX_CalcPhysEntropy;
-  DECLARE_CCTK_PARAMETERS;
-
-  // First calculate "physical" entropy from "evolved" entropy
-  // defining EOS objects
-  eos_t eostype;
-  if (CCTK_EQUALS(evolution_eos, "IdealGas")) {
-    eostype = eos_t::IdealGas;
-  } else if (CCTK_EQUALS(evolution_eos, "Hybrid")) {
-    eostype = eos_t::Hybrid;
-  } else if (CCTK_EQUALS(evolution_eos, "Tabulated3d")) {
-    eostype = eos_t::Tabulated;
-  } else {
-    CCTK_ERROR("Unknown value for parameter \"evolution_eos\"");
-  }
-
-  grid.loop_all_device<1, 1, 1>(
-      grid.nghostzones,
-      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        switch (eostype) {
-        case eos_t::IdealGas: {
-          phys_ent(p.I) = std::log(entropy(p.I));
-          break;
-        }
-        case eos_t::Hybrid: {
-          printf("Hybrid EOS is not yet supported");
-          assert(0);
-          break;
-        }
-        case eos_t::Tabulated: {
-          // Physical entropy is evolved entropy
-          phys_ent(p.I) = entropy(p.I);
-          break;
-        }
-        default:
-          assert(0);
-        }
-      });
-}
-
-extern "C" void AsterX_CalcEntropyResidual(CCTK_ARGUMENTS) {
+template <typename EOSType>
+void AsterX_CalcEntropyResidual_typeEoS(CCTK_ARGUMENTS, EOSType *eos_3p) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_CalcEntropyResidual;
   DECLARE_CCTK_PARAMETERS;
 
@@ -98,34 +59,106 @@ extern "C" void AsterX_CalcEntropyResidual(CCTK_ARGUMENTS) {
   grid.loop_int_device<1, 1, 1>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        // Calculate spatial contraction
-        const GF3D5index index5(layout5, p.I);
-        const vec<CCTK_REAL, 3> di_s = t5_ds(index5);
 
-        const CCTK_REAL alp_avg = calc_avg_v2c(alp, p);
-        const vec<CCTK_REAL, 3> betas_avg(
-            [&](int i) ARITH_INLINE { return calc_avg_v2c(gf_beta(i), p); });
-        const vec<CCTK_REAL, 3> vels{velx(p.I), vely(p.I), velx(p.I)};
+        // Set low density residual (see Eq. 23 of Guercilena+ 2017)
+        CCTK_REAL radial_distance = sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
+        CCTK_REAL rho_atm = (radial_distance > r_atmo)
+                  ? (rho_abs_min * pow((r_atmo / radial_distance), n_rho_atmo))
+                  : rho_abs_min;
+        rho_atm = std::max(eos_3p->rgrho.min, rho_atm);
+        CCTK_REAL efl_rho_cut = rho_atm * efl_atm_factor;
+        // Yes, the atmosphere can change across these points, but it should not matter for our purposes.
+        bool is_low = (rho(p.I) < efl_rho_cut) 
+          && (rho(p.I - p.DI[0] < efl_rho_cut)) && (rho(p.I + p.DI[0]) < efl_rho_cut)
+          && (rho(p.I - p.DI[1] < efl_rho_cut)) && (rho(p.I + p.DI[1]) < efl_rho_cut)
+          && (rho(p.I - p.DI[2] < efl_rho_cut)) && (rho(p.I + p.DI[2]) < efl_rho_cut);
 
-        const CCTK_REAL v_dis =
-            calc_contraction(alp_avg * vels - betas_avg, di_s);
+        if (is_low) {
+          r_ent(p.I) = efl_rmin;
+          efl_dts(p.I) = 0.0;
+          efl_dis(p.I) = 0.0;
+        }
+        else {
+          // Calculate spatial contraction
+          const GF3D5index index5(layout5, p.I);
+          const vec<CCTK_REAL, 3> di_s = t5_ds(index5);
 
-        // Calculate d_t s
-        // printf("here, dt = %e\n", cctk_delta_time);
-        const CCTK_REAL i2dt = 1 / (2 * cctk_delta_time);
-        const CCTK_REAL dts =
-            i2dt * (3 * phys_ent(p.I) - 4 * ent_m1(p.I) + ent_m2(p.I));
+          
+          const CCTK_REAL alp_avg = calc_avg_v2c(alp, p);
+          const vec<CCTK_REAL, 3> betas_avg(
+              [&](int i) ARITH_INLINE { return calc_avg_v2c(gf_beta(i), p); });
+          const vec<CCTK_REAL, 3> vels{velx(p.I), vely(p.I), velx(p.I)};
 
-        efl_dts(p.I) = dts;
-        efl_dis(p.I) = v_dis;
+          const CCTK_REAL v_dis =
+              calc_contraction(alp_avg * vels - betas_avg, di_s);
 
-        // Calculate R
-        r_ent(p.I) = std::abs(dts + v_dis);
+          // Calculate d_t s
+          // printf("here, dt = %e\n", cctk_delta_time);
+          const CCTK_REAL i2dt = 1 / (2 * cctk_delta_time);
+          // const CCTK_REAL dts =
+          //     i2dt * (3 * phys_ent(p.I) - 4 * phys_ent_p(p.I) + phys_ent_p_p(p.I));
+          const CCTK_REAL dts =
+              i2dt * (3 * phys_ent(p.I) - 4 * ent_m1(p.I) + ent_m2(p.I));
+          
+          if (p.i == 67 && p.j == 78 && p.k == 63) {
+             printf("dt_s check! ijk = (%i, %i, %i), xyz = (%e, %e, %e), dt = %e, s = %e, s_p = %e, s_pp = %e\n",
+               p.i, p.j, p.k, p.x, p.y, p.z, cctk_delta_time, 
+               phys_ent(p.I), ent_m1(p.I), ent_m2(p.I));
+          }
+          // if (dts > 10) {
+          //   printf("Large dt_s! ijk = (%i, %i, %i), xyz = (%e, %e, %e), dt = %e, s = %e, s_p = %e, s_pp = %e\n",
+          //     p.i, p.j, p.k, p.x, p.y, p.z, cctk_delta_time, 
+          //     phys_ent(p.I), phys_ent_p(p.I), phys_ent_p_p(p.I));
+          // }
 
-        // Cycle timelevels
-        ent_m2(p.I) = ent_m1(p.I);
-        ent_m1(p.I) = phys_ent(p.I);
+          efl_dts(p.I) = dts;
+          efl_dis(p.I) = v_dis;
+
+          // Calculate R
+          r_ent(p.I) = std::abs(dts + v_dis);
+        }
       });
 }
 
+extern "C" void AsterX_CalcEntropyResidual(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTS_AsterX_CalcEntropyResidual;
+  DECLARE_CCTK_PARAMETERS;
+
+  // defining EOS objects
+  eos_3param eos_3p_type;
+  
+  if (CCTK_EQUALS(evolution_eos, "IdealGas")) {
+    eos_3p_type = eos_3param::IdealGas;
+  } else if (CCTK_EQUALS(evolution_eos, "Hybrid")) {
+    eos_3p_type = eos_3param::Hybrid;
+  } else if (CCTK_EQUALS(evolution_eos, "Tabulated3d")) {
+    eos_3p_type = eos_3param::Tabulated;
+  } else {
+    CCTK_ERROR("Unknown value for parameter \"evolution_eos\"");
+  }
+
+  switch (eos_3p_type) {
+    case eos_3param::IdealGas: {
+      auto eos_3p_ig = global_eos_3p_ig;
+
+      AsterX_CalcEntropyResidual_typeEoS(CCTK_PASS_CTOC, eos_3p_ig);
+      break;
+    }
+    case eos_3param::Hybrid: {
+      auto eos_3p_hyb = global_eos_3p_hyb;
+
+      AsterX_CalcEntropyResidual_typeEoS(CCTK_PASS_CTOC, eos_3p_hyb);
+      break;
+    }
+    case eos_3param::Tabulated: {
+      auto eos_3p_tab3d = global_eos_3p_tab3d;
+
+      AsterX_CalcEntropyResidual_typeEoS(CCTK_PASS_CTOC, eos_3p_tab3d);
+      break;
+    }
+    default:
+      assert(0);
+  }
+}
+  
 } // namespace AsterX

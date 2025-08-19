@@ -217,6 +217,11 @@ public:
     return gm1_th * eps_th * pow(rho, gm1_th);
   };
 
+  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
+  physical_from_evolved_ent(const CCTK_REAL kappa) const {
+    return log(kappa);
+  };
+
   // edited
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline eos_3p::range
   range_eps_from_valid_rho_ye(const CCTK_REAL rho, const CCTK_REAL ye) const {

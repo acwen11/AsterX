@@ -106,7 +106,7 @@ CCTK_REAL thetas TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
 } "flux limiter theta"
 
 CCTK_REAL r_ent TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Entropy residual for EFL"
-CCTK_REAL phys_ent TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Physical entropy (as opposed to evolved)"
+CCTK_REAL phys_ent TYPE=gf CENTERING={ccc} "Physical entropy (as opposed to evolved)"
 CCTK_REAL ent_m1 TYPE=gf CENTERING={ccc} "Prev entropy timelevel"
 CCTK_REAL ent_m2 TYPE=gf CENTERING={ccc} "Prev-prev entropy timelevel"
 

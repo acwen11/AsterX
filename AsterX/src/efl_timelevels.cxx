@@ -62,4 +62,16 @@ extern "C" void AsterX_InitEntropyTLs(CCTK_ARGUMENTS) {
       });
 }
 
+extern "C" void AsterX_CycleEntropyTLs(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_CycleEntropyTLs;
+  DECLARE_CCTK_PARAMETERS;
+
+  grid.loop_all_device<1, 1, 1>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        ent_m2(p.I) = ent_m1(p.I);
+        ent_m1(p.I) = phys_ent(p.I);
+      });
+}
+
 } // namespace AsterX

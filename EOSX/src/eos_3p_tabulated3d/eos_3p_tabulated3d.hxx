@@ -379,6 +379,11 @@ public:
         rho, temp_from_valid_rho_eps_ye(rho, eps, ye), ye);
   }
 
+  CCTK_HOST CCTK_DEVICE inline CCTK_REAL
+  physical_from_evolved_ent(const CCTK_REAL kappa) const {
+    return kappa;
+  }
+
   CCTK_HOST CCTK_DEVICE inline range
   range_eps_from_valid_rho_ye(const CCTK_REAL rho, const CCTK_REAL ye) const {
     CCTK_REAL lr = std::log(std::fmin(std::fmax(rho, rgrho.min), rgrho.max));

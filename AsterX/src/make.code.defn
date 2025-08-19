@@ -12,8 +12,9 @@ SRCS = \
   sync.cxx \
   source.cxx \
   tmunu.cxx \
+  efl_timelevels.cxx \
+  calc_phys_ent.cxx \
   calc_r_ent.cxx \
-  init_entropy_tls.cxx \
   test.cxx
   # flux_corrections.cxx \
 
