@@ -224,7 +224,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
       face_centred
           [2]>(grid.nghostzones, [=] CCTK_DEVICE(
                                      const PointDesc
-                                         &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+                                         &p) {
     /* Reconstruct primitives from the cells on left (indice 0) and right
      * (indice 1) side of this face rc = reconstructed variables or
      * computed from reconstructed variables */
