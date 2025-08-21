@@ -11,3 +11,10 @@ BOOLEAN compute_MHD_spherical "Compute MHD quantities in spherical coordinates?"
 BOOLEAN compute_VI "Compute volume integrals?" STEERABLE=always
 {
 } "yes"
+
+BOOLEAN verbose "Do we want verbose output?" STEERABLE=always
+{
+} "no"
+
+SHARES: AsterX
+USES KEYWORD recon_type

@@ -1,6 +1,6 @@
 # Configuration definitions for thorn AsterAnalysis
 
-REQUIRES Loop EOSX AsterUtils 
+REQUIRES Loop EOSX AsterX AsterUtils 
 
 PROVIDES AsterXAnalysis
 {

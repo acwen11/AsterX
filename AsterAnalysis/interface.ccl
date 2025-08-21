@@ -8,19 +8,30 @@ USES INCLUDE HEADER: aster_fd.hxx aster_interp.hxx aster_utils.hxx
 
 CCTK_REAL w_lorentz TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Lorentz factor"
 
-CCTK_REAL AsterX_mhd_analysis TYPE=gf CENTERING={ccc} tags='checkpoint="no"'
+CCTK_REAL mhd_analysis TYPE=gf CENTERING={ccc} tags='checkpoint="no"'
 {
-A_norm, divB, B_norm, b2small, mhd_press_ratio, mhd_energy_ratio, poynting_flux_x, poynting_flux_y, poynting_flux_z, poynting_flux_norm, poynting_vector_x, poynting_vector_y, poynting_vector_z, poynting_scalar, lambda_MRI_x, lambda_MRI_y, lambda_MRI_z
+divA, A_norm, divB, B_norm, b2small, mhd_press_ratio, mhd_energy_ratio, poynting_flux_x, poynting_flux_y, poynting_flux_z, poynting_flux_norm, poynting_vector_x, poynting_vector_y, poynting_vector_z, poynting_scalar, lambda_MRI_x, lambda_MRI_y, lambda_MRI_z
 } "Variables used for analysis purposes when magnetic fields are active"
 
-CCTK_REAL AsterX_mhd_spherical TYPE=gf CENTERING={ccc} tags='checkpoint="no"'
+CCTK_REAL mhd_spherical TYPE=gf CENTERING={ccc} tags='checkpoint="no"'
 {
-Br, Btheta, Bphi, B_Poloidal_norm, B_Toroidal_norm
+Brho, Btheta, Bphi, B_Poloidal_norm, B_Toroidal_norm
 } "For decomposition of B field into toroidal (phi) and poloidal parts"
 
+CCTK_REAL mhd_temps TYPE=gf CENTERING={ccc} tags='checkpoint="no"'
+{
+  EMenergy_temps,
+  kinetic_energy_temps,
+  mean_B_numerator_temps,
+  mean_B_denominator_temps,
+  mean_B_Tor_numerator_temps,
+  mean_B_Pol_numerator_temps,
+  mean_B_Tor_denominator_temps
+} "Temporary grid functions for volume integrals"
+
 #Scalars
-CCTK_REAL AsterX_total_magnetic_energy type=SCALAR tags='checkpoint="no"' "Total EM energy"
-CCTK_REAL AsterX_total_kinetic_energy type=SCALAR tags='checkpoint="no"' "Total kinetic energy"
-CCTK_REAL AsterX_mean_B type=SCALAR tags='checkpoint="no"' "Mean magnetic field"
-CCTK_REAL AsterX_mean_B_Tor type=SCALAR tags='checkpoint="no"' "Mean magnetic toroidal field"
-CCTK_REAL AsterX_mean_B_Pol type=SCALAR tags='checkpoint="no"' "Mean magnetic poloidal field"
+CCTK_REAL total_magnetic_energy type=SCALAR tags='checkpoint="no"' "Total EM energy"
+CCTK_REAL total_kinetic_energy type=SCALAR tags='checkpoint="no"' "Total kinetic energy"
+CCTK_REAL mean_B type=SCALAR tags='checkpoint="no"' "Mean magnetic field"
+CCTK_REAL mean_B_Tor type=SCALAR tags='checkpoint="no"' "Mean magnetic toroidal field"
+CCTK_REAL mean_B_Pol type=SCALAR tags='checkpoint="no"' "Mean magnetic poloidal field"
