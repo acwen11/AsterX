@@ -366,7 +366,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
     case rec_var_t::z_vec: {
 
       vec<vec<CCTK_REAL, 2>, 3> zvec_rc([&](int i) ARITH_INLINE {
-        return vec<CCTK_REAL, 2>{reconstruct_pt(gf_zvec(i), p, false, false)};
+        return reconstruct_pt(gf_zvec(i), p, false, false);
       });
 
       // Lower-order
@@ -396,7 +396,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
     case rec_var_t::s_vec: {
 
       vec<vec<CCTK_REAL, 2>, 3> svec_rc([&](int i) ARITH_INLINE {
-        return vec<CCTK_REAL, 2>{reconstruct_pt(gf_svec(i), p, false, false)};
+        return reconstruct_pt(gf_svec(i), p, false, false);
       });
 
       // Lower-order
