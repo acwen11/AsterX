@@ -385,12 +385,6 @@ c2p_1DEntropy::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
     // set status to rho is out of range
     rep.set_range_rho(cv.dens, pv.rho);
     cv = cv_const;
-    //cv.dens *= sqrt_detg;
-    //cv.tau *= sqrt_detg;
-    //cv.mom *= sqrt_detg;
-    //cv.dBvec *= sqrt_detg;
-    //cv.DYe *= sqrt_detg;
-    //cv.DEnt *= sqrt_detg;
     return;
   }
 
@@ -425,12 +419,6 @@ c2p_1DEntropy::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
       rep.set_root_conv();
       cv = cv_const;
       // status = ROOTSTAT::NOT_CONVERGED;
-      //cv.dens *= sqrt_detg;
-      //cv.tau *= sqrt_detg;
-      //cv.mom *= sqrt_detg;
-      //cv.dBvec *= sqrt_detg;
-      //cv.DYe *= sqrt_detg;
-      //cv.DEnt *= sqrt_detg;
       return;
     }
   }
@@ -447,6 +435,7 @@ c2p_1DEntropy::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
   // Recompute cons if prims have been adjusted
   if (rep.adjust_cons) {
     cv.from_prim(pv, glo);
+    cv.dBvec = cv_const.dBvec;
   } else {
     cv = cv_const;
 
@@ -460,18 +449,6 @@ c2p_1DEntropy::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
     cv.tau = sqrt_detg * (pv.w_lor * pv.w_lor * (pv.rho * (1.0 + pv.eps) + pv.press + bs2) -
               (pv.press + 0.5 * bs2) - bst * bst) -
              cv.dens;
-  
-    // DEBUG
-    if (cv.tau < 0.0) {assert(0);}
-    // DEBUG
-
-    /* Densitize the conserved vars again*/
-    //cv.dens *= sqrt_detg;
-    //cv.tau *= sqrt_detg;
-    //cv.mom *= sqrt_detg;
-    //cv.dBvec *= sqrt_detg;
-    //cv.DYe *= sqrt_detg;
-    //cv.DEnt *= sqrt_detg;
   }
 }
 

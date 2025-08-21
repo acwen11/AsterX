@@ -453,12 +453,6 @@ c2p_1DPalenzuela::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
     // set status to rho is out of range
     rep.set_range_rho(cv.dens, pv.rho);
     cv = cv_const;
-    //cv.dens *= sqrt_detg;
-    //cv.tau *= sqrt_detg;
-    //cv.mom *= sqrt_detg;
-    //cv.dBvec *= sqrt_detg;
-    //cv.DYe *= sqrt_detg;
-    //cv.DEnt *= sqrt_detg;
     return;
   }
 
@@ -467,12 +461,6 @@ c2p_1DPalenzuela::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
     // set status to eps is out of range
     rep.set_range_eps(pv.eps);
     cv = cv_const;
-    //cv.dens *= sqrt_detg;
-    //cv.tau *= sqrt_detg;
-    //cv.mom *= sqrt_detg;
-    //cv.dBvec *= sqrt_detg;
-    //cv.DYe *= sqrt_detg;
-    //cv.DEnt *= sqrt_detg;
     return;
   }
 
@@ -525,12 +513,6 @@ c2p_1DPalenzuela::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
       rep.set_root_conv();
       cv = cv_const;
       // status = ROOTSTAT::NOT_CONVERGED;
-      //cv.dens *= sqrt_detg;
-      //cv.tau *= sqrt_detg;
-      //cv.mom *= sqrt_detg;
-      //cv.dBvec *= sqrt_detg;
-      //cv.DYe *= sqrt_detg;
-      //cv.DEnt *= sqrt_detg;
       return;
     }
   }
@@ -547,17 +529,11 @@ c2p_1DPalenzuela::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
   // Recompute cons if prims have been adjusted
   if (rep.adjust_cons) {
     cv.from_prim(pv, glo);
+    cv.dBvec = cv_const.dBvec;
   } else {
     cv = cv_const;
     // Conserved entropy must be consistent with new prims
     cv.DEnt = cv.dens * pv.entropy;
-    /* Densitize the conserved vars again*/
-    //cv.dens *= sqrt_detg;
-    //cv.tau *= sqrt_detg;
-    //cv.mom *= sqrt_detg;
-    //cv.dBvec *= sqrt_detg;
-    //cv.DYe *= sqrt_detg;
-    //cv.DEnt *= sqrt_detg;
   }
 }
 

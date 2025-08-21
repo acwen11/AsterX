@@ -249,10 +249,6 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     // Limit conservatives before calling C2P
     c2p_Noble.cons_floors_and_ceilings(eos_3p, cv, glo, tauFluid_atm);
 
-    // DEBUG
-    const cons_vars cv_check = cv; 
-    // DEBUG
-
     // ----- ----- C2P ----- -----
 
     if (call_c2p) {
@@ -288,49 +284,6 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
           rep_first.debug_message();
           printf("Calling the back up C2P.. \n");
         }
-
-        // DEBUG
-
-	if (cv.dens != dens(p.I) ||
-            cv.mom(0) != cv_check.mom(0) ||
-	    cv.mom(1) != cv_check.mom(1) ||
-	    cv.mom(2) != cv_check.mom(2) ||
-	    cv.tau != cv_check.tau ||
-	    cv.DYe != DYe(p.I) ||
-	    cv.DEnt != DEnt(p.I) ||
-	    cv.dBvec(0) != dBx(p.I) ||
-	    cv.dBvec(1) != dBy(p.I) ||
-	    cv.dBvec(2) != dBz(p.I) ) {
-
-            printf("FIRST: cctk_iteration = %i, ijk = %i, %i, %i, "
-             "x, y, z = %24.16e, %24.16e, %24.16e.\n"
-	     "cv.dens = %24.16e, and dens(p.I) = %24.16e;\n"
-	     "cv.mom(0) = %24.16e, and momx(p.I) = %24.16e, and cv_check.mom(0) = %24.16e;\n"
-	     "cv.mom(1) = %24.16e, and momy(p.I) = %24.16e, and cv_check.mom(1) = %24.16e;\n"
-	     "cv.mom(2) = %24.16e, and momz(p.I) = %24.16e, and cv_check.mom(2) = %24.16e;\n"
-	     "cv.tau = %24.16e, and tau(p.I) = %24.16e, and cv_check.tau = %24.16e;\n"
-	     "cv.DYe = %24.16e, and DYe(p.I) = %24.16e;\n"
-	     "cv.DEnt = %24.16e, and DEnt(p.I) = %24.16e;\n"
-	     "cv.dBvec(0) = %24.16e, and dBx(p.I) = %24.16e;\n"
-	     "cv.dBvec(1) = %24.16e, and dBy(p.I) = %24.16e;\n"
-	     "cv.dBvec(2) = %24.16e, and dBz(p.I) = %24.16e;\n",
-             cctk_iteration, p.i, p.j, p.k, p.x, p.y, p.z,
-	     cv.dens, dens(p.I),
-             cv.mom(0), momx(p.I), cv_check.mom(0),
-	     cv.mom(1), momy(p.I), cv_check.mom(1),
-	     cv.mom(2), momz(p.I), cv_check.mom(2),
-	     cv.tau, tau(p.I), cv_check.tau,
-	     cv.DYe, DYe(p.I),
-	     cv.DEnt, DEnt(p.I),
-	     cv.dBvec(0), dBx(p.I),
-	     cv.dBvec(1), dBy(p.I),
-	     cv.dBvec(2), dBz(p.I) );
-	    
-	    assert(0);
-	}
-
-	// DEBUG
-
 
         // Calling the second C2P
         switch (c2p_sec) {
@@ -397,51 +350,6 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
                      Avec_x(p.I), Avec_y(p.I), Avec_z(p.I));
             }
 
-        // DEBUG
-
-	if (cv.dens != dens(p.I) ||
-            cv.mom(0) != cv_check.mom(0) ||
-	    cv.mom(1) != cv_check.mom(1) ||
-	    cv.mom(2) != cv_check.mom(2) ||
-	    cv.tau != cv_check.tau ||
-	    cv.DYe != DYe(p.I) ||
-	    cv.DEnt != DEnt(p.I) ||
-	    cv.dBvec(0) != dBx(p.I) ||
-	    cv.dBvec(1) != dBy(p.I) ||
-	    cv.dBvec(2) != dBz(p.I) ) {
-
-            printf("ENTROPY: cctk_iteration = %i, ijk = %i, %i, %i, "
-             "x, y, z = %24.16e, %24.16e, %24.16e.\n"
-	     "cv.dens = %24.16e, and dens(p.I) = %24.16e;\n"
-	     "cv.mom(0) = %24.16e, and momx(p.I) = %24.16e, and cv_check.mom(0) = %24.16e;\n"
-	     "cv.mom(1) = %24.16e, and momy(p.I) = %24.16e, and cv_check.mom(1) = %24.16e;\n"
-	     "cv.mom(2) = %24.16e, and momz(p.I) = %24.16e, and cv_check.mom(2) = %24.16e;\n"
-	     "cv.tau = %24.16e, and tau(p.I) = %24.16e, and cv_check.tau = %24.16e;\n"
-	     "cv.DYe = %24.16e, and DYe(p.I) = %24.16e;\n"
-	     "cv.DEnt = %24.16e, and DEnt(p.I) = %24.16e;\n"
-	     "cv.dBvec(0) = %24.16e, and dBx(p.I) = %24.16e;\n"
-	     "cv.dBvec(1) = %24.16e, and dBy(p.I) = %24.16e;\n"
-	     "cv.dBvec(2) = %24.16e, and dBz(p.I) = %24.16e;\n",
-             cctk_iteration, p.i, p.j, p.k, p.x, p.y, p.z,
-	     cv.dens, dens(p.I),
-             cv.mom(0), momx(p.I), cv_check.mom(0),
-	     cv.mom(1), momy(p.I), cv_check.mom(1),
-	     cv.mom(2), momz(p.I), cv_check.mom(2),
-	     cv.tau, tau(p.I), cv_check.tau,
-	     cv.DYe, DYe(p.I),
-	     cv.DEnt, DEnt(p.I),
-	     cv.dBvec(0), dBx(p.I),
-	     cv.dBvec(1), dBy(p.I),
-	     cv.dBvec(2), dBz(p.I) );
-
-	    assert(0);
-	}
-
-	// DEBUG
-
-
-
-
             if (mask_local != 1.0) {
               // Failure inside mask
               c2p_Noble.bh_interior<EOSType, false>(eos_3p, pv_seeds, cv, glo);
@@ -488,50 +396,6 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
                 // velz(p.I), Bvecx(p.I), Bvecy(p.I), Bvecz(p.I),
                 Avec_x(p.I), Avec_y(p.I), Avec_z(p.I));
           }
-
-        // DEBUG
-
-	if (cv.dens != dens(p.I) ||
-            cv.mom(0) != cv_check.mom(0) ||
-	    cv.mom(1) != cv_check.mom(1) ||
-	    cv.mom(2) != cv_check.mom(2) ||
-	    cv.tau != cv_check.tau ||
-	    cv.DYe != DYe(p.I) ||
-	    cv.DEnt != DEnt(p.I) ||
-	    cv.dBvec(0) != dBx(p.I) ||
-	    cv.dBvec(1) != dBy(p.I) ||
-	    cv.dBvec(2) != dBz(p.I) ) {
-
-            printf("SECOND: cctk_iteration = %i, ijk = %i, %i, %i, "
-             "x, y, z = %24.16e, %24.16e, %24.16e.\n"
-	     "cv.dens = %24.16e, and dens(p.I) = %24.16e;\n"
-	     "cv.mom(0) = %24.16e, and momx(p.I) = %24.16e, and cv_check.mom(0) = %24.16e;\n"
-	     "cv.mom(1) = %24.16e, and momy(p.I) = %24.16e, and cv_check.mom(1) = %24.16e;\n"
-	     "cv.mom(2) = %24.16e, and momz(p.I) = %24.16e, and cv_check.mom(2) = %24.16e;\n"
-	     "cv.tau = %24.16e, and tau(p.I) = %24.16e, and cv_check.tau = %24.16e;\n"
-	     "cv.DYe = %24.16e, and DYe(p.I) = %24.16e;\n"
-	     "cv.DEnt = %24.16e, and DEnt(p.I) = %24.16e;\n"
-	     "cv.dBvec(0) = %24.16e, and dBx(p.I) = %24.16e;\n"
-	     "cv.dBvec(1) = %24.16e, and dBy(p.I) = %24.16e;\n"
-	     "cv.dBvec(2) = %24.16e, and dBz(p.I) = %24.16e;\n",
-             cctk_iteration, p.i, p.j, p.k, p.x, p.y, p.z,
-	     cv.dens, dens(p.I),
-             cv.mom(0), momx(p.I), cv_check.mom(0),
-	     cv.mom(1), momy(p.I), cv_check.mom(1),
-	     cv.mom(2), momz(p.I), cv_check.mom(2),
-	     cv.tau, tau(p.I), cv_check.tau,
-	     cv.DYe, DYe(p.I),
-	     cv.DEnt, DEnt(p.I),
-	     cv.dBvec(0), dBx(p.I),
-	     cv.dBvec(1), dBy(p.I),
-	     cv.dBvec(2), dBz(p.I) );
-
-	    assert(0);
-	}
-
-	// DEBUG
-
-
 
           if (mask_local != 1.0) {
             // Failure inside mask
@@ -582,17 +446,6 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     // Write back cv
     cv.scatter(dens(p.I), momx(p.I), momy(p.I), momz(p.I), tau(p.I), DYe(p.I),
                DEnt(p.I), dBx(p.I), dBy(p.I), dBz(p.I));
-
-    // DEBUG
-    if (cv.tau < 0.0) {
-	    printf("Tau below zero!");
-	    assert(0);
-    }
-    if (cv.DEnt < 0.0) {
-	    printf("Conserved entropy below zero!");
-	    assert(0);
-    }
-    // DEBUG
 
     // Update saved prims
     saved_rho(p.I) = rho(p.I);

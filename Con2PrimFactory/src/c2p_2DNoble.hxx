@@ -521,12 +521,6 @@ c2p_2DNoble::solve(const EOSType *eos_3p, prim_vars &pv, prim_vars &pv_seeds,
     // set status to root not converged
     rep.set_root_conv();
     // status = ROOTSTAT::NOT_CONVERGED;
-    //cv.dens *= sqrt_detg;
-    //cv.tau *= sqrt_detg;
-    //cv.mom *= sqrt_detg;
-    //cv.dBvec *= sqrt_detg;
-    //cv.DYe *= sqrt_detg;
-    //cv.DEnt *= sqrt_detg;
     cv = cv_const;
     return;
   }
@@ -550,12 +544,6 @@ c2p_2DNoble::solve(const EOSType *eos_3p, prim_vars &pv, prim_vars &pv_seeds,
     // set status to rho is out of range
     rep.set_range_rho(cv.dens, pv.rho);
     cv = cv_const;
-    //cv.dens *= sqrt_detg;
-    //cv.tau *= sqrt_detg;
-    //cv.mom *= sqrt_detg;
-    //cv.dBvec *= sqrt_detg;
-    //cv.DYe *= sqrt_detg;
-    //cv.DEnt *= sqrt_detg;
     return;
   }
 
@@ -564,12 +552,6 @@ c2p_2DNoble::solve(const EOSType *eos_3p, prim_vars &pv, prim_vars &pv_seeds,
     // set status to eps is out of range
     rep.set_range_eps(pv.eps);
     cv = cv_const;
-    //cv.dens *= sqrt_detg;
-    //cv.tau *= sqrt_detg;
-    //cv.mom *= sqrt_detg;
-    //cv.dBvec *= sqrt_detg;
-    //cv.DYe *= sqrt_detg;
-    //cv.DEnt *= sqrt_detg;
     return;
   }
 
@@ -585,17 +567,11 @@ c2p_2DNoble::solve(const EOSType *eos_3p, prim_vars &pv, prim_vars &pv_seeds,
   // Recompute cons if prims have been adjusted
   if (rep.adjust_cons) {
     cv.from_prim(pv, glo);
+    cv.dBvec = cv_const.dBvec;
   } else {
     cv = cv_const;
     // Conserved entropy must be consistent with new prims
     cv.DEnt = cv.dens * pv.entropy;
-    /* If not adjusted, densitize back the original conserved vars */
-    //cv.dens *= sqrt_detg;
-    //cv.tau *= sqrt_detg;
-    //cv.mom *= sqrt_detg;
-    //cv.dBvec *= sqrt_detg;
-    //cv.DYe *= sqrt_detg;
-    //cv.DEnt *= sqrt_detg;
   }
 }
 
