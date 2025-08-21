@@ -164,20 +164,24 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
   // mp5 parameters
   reconstruct_params.mp5_alpha = mp5_alpha;
 
+  // Prebind the velocity slice for this direction once
+  const auto gf_vel_dir = gf_vels(dir);
+
   const auto reconstruct_pt =
       [=] CCTK_DEVICE(const GF3D2<const CCTK_REAL> &var, const PointDesc &p,
-                      const bool &gf_is_rho,
-                      const bool &gf_is_press) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+                      const bool gf_is_rho,
+                      const bool gf_is_press) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         return reconstruct<vec<CCTK_REAL, 2>>(var, p, reconstruction, dir, gf_is_rho, gf_is_press,
-                           press, gf_vels(dir), reconstruct_params);
+                           press, gf_vel_dir, reconstruct_params);
       };
   const auto reconstruct_loworder =
       [=] CCTK_DEVICE(const GF3D2<const CCTK_REAL> &var, const PointDesc &p,
-                      const bool &gf_is_rho,
-                      const bool &gf_is_press) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+                      const bool gf_is_rho,
+                      const bool gf_is_press) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         return reconstruct<vec<CCTK_REAL, 2>>(var, p, reconstruction_LO, dir, gf_is_rho, gf_is_press,
-                           press, gf_vels(dir), reconstruct_params);
+                           press, gf_vel_dir, reconstruct_params);
       };
+
   const auto calcflux =
       [=] CCTK_DEVICE(vec<vec<CCTK_REAL, 4>, 2> lam, vec<CCTK_REAL, 2> var,
                       vec<CCTK_REAL, 2> flux) CCTK_ATTRIBUTE_ALWAYS_INLINE {
@@ -240,13 +244,13 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
     bool useLO = false;
 
     // Reconstruct density
-    vec<CCTK_REAL, 2> rho_rc{reconstruct_pt(rho, p, true, true)};
+    auto rho_rc = reconstruct_pt(rho, p, true, true);
 
     // Reconstruct entropy
-    vec<CCTK_REAL, 2> entropy_rc{reconstruct_pt(entropy, p, false, false)};
+    auto entropy_rc = reconstruct_pt(entropy, p, false, false);
 
     // Reconstruct Ye
-    vec<CCTK_REAL, 2> Ye_rc{reconstruct_pt(Ye, p, false, false)};
+    auto Ye_rc = reconstruct_pt(Ye, p, false, false);
 
     // Initialize variables for eps, pressure, and temperature
     vec<CCTK_REAL, 2> eps_rc;
