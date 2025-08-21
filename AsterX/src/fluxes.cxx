@@ -169,15 +169,15 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
 
   const auto reconstruct_pt =
       [=] CCTK_DEVICE(const GF3D2<const CCTK_REAL> &var, const PointDesc &p,
-                      const bool gf_is_rho,
-                      const bool gf_is_press) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+                      bool gf_is_rho,
+                      bool gf_is_press) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         return reconstruct<vec<CCTK_REAL, 2>>(var, p, reconstruction, dir, gf_is_rho, gf_is_press,
                            press, gf_vel_dir, reconstruct_params);
       };
   const auto reconstruct_loworder =
       [=] CCTK_DEVICE(const GF3D2<const CCTK_REAL> &var, const PointDesc &p,
-                      const bool gf_is_rho,
-                      const bool gf_is_press) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+                      bool gf_is_rho,
+                      bool gf_is_press) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         return reconstruct<vec<CCTK_REAL, 2>>(var, p, reconstruction_LO, dir, gf_is_rho, gf_is_press,
                            press, gf_vel_dir, reconstruct_params);
       };
