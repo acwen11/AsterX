@@ -240,12 +240,10 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
         vtildes_two(dir)(p.I) = 0;
       });
 
-  grid.loop_mix_device<
-      face_centred[0], face_centred[1],
-      face_centred
-          [2]>(grid.nghostzones, [=] CCTK_DEVICE(
-                                     const PointDesc
-                                         &p) {
+  grid.loop_mix_device<face_centred[0], face_centred[1],
+                       face_centred[2]>(grid.nghostzones, [=] CCTK_DEVICE(
+                                                              const PointDesc
+                                                                  &p) {
     /* Reconstruct primitives from the cells on left (indice 0) and right
      * (indice 1) side of this face rc = reconstructed variables or
      * computed from reconstructed variables */
@@ -785,13 +783,11 @@ extern "C" void AsterX_Fluxes(CCTK_ARGUMENTS) {
   }
 }
 
-template <int dir>
-void CalcFstag(CCTK_ARGUMENTS) {
+template <int dir> void CalcFstag(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_CalcAuxTermsForAvecPsiRHS;
   DECLARE_CCTK_PARAMETERS;
 
-  constexpr array<int, dim> edge_centred = {(dir == 0), (dir == 1),
-                                            (dir == 2)};
+  constexpr array<int, dim> edge_centred = {(dir == 0), (dir == 1), (dir == 2)};
 
   const vec<GF3D2<CCTK_REAL>, dim> gf_F{Fx_stag, Fy_stag, Fz_stag};
   const vec<GF3D2<const CCTK_REAL>, dim> gf_Avecs{Avec_x, Avec_y, Avec_z};
@@ -836,7 +832,6 @@ extern "C" void AsterX_CalcAuxTermsForAvecPsiRHS(CCTK_ARGUMENTS) {
         // Fz(p.I) = alp(p.I) * sqrtg * Aup(2);
         G(p.I) = alp(p.I) * Psi(p.I) / sqrtg - calc_contraction(betas, A_vert);
       });
-
 
   CalcFstag<0>(CCTK_PASS_CTOC);
   CalcFstag<1>(CCTK_PASS_CTOC);
