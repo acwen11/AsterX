@@ -51,8 +51,8 @@ extern "C" void AsterAnalysis_MHD_Spherical(CCTK_ARGUMENTS) {
         const CCTK_REAL B_norm_local = sqrt(B2big);
 
         /* spherical radii */
-        const CCTK_REAL at_r = sqrt(p.x * p.x + p.y * p.y);
-        const CCTK_REAL at_rho = sqrt(at_r * at_r + p.z * p.z);
+        const CCTK_REAL at_r = max(sqrt(p.x * p.x + p.y * p.y), 1e-20);
+        const CCTK_REAL at_rho = max(sqrt(at_r * at_r + p.z * p.z), 1e-20);
 
         /* outputs default to zero */
         CCTK_REAL Bphi_up = 0.0, Btheta_up = 0.0, Brho_up = 0.0;

@@ -136,7 +136,7 @@ extern "C" void AsterAnalysis_MHD(CCTK_ARGUMENTS) {
         poynting_vector_z(p.I) = S_alt(2);
 
         /* normal to sphere */
-        const CCTK_REAL rmag = sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
+        const CCTK_REAL rmag = max(sqrt(p.x * p.x + p.y * p.y + p.z * p.z), 1e-20);
         const vec<CCTK_REAL, 3> n{p.x / rmag, p.y / rmag, p.z / rmag};
         poynting_scalar(p.I) = calc_contraction(S_alt, n);
 
