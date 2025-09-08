@@ -16,7 +16,9 @@ if (compute_MHD) {
     READS: AsterX::Avec_x(everywhere)
     READS: AsterX::Avec_y(everywhere)
     READS: AsterX::Avec_z(everywhere)
-    READS: AsterX::dB(everywhere)
+    READS: AsterX::dBx_stag(everywhere)
+    READS: AsterX::dBy_stag(everywhere)
+    READS: AsterX::dBz_stag(everywhere)
     WRITES: w_lorentz(everywhere)
     WRITES: mhd_analysis(everywhere)
   }
@@ -46,11 +48,11 @@ if (compute_VI) {
     READS: mhd_analysis(everywhere)
     READS: mhd_spherical(everywhere)
     WRITES: mhd_temps(everywhere)
-    WRITES: total_magnetic_energy
-    WRITES: total_kinetic_energy
-    WRITES: mean_B
-    WRITES: mean_B_Tor
-    WRITES: mean_B_Pol
+    WRITES: total_magnetic_energy(everywhere)
+    WRITES: total_kinetic_energy(everywhere)
+    WRITES: mean_B(everywhere)
+    WRITES: mean_B_Tor(everywhere)
+    WRITES: mean_B_Pol(everywhere)
   }
   "Compute MHD volume integrals"
 }

@@ -79,7 +79,7 @@ extern "C" void AsterAnalysis_MHD(CCTK_ARGUMENTS) {
         /* cell-centered A^i and A_i */
         const vec<CCTK_REAL, 3> A_low(
             [&](int i) ARITH_INLINE { return calc_avg_e2c(gf_Avec(i), p, i); });
-        const vec<CCTK_REAL, 3> A_up = calc_contraction(ug_avg, A_up);
+        const vec<CCTK_REAL, 3> A_up = calc_contraction(ug_avg, A_low);
 
         A_norm(p.I) = sqrt(calc_contraction(A_low, A_up));
 
@@ -136,7 +136,8 @@ extern "C" void AsterAnalysis_MHD(CCTK_ARGUMENTS) {
         poynting_vector_z(p.I) = S_alt(2);
 
         /* normal to sphere */
-        const CCTK_REAL rmag = max(sqrt(p.x * p.x + p.y * p.y + p.z * p.z), 1e-20);
+        const CCTK_REAL rmag =
+            max(sqrt(p.x * p.x + p.y * p.y + p.z * p.z), 1e-20);
         const vec<CCTK_REAL, 3> n{p.x / rmag, p.y / rmag, p.z / rmag};
         poynting_scalar(p.I) = calc_contraction(S_alt, n);
 
@@ -163,19 +164,17 @@ extern "C" void AsterAnalysis_MHD(CCTK_ARGUMENTS) {
         lambda_MRI(bs(1), bs_low(1), lambda_MRI_y(p.I));
         lambda_MRI(bs(2), bs_low(2), lambda_MRI_z(p.I));
 
-        /* ---- divB & divA ---- */
-        // div B = d/dx Bx|_{i±1/2} + d/dy By|_{j±1/2} + d/dz Bz|_{k±1/2}
+        /* ---- divB (CT, densitized faces) ---- */
         const CCTK_REAL divB_val =
-            idx * (dBx(p.I) - dBx(p.I - p.DI[0])) +
-            idy * (dBy(p.I) - dBy(p.I - p.DI[1])) +
-            idz * (dBz(p.I) - dBz(p.I - p.DI[2]));
-        divB(p.I) = divB_val;
+            idx * (dBx_stag(p.I + p.DI[0]) - dBx_stag(p.I)) +
+            idy * (dBy_stag(p.I + p.DI[1]) - dBy_stag(p.I)) +
+            idz * (dBz_stag(p.I + p.DI[2]) - dBz_stag(p.I));
+        divB(p.I) = divB_val / sqrt_detg;
 
-        // div A = d/dx A_x|_{i±1} + d/dy A_y|_{j±1} + d/dz A_z|_{k±1}
-        // (Each A component lives on edges parallel to its axis.)
-        const CCTK_REAL divA_val = idx * (Avec_x(p.I) - Avec_x(p.I - p.DI[0])) +
-                                   idy * (Avec_y(p.I) - Avec_y(p.I - p.DI[1])) +
-                                   idz * (Avec_z(p.I) - Avec_z(p.I - p.DI[2]));
+        /* ---- divA (flat divergence of edge-centered A) ---- */
+        const CCTK_REAL divA_val = idx * (Avec_x(p.I + p.DI[0]) - Avec_x(p.I)) +
+                                   idy * (Avec_y(p.I + p.DI[1]) - Avec_y(p.I)) +
+                                   idz * (Avec_z(p.I + p.DI[2]) - Avec_z(p.I));
         divA(p.I) = divA_val;
       }); /* end grid loop */
 }
