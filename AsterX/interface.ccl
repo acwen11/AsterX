@@ -86,10 +86,6 @@ CCTK_REAL Avec_x_rhs TYPE=gf CENTERING={cvv} TAGS='checkpoint="no"' "x-component
 CCTK_REAL Avec_y_rhs TYPE=gf CENTERING={vcv} TAGS='checkpoint="no"' "y-component of vector potential RHS"
 CCTK_REAL Avec_z_rhs TYPE=gf CENTERING={vvc} TAGS='checkpoint="no"' "z-component of vector potential RHS"
 
-CCTK_REAL Bx_stag TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"' "x-component of staggered magnetic field"
-CCTK_REAL By_stag TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"' "y-component of staggered magnetic field"
-CCTK_REAL Bz_stag TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"' "z-component of staggered magnetic field"
-
 CCTK_REAL dB TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
 {
   dBx, dBy, dBz
