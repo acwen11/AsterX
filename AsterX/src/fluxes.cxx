@@ -789,8 +789,10 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
      alp_avg, betas_avg, g_avg, sqrtg,
      rcprimsHO, rcconsHO);
 
+    recon_prims rcprimsLO;
     recon_cons rcconsLO;
-    if (use_HOrecon_LOflux) {
+
+    if (use_HOrecon_LOflux || useLO) {
       rcconsLO = rcconsHO;
     } else {
       // ---------------------------- BEGIN LO FOR FLUX LIM -----------------------------------
@@ -811,10 +813,12 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
       if (reconstruct_with_temperature) {
 
         // Reconstruct temperature
-        vec<CCTK_REAL, 2> tempLO_rc{reconstruct_loworder(temperature, p, false, false)};
+        array<CCTK_REAL, 2> tempLO_rc_dummy;
+        tempLO_rc_dummy = reconstruct_loworder(temperature, p, false, false);
 
         // Compute eps_rc and press_rc using lambdas
         for (int f = 0; f < 2; ++f) {
+          tempLO_rc(f) = tempLO_rc_dummy[f];
           epsLO_rc(f) =
               eos_3p->eps_from_valid_rho_temp_ye(rhoLO_rc(f), tempLO_rc(f), YeLO_rc(f));
           pressLO_rc(f) = eos_3p->press_from_valid_rho_temp_ye(
@@ -822,8 +826,19 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
         }
 
       } else {
-        printf("Flux limiters only supported for temperature reconstruction for now.\n");
-        assert(0);
+
+        // Reconstruct pressure
+        array<CCTK_REAL, 2> pressLO_rc_dummy;
+        pressLO_rc_dummy = reconstruct_loworder(press, p, false, false);
+
+        // Compute eps_rc and temp_rc using lambdas
+        for (int f = 0; f < 2; ++f) {
+          pressLO_rc(f) = pressLO_rc_dummy[f];
+          epsLO_rc(f) = eos_3p->eps_from_valid_rho_press_ye(rhoLO_rc(f), pressLO_rc(f),
+                                                          YeLO_rc(f));
+          tempLO_rc(f) =
+              eos_3p->temp_from_valid_rho_eps_ye(rhoLO_rc(f), epsLO_rc(f), YeLO_rc(f));
+        }
       }
 
       const vec<CCTK_REAL, 2> rhohLO_rc([&](int f) ARITH_INLINE {
@@ -922,8 +937,9 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
       };
       }
 
-      recon_prims rcprimsLO{rhoLO_rc, entropyLO_rc, YeLO_rc, epsLO_rc, pressLO_rc, tempLO_rc, BsLO_rc,
+      recon_prims rcLO{rhoLO_rc, entropyLO_rc, YeLO_rc, epsLO_rc, pressLO_rc, tempLO_rc, BsLO_rc,
         velsLO_rc, vlowsLO_rc, w_lorentzLO_rc};
+      rcprimsLO = rcLO;
 
       CalcConsFluxesFromPrims(dir, eos_3p, reconstruct_with_temperature,
        alp_avg, betas_avg, g_avg, sqrtg,
@@ -952,31 +968,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
       const auto Ip = p.I;
       const auto Im = p.I - p.DI[dir];
   
-      // Get local c_light
-      //// At Ip
-      const CCTK_REAL alp_p = calc_avg_v2c(alp, p);
-      const vec<CCTK_REAL, 3> betas_p(
-          [&](int i) ARITH_INLINE { return calc_avg_v2c(gf_beta(i), p); });
-      const smat<CCTK_REAL, 3> g_avg_p([&](int i, int j) ARITH_INLINE {
-        return calc_avg_v2c(gf_g(i, j), p);
-      });
-      const CCTK_REAL detg_avg_p = calc_det(g_avg_p);
-      const CCTK_REAL u_avg_p = calc_inv(g_avg_p, detg_avg_p)(dir, dir);
-      const CCTK_REAL c_p = max({fabs(alp_p * sqrt(u_avg_p) - betas_p(dir)), fabs(-alp_p * sqrt(u_avg_p) - betas_p(dir))});
-
-      //// At Im
-      const CCTK_REAL alp_m = calc_avg_v2c(alp, p, Im);
-      const vec<CCTK_REAL, 3> betas_m(
-          [&](int i) ARITH_INLINE { return calc_avg_v2c(gf_beta(i), p, Im); });
-      const smat<CCTK_REAL, 3> g_avg_m([&](int i, int j) ARITH_INLINE {
-        return calc_avg_v2c(gf_g(i, j), p, Im);
-      });
-      const CCTK_REAL detg_avg_m = calc_det(g_avg_m);
-      const CCTK_REAL u_avg_m = calc_inv(g_avg_m, detg_avg_m)(dir, dir);
-      const CCTK_REAL c_m = max({fabs(alp_m * sqrt(u_avg_m) - betas_m(dir)), fabs(-alp_m * sqrt(u_avg_m) - betas_m(dir))});
-
-      const CCTK_REAL cc = max(c_p, c_m);
-      // Calc LO flux, currently only LLF
+      // Calc LO flux
       fluxLOdenss(dir)(Ip) = laxf(rcconsLO.lambda, rcconsLO.dens_rc,    rcconsLO.flux_dens);
       fluxLODEnts(dir)(Ip) = laxf(rcconsLO.lambda, rcconsLO.DEnt_rc,    rcconsLO.flux_DEnt);
       fluxLODYes(dir)(Ip) =  laxf(rcconsLO.lambda, rcconsLO.DYe_rc,     rcconsLO.flux_DYe);
@@ -984,6 +976,55 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
       fluxLOmomys(dir)(Ip) = laxf(rcconsLO.lambda, rcconsLO.moms_rc(1), rcconsLO.flux_moms(1));
       fluxLOmomzs(dir)(Ip) = laxf(rcconsLO.lambda, rcconsLO.moms_rc(2), rcconsLO.flux_moms(2));
       fluxLOtaus(dir)(Ip) =  laxf(rcconsLO.lambda, rcconsLO.tau_rc,     rcconsLO.flux_tau);
+
+      if (isnan(fluxLOdenss(dir)(Ip)) || isnan(fluxLODEnts(dir)(Ip)) ||
+          isnan(fluxLOmomxs(dir)(Ip)) || isnan(fluxLOmomys(dir)(Ip)) ||
+          isnan(fluxLOmomzs(dir)(Ip)) || isnan(fluxLOtaus(dir)(Ip)) ||
+          isnan(fluxLODYes(dir)(Ip))) {
+        printf("cctk_iteration = %i,  dir = %i,  ijk = %i, %i, %i, "
+               "x, y, z = %16.8e, %16.8e, %16.8e.\n",
+               cctk_iteration, dir, p.i, p.j, p.k, p.x, p.y, p.z);
+        printf("  fluxLOdenss = %16.8e,\n", fluxLOdenss(dir)(p.I));
+        printf("  fluxLODEnts = %16.8e,\n", fluxLODEnts(dir)(p.I));
+        printf("  fluxLODYes = %16.8e,\n", fluxLODYes(dir)(p.I));
+        printf("  fluxLOmoms  = %16.8e, %16.8e, %16.8e,\n",
+               fluxLOmomxs(dir)(p.I), fluxLOmomys(dir)(p.I),
+               fluxLOmomzs(dir)(p.I));
+        printf("  fluxLOtaus  = %16.8e,\n", fluxLOtaus(dir)(p.I));
+        printf("  flux_denss = %16.8e, %16.8e,\n", rcconsLO.flux_dens(0), rcconsLO.flux_dens(1));
+        printf("  flux_moms  = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e,\n",
+               rcconsLO.flux_moms(0)(0), rcconsLO.flux_moms(0)(1), rcconsLO.flux_moms(1)(0), rcconsLO.flux_moms(1)(1),
+               rcconsLO.flux_moms(2)(0), rcconsLO.flux_moms(2)(1));
+        printf("  flux_taus  = %16.8e, %16.8e,\n", rcconsLO.flux_tau(0), rcconsLO.flux_tau(1));
+        printf("  flux_DYes  = %16.8e, %16.8e,\n", rcconsLO.flux_DYe(0), rcconsLO.flux_DYe(1));
+        printf("  flux_Bts   = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e,\n",
+               rcconsLO.flux_Btildes(0)(0), rcconsLO.flux_Btildes(0)(1), rcconsLO.flux_Btildes(1)(0),
+               rcconsLO.flux_Btildes(1)(1), rcconsLO.flux_Btildes(2)(0), rcconsLO.flux_Btildes(2)(1));
+        printf("  dens_rc = %16.8e, %16.8e,\n", rcconsLO.dens_rc(0), rcconsLO.dens_rc(1));
+        printf("  moms_rc = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e,\n",
+               rcconsLO.moms_rc(0)(0), rcconsLO.moms_rc(0)(1), rcconsLO.moms_rc(1)(0), rcconsLO.moms_rc(1)(1),
+               rcconsLO.moms_rc(2)(0), rcconsLO.moms_rc(2)(1));
+        printf("  tau_rc  = %16.8e, %16.8e,\n", rcconsLO.tau_rc(0), rcconsLO.tau_rc(1));
+        printf("  DYe_rc  = %16.8e, %16.8e,\n", rcconsLO.DYe_rc(0), rcconsLO.DYe_rc(1));
+        printf("  Bs_rc  = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e,\n",
+               rcprimsLO.Bs_rc(0)(0), rcprimsLO.Bs_rc(0)(1), rcprimsLO.Bs_rc(1)(0), rcprimsLO.Bs_rc(1)(1), rcprimsLO.Bs_rc(2)(0),
+               rcprimsLO.Bs_rc(2)(1));
+        printf("  Bts_rc  = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e,\n",
+               rcconsLO.Btildes_rc(0)(0), rcconsLO.Btildes_rc(0)(1), rcconsLO.Btildes_rc(1)(0),
+               rcconsLO.Btildes_rc(1)(1), rcconsLO.Btildes_rc(2)(0), rcconsLO.Btildes_rc(2)(1));
+        printf("  lam = %16.8e, %16.8e, %16.8e, %16.8e,\n"
+               "        %16.8e, %16.8e, %16.8e, %16.8e.\n",
+               rcconsLO.lambda(0)(0), rcconsLO.lambda(0)(1), rcconsLO.lambda(0)(2), rcconsLO.lambda(0)(3),
+               rcconsLO.lambda(1)(0), rcconsLO.lambda(1)(1), rcconsLO.lambda(1)(2), rcconsLO.lambda(1)(3));
+        printf("  vel_rc  = %16.8e, %16.8e \n", rcprimsLO.vels_rc(dir)(0), rcprimsLO.vels_rc(dir)(1));
+        printf("  rho_rc  = %16.8e, %16.8e \n", rcprimsLO.rho_rc(0), rcprimsLO.rho_rc(1));
+        // printf("  cs2_rc  = %16.8e, %16.8e \n", rcprimsHO.cs2_rc(0), rcprimsHO.cs2_rc(1));
+        printf("  wlor_rc = %16.8e, %16.8e \n", rcprimsLO.w_lorentz_rc(0), rcprimsLO.w_lorentz_rc(1));
+        // printf("  bsq_rc  = %16.8e, %16.8e \n",rcprimsHO.bsq_rc(0), rcprimsHO.bsq_rc(1));
+        printf("  press_rc = %16.8e, %16.8e \n", rcprimsLO.press_rc(0), rcprimsLO.press_rc(1));
+        printf("  eps_rc   = %16.8e, %16.8e \n", rcprimsLO.eps_rc(0), rcprimsLO.eps_rc(1));
+        assert(0);
+      }
 
       CCTK_REAL theta = 1.0;
       CCTK_REAL theta_m = 1.0;
@@ -1008,12 +1049,20 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
           const CCTK_REAL a2cfl = 6 * 0.25;
 
           // Calc dens floor
-          const CCTK_REAL sqrtg_p = sqrt(detg_avg_p);
+          //// At Ip
+          const smat<CCTK_REAL, 3> g_avg_p([&](int i, int j) ARITH_INLINE {
+            return calc_avg_v2c(gf_g(i, j), p);
+          });
+          const CCTK_REAL sqrtg_p = sqrt(calc_det(g_avg_p));
           vec<CCTK_REAL, 3> vup_p{velx(Ip), vely(Ip), velz(Ip)};
           vec<CCTK_REAL, 3> vlow_p = calc_contraction(g_avg_p, vup_p);
           const CCTK_REAL w_lor_p = 1 / sqrt(1 - calc_contraction(vlow_p, vup_p));
 
-          const CCTK_REAL sqrtg_m = sqrt(detg_avg_m);
+          //// At Im
+          const smat<CCTK_REAL, 3> g_avg_m([&](int i, int j) ARITH_INLINE {
+            return calc_avg_v2c(gf_g(i, j), p, Im);
+          });
+          const CCTK_REAL sqrtg_m = sqrt(calc_det(g_avg_m));
           vec<CCTK_REAL, 3> vup_m{velx(Im), vely(Im), velz(Im)};
           vec<CCTK_REAL, 3> vlow_m = calc_contraction(g_avg_m, vup_m);
           const CCTK_REAL w_lor_m = 1 / sqrt(1 - calc_contraction(vlow_m, vup_m));
@@ -1042,25 +1091,6 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
 
           theta = min(theta_m, theta_p);
 
-          if (isnan(theta) || isnan(theta_m) || isnan(theta_p) || isnan(a2cfl) ||
-              isnan(fluxLOdenss(dir)(Ip)) || isnan(fluxLODEnts(dir)(Ip)) ||
-              isnan(fluxLOmomxs(dir)(Ip)) || isnan(fluxLOmomys(dir)(Ip)) ||
-              isnan(fluxLOmomzs(dir)(Ip)) || isnan(fluxLOtaus(dir)(Ip)) ||
-              isnan(fluxLOmomys(dir)(Ip)) || isnan(fluxLOmomzs(dir)(Ip)) ||
-              isnan(densmin_p) || isnan(densmin_m)) {
-            printf("cctk_iteration = %i,  dir = %i,  ijk = %i, %i, %i, "
-                   "x, y, z = %16.8e, %16.8e, %16.8e.\n",
-                   cctk_iteration, dir, p.i, p.j, p.k, p.x, p.y, p.z);
-            printf("  fluxLOdenss = %16.8e,\n", fluxLOdenss(dir)(p.I));
-            printf("  fluxLOmoms  = %16.8e, %16.8e, %16.8e,\n",
-                   fluxLOmomxs(dir)(p.I), fluxLOmomys(dir)(p.I),
-                   fluxLOmomzs(dir)(p.I));
-            printf("  fluxLOtaus  = %16.8e,\n", fluxLOtaus(dir)(p.I));
-            printf("  theta = %16.8e,\n", theta);
-            printf("  a2cfl = %16.8e,\n", a2cfl);
-            printf("  densmins = %16.8e, %16.8e\n", densmin_m, densmin_p);
-            assert(0);
-          }
         }
       }
 
@@ -1089,22 +1119,22 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
           (1 - theta) * fluxLOtaus(dir)(Ip) + theta * fluxtaus(dir)(Ip);
       thetagf(dir)(Ip) = theta;
 
-      if (isnan(theta) || isnan(fluxLOdenss(dir)(Ip)) ||
-          isnan(fluxLODEnts(dir)(Ip)) || isnan(fluxLOmomxs(dir)(Ip)) ||
-          isnan(fluxLOmomys(dir)(Ip)) || isnan(fluxLOmomzs(dir)(Ip)) ||
-          isnan(fluxLOtaus(dir)(Ip)) || isnan(fluxLOmomys(dir)(Ip)) ||
-          isnan(fluxLOmomzs(dir)(Ip))) {
-        printf("cctk_iteration = %i,  dir = %i,  ijk = %i, %i, %i, "
-               "x, y, z = %16.8e, %16.8e, %16.8e.\n",
-               cctk_iteration, dir, p.i, p.j, p.k, p.x, p.y, p.z);
-        printf("  fluxLOdenss = %16.8e,\n", fluxLOdenss(dir)(p.I));
-        printf("  fluxLOmoms  = %16.8e, %16.8e, %16.8e,\n",
-               fluxLOmomxs(dir)(p.I), fluxLOmomys(dir)(p.I),
-               fluxLOmomzs(dir)(p.I));
-        printf("  fluxLOtaus  = %16.8e,\n", fluxLOtaus(dir)(p.I));
-        printf("  theta = %16.8e,\n", theta);
-        assert(0);
-      }
+      // if (isnan(theta) || isnan(fluxLOdenss(dir)(Ip)) ||
+      //     isnan(fluxLODEnts(dir)(Ip)) || isnan(fluxLOmomxs(dir)(Ip)) ||
+      //     isnan(fluxLOmomys(dir)(Ip)) || isnan(fluxLOmomzs(dir)(Ip)) ||
+      //     isnan(fluxLOtaus(dir)(Ip)) || isnan(fluxLOmomys(dir)(Ip)) ||
+      //     isnan(fluxLOmomzs(dir)(Ip))) {
+      //   printf("cctk_iteration = %i,  dir = %i,  ijk = %i, %i, %i, "
+      //          "x, y, z = %16.8e, %16.8e, %16.8e.\n",
+      //          cctk_iteration, dir, p.i, p.j, p.k, p.x, p.y, p.z);
+      //   printf("  fluxLOdenss = %16.8e,\n", fluxLOdenss(dir)(p.I));
+      //   printf("  fluxLOmoms  = %16.8e, %16.8e, %16.8e,\n",
+      //          fluxLOmomxs(dir)(p.I), fluxLOmomys(dir)(p.I),
+      //          fluxLOmomzs(dir)(p.I));
+      //   printf("  fluxLOtaus  = %16.8e,\n", fluxLOtaus(dir)(p.I));
+      //   printf("  theta = %16.8e,\n", theta);
+      //   assert(0);
+      // }
     } else {
       fluxLOdenss(dir)(p.I) = 0.0;
       fluxLODEnts(dir)(p.I) = 0.0;
