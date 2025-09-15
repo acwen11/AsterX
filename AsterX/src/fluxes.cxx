@@ -213,7 +213,28 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
   }};
   constexpr auto dir_arr = dir_arr_table[dir];
 
-  grid.loop_int_device<
+  // initialize to zero
+  grid.loop_all_device<face_centred[0], face_centred[1], face_centred[2]>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        fluxdenss(dir)(p.I) = 0;
+        fluxDEnts(dir)(p.I) = 0;
+        fluxmomxs(dir)(p.I) = 0;
+        fluxmomys(dir)(p.I) = 0;
+        fluxmomzs(dir)(p.I) = 0;
+        fluxtaus(dir)(p.I) = 0;
+        fluxDYes(dir)(p.I) = 0;
+        fluxBxs(dir)(p.I) = 0;
+        fluxBys(dir)(p.I) = 0;
+        fluxBzs(dir)(p.I) = 0;
+
+        amax(dir)(p.I) = 0;
+        amin(dir)(p.I) = 0;
+        vtildes_one(dir)(p.I) = 0;
+        vtildes_two(dir)(p.I) = 0;
+      });
+
+  grid.loop_mix_device<
       face_centred[0], face_centred[1],
       face_centred
           [2]>(grid.nghostzones, [=] CCTK_DEVICE(
@@ -340,6 +361,13 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
         entropy_rc(1) = entropyLO_rc(1);
         Ye_rc(1) = YeLO_rc(1);
         press_rc_dummy[1] = pressLO_rc(1);
+      if (press_rc_dummy[0] < 0) {
+        press_rc_dummy[0] = eos_3p->press_from_valid_rho_eps_ye(
+            rho_rc(0), eos_3p->rgeps.min, Ye_rc(0));
+      }
+      if (press_rc_dummy[1] < 0) {
+        press_rc_dummy[1] = eos_3p->press_from_valid_rho_eps_ye(
+            rho_rc(1), eos_3p->rgeps.min, Ye_rc(1));
       }
       // End lower-order
 
