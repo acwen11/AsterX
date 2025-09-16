@@ -35,6 +35,21 @@ calc_avg_v2c(const GF3D2<const T> &gf, const PointDesc &p) {
   return gf_avg / 8.0;
 }
 
+template <typename T>
+CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
+calc_avg_v2c(const GF3D2<const T> &gf, const PointDesc &p, const vect<int, 3> idx) {
+  T gf_avg = 0.0;
+
+  for (int dk = 0; dk < 2; ++dk) {
+    for (int dj = 0; dj < 2; ++dj) {
+      for (int di = 0; di < 2; ++di) {
+        gf_avg += gf(idx + p.DI[0] * di + p.DI[1] * dj + p.DI[2] * dk);
+      }
+    }
+  }
+  return gf_avg / 8.0;
+}
+
 // Second-order average of edge-centered grid functions to vertex-centered
 template <typename T>
 CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
