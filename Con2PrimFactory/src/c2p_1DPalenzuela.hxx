@@ -405,13 +405,13 @@ c2p_1DPalenzuela::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
 
   // Dominant energy check
   if (fn(a) * fn(b) > 0) {
-    // printf("for fn(a)*fn(b)>0, fa, fb: %26.16e, %26.16e \n\n", fn(a), fn(b));
+    printf("for fn(a)*fn(b)>0, fa, fb: %26.16e, %26.16e \n\n", fn(a), fn(b));
     b = 3.0 + 3.0 * qPalenzuela - 1.5 * sPalenzuela;
-    // if (fn(a) * fn(b) < 0) {
-    //   printf("for fn(a)*fn(b)<0, fa, fb: %26.16e, %26.16e \n\n", fn(a), fn(b));
-    //   printf(
-    //       "Palenzuela C2P: dominant energy condition has been violated!\n\n");
-    // }
+    if (fn(a) * fn(b) < 0) {
+      printf("for fn(a)*fn(b)<0, fa, fb: %26.16e, %26.16e \n\n", fn(a), fn(b));
+      printf(
+          "Palenzuela C2P: dominant energy condition has been violated!\n\n");
+    }
   }
 
   auto result = Algo::brent(fn, a, b, minbits, maxiters, rep.iters);
