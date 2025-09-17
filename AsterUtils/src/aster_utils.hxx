@@ -164,10 +164,9 @@ calc_avg_neighbors(const vec<T, D> flag, const vec<T, D> u_nbs,
          CCTK_REAL(D);
 }
 
-// Higher order corrections
-// template <typename T>
-CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-higher_order_correction(const GF3D2<const CCTK_REAL> &gf, const PointDesc &p, int dir,
+// Compute flux derivatives with optional higher order corrections
+CCTK_DEVICE CCTK_HOST inline CCTK_REAL
+compute_flux_derivatives(const GF3D2<const CCTK_REAL> &gf, const PointDesc &p, int dir,
                         int correction_order) {
   CCTK_REAL correction;
   correction = 0.0;
