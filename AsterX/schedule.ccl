@@ -76,10 +76,12 @@ SCHEDULE AsterX_CheckPrims IN AsterX_InitialGroup AFTER AsterX_ComputeBFromdB
   WRITES: saved_prims(interior)
   WRITES: zvec(interior)
   WRITES: svec(interior)
+  WRITES: theta_tot(interior)
   SYNC: HydroBaseX::rho HydroBaseX::vel HydroBaseX::eps HydroBaseX::press HydroBaseX::temperature HydroBaseX::entropy HydroBaseX::Ye
   SYNC: saved_prims
   SYNC: zvec
   SYNC: svec
+  SYNC: theta_tot
 } "Enforce limits on primitive variables"
 
 SCHEDULE AsterX_Prim2Con_Initial IN AsterX_InitialGroup AFTER AsterX_CheckPrims
@@ -173,7 +175,7 @@ SCHEDULE GROUP AsterX_RHSGroup IN ODESolvers_RHS
 {
 } "Calculate AsterX RHS"
 
-STORAGE: fluxLO_x fluxLO_y fluxLO_z thetas
+STORAGE: fluxLO_x fluxLO_y fluxLO_z theta_x theta_y theta_z
 STORAGE: r_ent phys_ent ent_m1 ent_m2
 
 SCHEDULE AsterX_InitEntropyTLs IN AsterX_InitialGroup AFTER AsterX_CheckPrims
@@ -223,17 +225,17 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   READS: svec_x(everywhere) svec_y(everywhere) svec_z(everywhere)
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere) Psi(everywhere)
   READS: dens(everywhere) volform(everywhere) w_lorentz(everywhere)
-  READS: r_ent(interior)
+  READS: theta_tot(interior) r_ent(interior)
   WRITES: flux_x(interior) flux_y(interior) flux_z(interior)
   WRITES: fluxLO_x(interior) fluxLO_y(interior) fluxLO_z(interior)
-  WRITES: thetas(interior)
+  WRITES: theta_x(interior) theta_y(interior) theta_z(interior)
   WRITES: Aux_in_RHSof_A_Psi(interior)
   WRITES: vtilde_xface(interior) vtilde_yface(interior) vtilde_zface(interior)
   WRITES: a_xface(interior) a_yface(interior) a_zface(interior)
-  WRITES: volform(interior) w_lorentz(interior)
   SYNC: Aux_in_RHSof_A_Psi
   SYNC: flux_x flux_y flux_z
   SYNC: vtilde_xface vtilde_yface vtilde_zface a_xface a_yface a_zface
+  SYNC: theta_tot theta_x theta_y theta_z
 } "Calculate the hydro fluxes"
 
 #SCHEDULE AsterX_Flux_Corrections IN AsterX_RHSGroup AFTER AsterX_Fluxes
@@ -267,6 +269,7 @@ SCHEDULE AsterX_RHS IN AsterX_RHSGroup AFTER AsterX_SourceTerms
   READS: ADMBaseX::metric(everywhere) ADMBaseX::lapse(everywhere) ADMBaseX::shift(everywhere)
   READS: HydroBaseX::vel(everywhere) HydroBaseX::press(everywhere)
   READS: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
+  READS: theta_x(everywhere) theta_y(everywhere) theta_z(everywhere)
   READS: densrhs(everywhere) taurhs(everywhere) momrhs(everywhere) DEntrhs(everywhere) DYe_rhs(everywhere)
   READS: Psi(everywhere)
   READS: Aux_in_RHSof_A_Psi(everywhere)

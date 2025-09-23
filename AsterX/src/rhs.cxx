@@ -106,10 +106,10 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
 
   const auto calcupdate_hydro =
       [=] CCTK_DEVICE(const vec<GF3D2<const CCTK_REAL>, dim> &gf_fluxes,
-                      const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+                      const PointDesc &p, const CCTK_REAL theta) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         vec<CCTK_REAL, 3> dfluxes([&](int i) ARITH_INLINE {
           // return gf_fluxes(i)(p.I + p.DI[i]) - gf_fluxes(i)(p.I);
-          return higher_order_correction(gf_fluxes(i), p, i, correction_order);
+          return higher_order_correction(gf_fluxes(i), p, i, correction_order, theta);
         });
         return -calc_contraction(idx, dfluxes);
       };
@@ -189,16 +189,21 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
   grid.loop_int_device<1, 1, 1>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        densrhs(p.I) += calcupdate_hydro(gf_fdens, p);
-        DEntrhs(p.I) += calcupdate_hydro(gf_fDEnt, p);
-        momxrhs(p.I) += calcupdate_hydro(gf_fmomx, p);
-        momyrhs(p.I) += calcupdate_hydro(gf_fmomy, p);
-        momzrhs(p.I) += calcupdate_hydro(gf_fmomz, p);
-        taurhs(p.I) += calcupdate_hydro(gf_ftau, p);
-        DYe_rhs(p.I) += calcupdate_hydro(gf_fDYe, p);
+
+        const CCTK_REAL LOswitch = (theta_x(p.I) == 1.0) * (theta_x(p.I + p.DI[0]) == 1.0) *
+                    (theta_y(p.I) == 1.0) * (theta_y(p.I + p.DI[1]) == 1.0) *
+                    (theta_z(p.I) == 1.0) * (theta_z(p.I + p.DI[2]) == 1.0);
+
+        densrhs(p.I) += calcupdate_hydro(gf_fdens, p, LOswitch);
+        DEntrhs(p.I) += calcupdate_hydro(gf_fDEnt, p, LOswitch);
+        momxrhs(p.I) += calcupdate_hydro(gf_fmomx, p, LOswitch);
+        momyrhs(p.I) += calcupdate_hydro(gf_fmomy, p, LOswitch);
+        momzrhs(p.I) += calcupdate_hydro(gf_fmomz, p, LOswitch);
+        taurhs(p.I) += calcupdate_hydro(gf_ftau, p, LOswitch);
+        DYe_rhs(p.I) += calcupdate_hydro(gf_fDYe, p, LOswitch);
 
         if (isnan(densrhs(p.I))) {
-          printf("calcupdate = %f, ", calcupdate_hydro(gf_fdens, p));
+          printf("calcupdate = %f, ", calcupdate_hydro(gf_fdens, p, LOswitch));
           printf("densrhs = %f, gf_fdens = %f, %f, %f, %f, %f, %f \n",
                  densrhs(p.I), gf_fdens(0)(p.I), gf_fdens(1)(p.I),
                  gf_fdens(2)(p.I), gf_fdens(0)(p.I + p.DI[0]),

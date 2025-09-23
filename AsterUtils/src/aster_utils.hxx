@@ -168,7 +168,7 @@ calc_avg_neighbors(const vec<T, D> flag, const vec<T, D> u_nbs,
 // template <typename T>
 CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
 higher_order_correction(const GF3D2<const CCTK_REAL> &gf, const PointDesc &p, int dir,
-                        int correction_order) {
+                        int correction_order, const CCTK_REAL theta) {
   CCTK_REAL correction;
   correction = 0.0;
   /*
@@ -195,11 +195,14 @@ higher_order_correction(const GF3D2<const CCTK_REAL> &gf, const PointDesc &p, in
   const auto Ip3 = p.I + 3 * p.DI[dir];
   if (correction_order == 4) {
     correction = 
-      (9.0/8.0) * (gf(Ip) - gf(Im)) - (1.0/24.0) * (gf(Ip2) - gf(Im2)); 
+      // (9.0/8.0) * (gf(Ip) - gf(Im)) - (1.0/24.0) * (gf(Ip2) - gf(Im2)); 
+      gf(Ip) - gf(Im) + theta * ((1.0/8.0) * (gf(Ip) - gf(Im)) - (1.0/24.0) * (gf(Ip2) - gf(Im2))); 
   } else if (correction_order == 6) {
     correction = 
-      (75.0/64.0) * (gf(Ip) - gf(Im)) - (25.0/384.0) * (gf(Ip2) - gf(Im2)) +
-      (3.0/640.0) * (gf(Ip3) - gf(Im3));
+      // (75.0/64.0) * (gf(Ip) - gf(Im)) - (25.0/384.0) * (gf(Ip2) - gf(Im2)) +
+      // (3.0/640.0) * (gf(Ip3) - gf(Im3));
+      gf(Ip) - gf(Im) + theta * ((11.0/64.0) * (gf(Ip) - gf(Im)) - (25.0/384.0) * (gf(Ip2) - gf(Im2)) +
+      (3.0/640.0) * (gf(Ip3) - gf(Im3)));
   } else {
     correction = gf(Ip) - gf(Im);
   }

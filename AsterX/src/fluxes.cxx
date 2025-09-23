@@ -1301,9 +1301,23 @@ void CalcAuxForAvecPsi(CCTK_ARGUMENTS) {
       });
 }
 
+// void InitTheta(CCTK_ARGUMENTS) {
+//   DECLARE_CCTK_ARGUMENTSX_AsterX_Fluxes;
+//   DECLARE_CCTK_PARAMETERS;
+// 
+//   grid.loop_all_device<1, 1, 1>(
+//       grid.nghostzones,
+//       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+//         theta_tot(p.I) = 1.0;
+//       });
+// }
+
 extern "C" void AsterX_Fluxes(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTS_AsterX_Fluxes;
   DECLARE_CCTK_PARAMETERS;
+
+  /* Initialize diagnostic flux limiter gridfunction*/
+  // InitTheta(cctkGH);
 
   eos_3param eos_3p_type;
 

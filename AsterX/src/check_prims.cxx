@@ -241,6 +241,9 @@ void CheckPrims(CCTK_ARGUMENTS, EOSIDType *eos_1p, EOSType *eos_3p) {
         svec_x(p.I) = (rhoL + rhoL * epsL + pressL) * wlor * wlor * v_up(0);
         svec_y(p.I) = (rhoL + rhoL * epsL + pressL) * wlor * wlor * v_up(1);
         svec_z(p.I) = (rhoL + rhoL * epsL + pressL) * wlor * wlor * v_up(2);
+
+        // Init theta diagnostic here for now
+        theta_tot(p.I) = 1.0;
       });
 }
 
