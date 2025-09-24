@@ -166,6 +166,15 @@ SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBsta
   SYNC: w_lorentz volform
 } "Calculate primitive variables from conservative variables"
 
+SCHEDULE AsterX_SetLOFlag IN CCTK_PRESTEP
+{
+  LANG: C
+  READS: ADMBaseX::metric(interior)
+  READS: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::temperature(interior) HydroBaseX::Ye(interior) HydroBaseX::Bvec(interior)
+  READS: lo_auxgf(interior)
+  WRITES: lo_auxgf(interior) etac(interior) LOflag(interior)
+  SYNC: lo_auxgf etac LOflag
+} "Detect shocks, flag for low-order recon/flux fallback"
 
 
 SCHEDULE GROUP AsterX_RHSGroup IN ODESolvers_RHS

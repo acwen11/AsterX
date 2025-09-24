@@ -7,6 +7,7 @@ SRCS = \
   estimate_error.cxx \
   fluxes.cxx \
   check_prims.cxx \
+  lo_flag.cxx \
   prim2con.cxx \
   rhs.cxx \
   sync.cxx \

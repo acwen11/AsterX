@@ -32,6 +32,11 @@ CCTK_INT correction_order "Order of accuracy to check if higher order correction
   6 :: "Sixth order accurate"
 } 2
 
+CCTK_REAL eta_thresh "Threshold for shock detection measure (see Berta+ 2025, Kiuchi 2025) " STEERABLE=always
+{
+  0:* :: "Larger than zero"
+} 1.0
+
 KEYWORD recon_type "Vector field used in reconstruction" STEERABLE=always
 {
   "v_vec" :: "Eulerian 3-velocity"
