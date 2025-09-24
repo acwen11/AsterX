@@ -545,6 +545,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, rec_var_t rec_var,
     fluxBzs(dir)(p.I) =
         (dir != 2) * calcflux(lambda, Btildes_rc(2), flux_Btildes(2));
 
+#ifdef CCTK_DEBUG
     if (isnan(dens_rc(0)) || isnan(dens_rc(1)) || isnan(moms_rc(0)(0)) ||
         isnan(moms_rc(0)(1)) || isnan(moms_rc(1)(0)) || isnan(moms_rc(1)(1)) ||
         isnan(moms_rc(2)(0)) || isnan(moms_rc(2)(1)) || isnan(tau_rc(0)) ||
@@ -636,6 +637,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, rec_var_t rec_var,
       printf("  vtilde_rc = %16.8e, %16.8e.\n", vtilde_rc(0), vtilde_rc(1));
       assert(0);
     }
+#endif
 
     /* Begin code for upwindCT */
     // if dir==0: dir1=1, dir2=2 | dir==1: dir1=2, dir2=0 | dir==2; dir1=0,
