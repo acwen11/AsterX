@@ -46,9 +46,9 @@ wenoz(T gf_Imm, T gf_Im, T gf_I, T gf_Ip, T gf_Ipp, T weno_eps) {
   aux_alphaZ(0) = 1.0 + tau5 / (betaZ(0) + weno_eps);
   aux_alphaZ(1) = 1.0 + tau5 / (betaZ(1) + weno_eps);
   aux_alphaZ(2) = 1.0 + tau5 / (betaZ(2) + weno_eps);
-  // const vec<T, 3> wt = {5.0 / 16.0, 10.0 / 16.0, 1.0 / 16.0};
+  const vec<T, 3> wt{5.0 / 16.0, 10.0 / 16.0, 1.0 / 16.0};
   // Original weights as suggested in (Borges et al. 2008)
-  const vec<T, 3> wt{3.0 / 10.0, 3.0 / 5.0, 1.0 / 10.0};
+  // const vec<T, 3> wt{3.0 / 10.0, 3.0 / 5.0, 1.0 / 10.0};
 
   vec<vec<T, 2>, 3> alphaZ;
 
@@ -75,7 +75,7 @@ wenoz(T gf_Imm, T gf_Im, T gf_I, T gf_Ip, T gf_Ipp, T weno_eps) {
   // Reconstruct cell-centered variable to left (minus) and right (plus) cell
   // interfaces
 
-  /* Spritz Weights:
+  // Spritz Weights:
   const T var_m =
       (omegaZ(2)(0) / 8.0) * (3.0 * gf_Ipp - 10.0 * gf_Ip + 15.0 * gf_I) +
       (omegaZ(1)(0) / 8.0) * (-1.0 * gf_Ip + 6.0 * gf_I + 3.0 * gf_Im) +
@@ -85,9 +85,8 @@ wenoz(T gf_Imm, T gf_Im, T gf_I, T gf_Ip, T gf_Ipp, T weno_eps) {
       (omegaZ(0)(1) / 8.0) * (3.0 * gf_Imm - 10.0 * gf_Im + 15.0 * gf_I) +
       (omegaZ(1)(1) / 8.0) * (-1.0 * gf_Im + 6.0 * gf_I + 3.0 * gf_Ip) +
       (omegaZ(2)(1) / 8.0) * (3.0 * gf_I + 6.0 * gf_Ip - 1.0 * gf_Ipp);
-  */
 
-  // GRHydro Weights:
+  /* GRHydro Weights:
   const T var_m{
       (omegaZ(2)(0) / 6.0) * (2.0 * gf_Ipp - 7.0 * gf_Ip + 11.0 * gf_I) +
       (omegaZ(1)(0) / 6.0) * (-1.0 * gf_Ip + 5.0 * gf_I + 2.0 * gf_Im) +
@@ -97,6 +96,7 @@ wenoz(T gf_Imm, T gf_Im, T gf_I, T gf_Ip, T gf_Ipp, T weno_eps) {
       (omegaZ(0)(1) / 6.0) * (2.0 * gf_Imm - 7.0 * gf_Im + 11.0 * gf_I) +
       (omegaZ(1)(1) / 6.0) * (-1.0 * gf_Im + 5.0 * gf_I + 2.0 * gf_Ip) +
       (omegaZ(2)(1) / 6.0) * (2.0 * gf_I + 5.0 * gf_Ip - 1.0 * gf_Ipp)};
+  */
 
   return {var_m, var_p};
 }

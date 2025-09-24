@@ -225,7 +225,7 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   READS: svec_x(everywhere) svec_y(everywhere) svec_z(everywhere)
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere) Psi(everywhere)
   READS: dens(everywhere) volform(everywhere) w_lorentz(everywhere)
-  READS: theta_tot(interior) r_ent(interior)
+  READS: r_ent(interior)
   WRITES: flux_x(interior) flux_y(interior) flux_z(interior)
   WRITES: fluxLO_x(interior) fluxLO_y(interior) fluxLO_z(interior)
   WRITES: theta_x(interior) theta_y(interior) theta_z(interior)
@@ -235,7 +235,7 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   SYNC: Aux_in_RHSof_A_Psi
   SYNC: flux_x flux_y flux_z
   SYNC: vtilde_xface vtilde_yface vtilde_zface a_xface a_yface a_zface
-  SYNC: theta_tot theta_x theta_y theta_z
+  SYNC: theta_x theta_y theta_z
 } "Calculate the hydro fluxes"
 
 #SCHEDULE AsterX_Flux_Corrections IN AsterX_RHSGroup AFTER AsterX_Fluxes
@@ -278,8 +278,10 @@ SCHEDULE AsterX_RHS IN AsterX_RHSGroup AFTER AsterX_SourceTerms
   READS: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
   WRITES: densrhs(interior) taurhs(interior) momrhs(interior) DEntrhs(interior) DYe_rhs(interior)
   WRITES: Avec_x_rhs(interior) Avec_y_rhs(interior) Avec_z_rhs(interior) Psi_rhs(interior)
+  WRITES: theta_tot(interior)
   SYNC: densrhs taurhs momrhs DEntrhs DYe_rhs
   SYNC: Avec_x_rhs Avec_y_rhs Avec_z_rhs Psi_rhs
+  SYNC: theta_tot
 } "Update the RHS of the hydro equations with the flux contributions"
 
 

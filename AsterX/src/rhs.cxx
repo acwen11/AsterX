@@ -194,6 +194,10 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
                     (theta_y(p.I) == 1.0) * (theta_y(p.I + p.DI[1]) == 1.0) *
                     (theta_z(p.I) == 1.0) * (theta_z(p.I + p.DI[2]) == 1.0);
 
+        theta_tot(p.I) = min({theta_x(p.I), theta_x(p.I + p.DI[0]),
+                    theta_y(p.I), theta_y(p.I + p.DI[1]),
+                    theta_z(p.I), theta_z(p.I + p.DI[2])});
+
         densrhs(p.I) += calcupdate_hydro(gf_fdens, p, LOswitch);
         DEntrhs(p.I) += calcupdate_hydro(gf_fDEnt, p, LOswitch);
         momxrhs(p.I) += calcupdate_hydro(gf_fmomx, p, LOswitch);
