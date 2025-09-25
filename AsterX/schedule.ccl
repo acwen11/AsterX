@@ -166,7 +166,13 @@ SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBsta
   SYNC: w_lorentz volform
 } "Calculate primitive variables from conservative variables"
 
-SCHEDULE AsterX_SetLOFlag IN CCTK_PRESTEP
+SCHEDULE AsterX_InitLOAuxGF IN CCTK_PRESTEP
+{
+  LANG: C
+  WRITES: lo_auxgf(everywhere)
+} "Init helper GF"
+
+SCHEDULE AsterX_SetLOFlag IN CCTK_PRESTEP AFTER AsterX_InitLOAuxGF 
 {
   LANG: C
   READS: ADMBaseX::metric(interior)
@@ -195,6 +201,7 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   READS: zvec_x(everywhere) zvec_y(everywhere) zvec_z(everywhere)
   READS: svec_x(everywhere) svec_y(everywhere) svec_z(everywhere)
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere) Psi(everywhere)
+  READS: LOflag(everywhere)
   WRITES: flux_x(interior) flux_y(interior) flux_z(interior)
   WRITES: Aux_in_RHSof_A_Psi(interior)
   WRITES: vtilde_xface(interior) vtilde_yface(interior) vtilde_zface(interior)
@@ -232,6 +239,7 @@ SCHEDULE AsterX_RHS IN AsterX_RHSGroup AFTER AsterX_SourceTerms
   READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
   READS: vtilde_xface(everywhere) vtilde_yface(everywhere) vtilde_zface(everywhere)
   READS: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
+  READS: LOflag(everywhere) 
   WRITES: densrhs(interior) taurhs(interior) momrhs(interior) DEntrhs(interior) DYe_rhs(interior)
   WRITES: Avec_x_rhs(interior) Avec_y_rhs(interior) Avec_z_rhs(interior) Psi_rhs(interior)
   SYNC: densrhs taurhs momrhs DEntrhs DYe_rhs

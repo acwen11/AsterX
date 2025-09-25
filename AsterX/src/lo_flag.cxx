@@ -94,6 +94,18 @@ void CalcLOFlag(CCTK_ARGUMENTS, const GF3D2<const CCTK_REAL> &gf, const GF3D2<T>
   });
 }
 
+extern "C" void AsterX_InitLOAuxGF(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_InitLOAuxGF;
+  DECLARE_CCTK_PARAMETERS;
+
+  // Initialize aux GF
+  grid.loop_all_device<1, 1, 1>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+    lo_auxgf(p.I) = 0.0;
+  });
+}
+
 extern "C" void AsterX_SetLOFlag(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_SetLOFlag;
   DECLARE_CCTK_PARAMETERS;
