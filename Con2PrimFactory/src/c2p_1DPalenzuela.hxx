@@ -339,6 +339,9 @@ c2p_1DPalenzuela::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
 
   const smat<CCTK_REAL, 3> gup = calc_inv(glo, spatial_detg);
 
+  /* Copy cons vector, prevent round-off errors */
+  const cons_vars cv_const = cv;
+
   /* Undensitize the conserved vars */
   /* Make sure to return densitized values later on! */
   cv.dens /= sqrt_detg;
@@ -405,13 +408,13 @@ c2p_1DPalenzuela::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
 
   // Dominant energy check
   if (fn(a) * fn(b) > 0) {
-    // printf("for fn(a)*fn(b)>0, fa, fb: %26.16e, %26.16e \n\n", fn(a), fn(b));
+    //printf("for fn(a)*fn(b)>0, fa, fb: %26.16e, %26.16e \n\n", fn(a), fn(b));
     b = 3.0 + 3.0 * qPalenzuela - 1.5 * sPalenzuela;
-    // if (fn(a) * fn(b) < 0) {
-    //   printf("for fn(a)*fn(b)<0, fa, fb: %26.16e, %26.16e \n\n", fn(a), fn(b));
-    //   printf(
-    //       "Palenzuela C2P: dominant energy condition has been violated!\n\n");
-    // }
+    //if (fn(a) * fn(b) < 0) {
+    //  printf("for fn(a)*fn(b)<0, fa, fb: %26.16e, %26.16e \n\n", fn(a), fn(b));
+    //  printf(
+    //      "Palenzuela C2P: dominant energy condition has been violated!\n\n");
+    //}
   }
 
   auto result = Algo::brent(fn, a, b, minbits, maxiters, rep.iters);
@@ -449,12 +452,7 @@ c2p_1DPalenzuela::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
   if (pv.rho <= 0.0) {
     // set status to rho is out of range
     rep.set_range_rho(cv.dens, pv.rho);
-    cv.dens *= sqrt_detg;
-    cv.tau *= sqrt_detg;
-    cv.mom *= sqrt_detg;
-    cv.dBvec *= sqrt_detg;
-    cv.DYe *= sqrt_detg;
-    cv.DEnt *= sqrt_detg;
+    cv = cv_const;
     return;
   }
 
@@ -462,12 +460,7 @@ c2p_1DPalenzuela::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
   if (pv.eps <= 0.0) {
     // set status to eps is out of range
     rep.set_range_eps(pv.eps);
-    cv.dens *= sqrt_detg;
-    cv.tau *= sqrt_detg;
-    cv.mom *= sqrt_detg;
-    cv.dBvec *= sqrt_detg;
-    cv.DYe *= sqrt_detg;
-    cv.DEnt *= sqrt_detg;
+    cv = cv_const;
     return;
   }
 
@@ -518,19 +511,11 @@ c2p_1DPalenzuela::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
     if (max_error > cons_error) {
       // set status to root not converged
       rep.set_root_conv();
+      cv = cv_const;
       // status = ROOTSTAT::NOT_CONVERGED;
-      cv.dens *= sqrt_detg;
-      cv.tau *= sqrt_detg;
-      cv.mom *= sqrt_detg;
-      cv.dBvec *= sqrt_detg;
-      cv.DYe *= sqrt_detg;
-      cv.DEnt *= sqrt_detg;
       return;
     }
   }
-
-  // Conserved entropy must be consistent with new prims
-  cv.DEnt = cv.dens * pv.entropy;
 
   // set to atmo if computed rho is below floor density
   if (pv.rho < atmo.rho_cut) {
@@ -544,14 +529,11 @@ c2p_1DPalenzuela::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
   // Recompute cons if prims have been adjusted
   if (rep.adjust_cons) {
     cv.from_prim(pv, glo);
+    cv.dBvec = cv_const.dBvec;
   } else {
-    /* Densitize the conserved vars again*/
-    cv.dens *= sqrt_detg;
-    cv.tau *= sqrt_detg;
-    cv.mom *= sqrt_detg;
-    cv.dBvec *= sqrt_detg;
-    cv.DYe *= sqrt_detg;
-    cv.DEnt *= sqrt_detg;
+    cv = cv_const;
+    // Conserved entropy must be consistent with new prims
+    cv.DEnt = cv.dens * pv.entropy;
   }
 }
 
