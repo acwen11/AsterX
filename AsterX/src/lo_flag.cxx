@@ -28,44 +28,12 @@ using namespace EOSX;
 
 enum class eos_3param { IdealGas, Hybrid, Tabulated };
 
-/*
-// Calculate sound speed
-template <typename EOSType>
-void cs_LOAuxGF(CCTK_ARGUMENTS, EOSType *eos_3p, bool havetemp) {
-  DECLARE_CCTK_ARGUMENTSX_AsterX_SetLOFlag;
-  //DECLARE_CCTK_PARAMETERS;
-
-  // Loop over the entire grid (0 to n-1 cells in each direction)
-  grid.loop_int_device<1, 1, 1>(
-        grid.nghostzones,
-        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-    if (havetemp) {
-      lo_auxgf(p.I) = eos_3p->csnd_from_valid_rho_temp_ye(rho(p.I), temperature(p.I), Ye(p.I));
-    }
-    else {
-      lo_auxgf(p.I) = eos_3p->csnd_from_valid_rho_eps_ye(rho(p.I), eps(p.I), Ye(p.I));
-    }
-  });
-}
-*/
-
-// Calculate low-order flag for a particular gridfunction
-template<typename T>
-void CalcLOFlag(CCTK_ARGUMENTS, const GF3D2<const CCTK_REAL> &gf, const GF3D2<T> &refgf) {
-  DECLARE_CCTK_ARGUMENTSX_AsterX_SetLOFlag;
-  DECLARE_CCTK_PARAMETERS;
-
-  // Loop over the entire grid (0 to n-1 cells in each direction)
-  grid.loop_int_device<1, 1, 1>(
-        grid.nghostzones,
-        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-  
-    if (LOflag(p.I) == 0)
-      return;
-
-    CCTK_REAL etac_sq = 0;
+CCTK_DEVICE CCTK_HOST inline CCTK_REAL 
+LOFlagVar(const GF3D2<const CCTK_REAL> &gf, const CCTK_REAL ref, const PointDesc &p) {
+    CCTK_REAL etac_sq = 0.0;
     const CCTK_REAL epslo = 1e-22;
 
+    // Calculate derivatives, indicator func in each direction
     for (int dir=0; dir<3; dir++) {
       const CCTK_REAL qimm = gf(p.I - 2*p.DI[dir]);
       const CCTK_REAL qim = gf(p.I - p.DI[dir]);
@@ -73,7 +41,7 @@ void CalcLOFlag(CCTK_ARGUMENTS, const GF3D2<const CCTK_REAL> &gf, const GF3D2<T>
       const CCTK_REAL qip = gf(p.I + p.DI[dir]);
       const CCTK_REAL qipp = gf(p.I + 2*p.DI[dir]);
 
-      const CCTK_REAL d0Q = abs(refgf(p.I));
+      const CCTK_REAL d0Q = abs(ref);
       const CCTK_REAL d1Q = abs(0.5 * (qip - qim));
       const CCTK_REAL d2Q = abs(qip - 2.0 * qi + qim);
       const CCTK_REAL d3Q = abs(0.5 * (qipp - 2.0 * qip + 2.0 * qim - qimm));
@@ -86,14 +54,98 @@ void CalcLOFlag(CCTK_ARGUMENTS, const GF3D2<const CCTK_REAL> &gf, const GF3D2<T>
       etac_sq += eta_ci * eta_ci;
     }
 
-    const CCTK_REAL etacL = sqrt(etac_sq);  
-    if (etacL > etac(p.I))
-      etac(p.I) = etacL;
+    return sqrt(etac_sq);  
+}
+
+// Calculate low-order flag for a particular gridfunction
+template<typename EOSType>
+void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p, const bool havetemp) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_SetLOFlag;
+  DECLARE_CCTK_PARAMETERS;
+
+  const smat<GF3D2<const CCTK_REAL>, dim> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
+  const vec<GF3D2<const CCTK_REAL>, dim> gf_vels{velx, vely, velz};
+  const vec<GF3D2<const CCTK_REAL>, dim> gf_Bvecs{Bvecx, Bvecy, Bvecz};
+
+  // Loop over the grid
+  grid.loop_int_device<1, 1, 1>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+  
+    // Store highest etac as diagnostic. Note that this is only truly the highest
+    // if all checks pass.
+    CCTK_REAL etac_tot = 0.0;
+
+    // Check density
+    CCTK_REAL etacL = LOFlagVar(rho, rho(p.I), p);
+    if (etacL > etac_tot)
+      etac_tot = etacL;
+    if (etacL > eta_thresh){
+      etac(p.I) = etac_tot;
+      LOflag(p.I) = 0.0;
+      return;
+    }
+
+    // Check pressure
+    etacL = LOFlagVar(press, press(p.I), p);
+    if (etacL > etac_tot)
+      etac_tot = etacL;
+    if (etacL > eta_thresh){
+      etac(p.I) = etac_tot;
+      LOflag(p.I) = 0.0;
+      return;
+    }
+
+    // Calculate c_sound
+    CCTK_REAL csL = 0.0;
+    if (havetemp) {
+      csL = eos_3p->csnd_from_valid_rho_temp_ye(rho(p.I), temperature(p.I), Ye(p.I));
+    } else {
+      CCTK_REAL epsL = eps(p.I);
+      csL = eos_3p->csnd_from_valid_rho_eps_ye(rho(p.I), epsL, Ye(p.I));
+    }
+    const CCTK_REAL cs = csL;
+
+    // Check velocity 
+    for (int dir=0; dir<3; dir++) {
+      etacL = LOFlagVar(gf_vels(dir), cs, p);
+      if (etacL > etac_tot)
+        etac_tot = etacL;
+      if (etacL > eta_thresh){
+        etac(p.I) = etac_tot;
+        LOflag(p.I) = 0.0;
+        return;
+      }
+    }
+      
+    /*
+    // Calculate |B|
+    const vec<CCTK_REAL, 3> BvecsL{Bvecx(p.I), Bvecy(p.I), Bvecz(p.I)};
+    const smat<CCTK_REAL, 3> g_avg([&](int i, int j) ARITH_INLINE {
+      return calc_avg_v2c(gf_g(i, j), p);
+    });
+    const CCTK_REAL normBL = calc_norm(BvecsL, g_avg);
     
-    LOflag(p.I) *= etacL < eta_thresh;
+    // Check B^i's
+    for (int dir=0; dir<3; dir++) {
+      etacL = LOFlagVar(gf_Bvecs(dir), normBL, p);
+      if (etacL > etac_tot)
+        etac_tot = etacL;
+      if (etacL > eta_thresh){
+        etac(p.I) = etac_tot;
+        LOflag(p.I) = 0.0;
+        return;
+      }
+    }
+
+    */
+    // All checks pass
+    etac(p.I) = etac_tot;
+    LOflag(p.I) = 1.0;
   });
 }
 
+/*
 extern "C" void AsterX_InitLOAuxGF(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_InitLOAuxGF;
   DECLARE_CCTK_PARAMETERS;
@@ -105,24 +157,12 @@ extern "C" void AsterX_InitLOAuxGF(CCTK_ARGUMENTS) {
     lo_auxgf(p.I) = 0.0;
   });
 }
+*/
 
 extern "C" void AsterX_SetLOFlag(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_SetLOFlag;
   DECLARE_CCTK_PARAMETERS;
 
-  // Initialize flags
-  grid.loop_int_device<1, 1, 1>(
-        grid.nghostzones,
-        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-    etac(p.I) = 0.0;
-    LOflag(p.I) = 1;
-  });
-
-  // Detect shocks in rho, press
-  CalcLOFlag(cctkGH, rho, rho);
-  CalcLOFlag(cctkGH, press, press);
-
-  // Set reference gridfunction to c_s
   eos_3param eos_3p_type;
 
   if (CCTK_EQUALS(evolution_eos, "IdealGas")) {
@@ -139,61 +179,22 @@ extern "C" void AsterX_SetLOFlag(CCTK_ARGUMENTS) {
   case eos_3param::IdealGas: {
     // Get local eos object
     auto eos_3p_ig = global_eos_3p_ig;
-    grid.loop_int_device<1, 1, 1>(
-          grid.nghostzones,
-          [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-      CCTK_REAL epsL = eps(p.I);
-      lo_auxgf(p.I) = eos_3p_ig->csnd_from_valid_rho_eps_ye(rho(p.I), epsL, Ye(p.I));
-    });
+    CalcLOFlag(cctkGH, eos_3p_ig, false);
     break;
   }
   case eos_3param::Hybrid: {
     auto eos_3p_hyb = global_eos_3p_hyb;
-    grid.loop_int_device<1, 1, 1>(
-          grid.nghostzones,
-          [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-      CCTK_REAL epsL = eps(p.I);
-      lo_auxgf(p.I) = eos_3p_hyb->csnd_from_valid_rho_eps_ye(rho(p.I), epsL, Ye(p.I));
-    });
+    CalcLOFlag(cctkGH, eos_3p_hyb, false);
     break;
   }
   case eos_3param::Tabulated: {
     auto eos_3p_tab3d = global_eos_3p_tab3d;
-    grid.loop_int_device<1, 1, 1>(
-          grid.nghostzones,
-          [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-      lo_auxgf(p.I) = eos_3p_tab3d->csnd_from_valid_rho_temp_ye(rho(p.I), temperature(p.I), Ye(p.I));
-    });
+    CalcLOFlag(cctkGH, eos_3p_tab3d, true);
     break;
   }
   default:
     assert(0);
   }
-
-  // Detect shocks in velocity
-  CalcLOFlag(cctkGH, velx, lo_auxgf);
-  CalcLOFlag(cctkGH, vely, lo_auxgf);
-  CalcLOFlag(cctkGH, velz, lo_auxgf);
-
-  // Set reference gridfunction to |B|
-  const smat<GF3D2<const CCTK_REAL>, dim> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
-
-  grid.loop_int_device<1, 1, 1>(
-        grid.nghostzones,
-        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-
-    const vec<CCTK_REAL, 3> Bvecs{Bvecx(p.I), Bvecy(p.I), Bvecz(p.I)};
-    const smat<CCTK_REAL, 3> g_avg([&](int i, int j) ARITH_INLINE {
-      return calc_avg_v2c(gf_g(i, j), p);
-    });
-
-    lo_auxgf(p.I) = calc_norm(Bvecs, g_avg);
-  });
-
-  // Detect shocks in Bvec 
-  CalcLOFlag(cctkGH, Bvecx, lo_auxgf);
-  CalcLOFlag(cctkGH, Bvecy, lo_auxgf);
-  CalcLOFlag(cctkGH, Bvecz, lo_auxgf);
 }
 
 } // namespace AsterX

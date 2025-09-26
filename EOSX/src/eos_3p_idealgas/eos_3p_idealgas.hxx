@@ -37,6 +37,14 @@ public:
       const CCTK_REAL ye   ///< Electron fraction \f$ Y_e \f$
       ) const;
 
+  // TODO: this function should not be called
+  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
+  csnd_from_valid_rho_temp_ye(
+      const CCTK_REAL rho, 
+      const CCTK_REAL eps, 
+      const CCTK_REAL ye   
+      ) const;
+
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   temp_from_valid_rho_eps_ye(
       const CCTK_REAL rho, ///< Rest mass density  \f$ \rho \f$
@@ -152,6 +160,13 @@ CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
 eos_3p_idealgas::csnd_from_valid_rho_eps_ye(const CCTK_REAL rho, CCTK_REAL &eps,
                                             const CCTK_REAL ye) const {
   return sqrt(gm1 * eps / (eps + inv_gamma));
+}
+
+CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
+eos_3p_idealgas::csnd_from_valid_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL eps,
+                                            const CCTK_REAL ye) const {
+  assert(0);
+  return 999;
 }
 
 CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL

@@ -110,7 +110,6 @@ CCTK_REAL Aux_in_RHSof_A_Psi TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"'
 
 CCTK_REAL LOflag TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Shock detector switch"
 CCTK_REAL etac TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Shock detector measure"
-CCTK_REAL lo_auxgf TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Reference GF for shock detector"
 
 CCTK_REAL volform TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "sqrt(detg)"
 CCTK_REAL w_lorentz TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Fluid Lorentz factor"
