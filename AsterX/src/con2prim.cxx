@@ -247,7 +247,7 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     c2p_report rep_ent;
 
     // Limit conservatives before calling C2P
-    c2p_Noble.cons_floors_and_ceilings(eos_3p, cv, glo, tauFluid_atm);
+    c2p_Noble.cons_floors_and_ceilings(eos_3p, cv, glo, tauFluid_atmo);
 
     // ----- ----- C2P ----- -----
 

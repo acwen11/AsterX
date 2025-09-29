@@ -5,54 +5,54 @@ STORAGE: aster_mask_cc
 
 # ----- CCTK_INITIAL
 
-SCHEDULE AsterMasks_One IN CCTK_INITIAL BEFORE ODESolvers_Initial {
+SCHEDULE AsterMasks_SetToOne IN CCTK_INITIAL BEFORE ODESolvers_Initial {
 LANG: C
 WRITES:  aster_mask_vc(everywhere) aster_mask_cc(everywhere)
 } "Set masks = 1"
 
-SCHEDULE AsterMasks_ActuallySetZero IN CCTK_INITIAL BEFORE ODESolvers_Initial AFTER AsterMasks_Init {
+SCHEDULE AsterMasks_SetMaskBoolZero IN CCTK_INITIAL BEFORE ODESolvers_Initial AFTER AsterMasks_Init {
 LANG: C
 OPTIONS: global
-WRITES:  actually_set
-} "Set actually_set = 0"
+WRITES:  MaskBool
+} "Set MaskBool = 0"
 
 # ----- ODESolvers_PostStep
 
-SCHEDULE AsterMasks_OnePostStep IN ODESolvers_PostStep BEFORE ADMBaseX_SetADMVars {
+SCHEDULE AsterMasks_SetToOnePostStep IN ODESolvers_PostStep BEFORE ADMBaseX_SetADMVars {
 LANG: C
-READS:  actually_set
+READS:  MaskBool
 READS:  aster_mask_vc(everywhere) aster_mask_cc(everywhere)
 WRITES: aster_mask_vc(everywhere) aster_mask_cc(everywhere)
-} "If (actually_set = 1) masks = 1"
+} "If (MaskBool = 1) masks = 1"
 
-SCHEDULE AsterMasks_ActuallySetZero IN ODESolvers_PostStep BEFORE ADMBaseX_SetADMVars AFTER AsterMasks_OnePostStep {
+SCHEDULE AsterMasks_SetMaskBoolZero IN ODESolvers_PostStep BEFORE ADMBaseX_SetADMVars AFTER AsterMasks_SetToOnePostStep {
 LANG: C
 OPTIONS: global
-WRITES:  actually_set
-} "Set actually_set = 0"
+WRITES:  MaskBool
+} "Set MaskBool = 0"
 
 # ----- CCTK_POSTREGRID
 
-SCHEDULE AsterMasks_One IN CCTK_POSTREGRID BEFORE ODESolvers_PostStep {
+SCHEDULE AsterMasks_SetToOne IN CCTK_POSTREGRID BEFORE ODESolvers_PostStep {
 LANG: C
 WRITES: aster_mask_vc(everywhere) aster_mask_cc(everywhere)
 } "Set masks = 1"
 
-SCHEDULE AsterMasks_ActuallySetZero IN CCTK_POSTREGRID BEFORE ODESolvers_PostStep AFTER AsterMasks_One {
+SCHEDULE AsterMasks_SetMaskBoolZero IN CCTK_POSTREGRID BEFORE ODESolvers_PostStep AFTER AsterMasks_SetToOne {
 LANG: C
 OPTIONS: global
-WRITES:  actually_set
-} "Set actually_set = 0"
+WRITES:  MaskBool
+} "Set MaskBool = 0"
 
 # ----- CCTK_POST_RECOVER_VARIABLES
 
-SCHEDULE AsterMasks_One IN CCTK_POST_RECOVER_VARIABLES BEFORE ODESolvers_PostStep {
+SCHEDULE AsterMasks_SetToOne IN CCTK_POST_RECOVER_VARIABLES BEFORE ODESolvers_PostStep {
 LANG: C
 WRITES: aster_mask_vc(everywhere) aster_mask_cc(everywhere)
 } "Set masks = 1"
 
-SCHEDULE AsterMasks_ActuallySetZero IN CCTK_POST_RECOVER_VARIABLES BEFORE ODESolvers_PostStep AFTER AsterMasks_One {
+SCHEDULE AsterMasks_SetMaskBoolZero IN CCTK_POST_RECOVER_VARIABLES BEFORE ODESolvers_PostStep AFTER AsterMasks_SetToOne {
 LANG: C
 OPTIONS: global
-WRITES:  actually_set
-} "Set actually_set = 0"
+WRITES:  MaskBool
+} "Set MaskBool = 0"
