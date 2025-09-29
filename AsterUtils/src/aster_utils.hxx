@@ -164,7 +164,7 @@ calc_avg_neighbors(const vec<T, D> flag, const vec<T, D> u_nbs,
          CCTK_REAL(D);
 }
 
-// Higher order corrections
+// Higher order correction to flux derivative
 // template <typename T>
 CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
 higher_order_correction(const GF3D2<const CCTK_REAL> &gf, const PointDesc &p, int dir,
@@ -207,6 +207,24 @@ higher_order_correction(const GF3D2<const CCTK_REAL> &gf, const PointDesc &p, in
     correction = gf(Ip) - gf(Im);
   }
   return correction;
+}
+
+// Higher order correction to pointwise conservatives
+CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
+correct_conservs(const GF3D2<CCTK_REAL> &gf, const PointDesc &p,
+                        int correction_order) {
+  const auto ijk = p.I;
+  const auto im1jk = p.I - p.DI[0];
+  const auto ip1jk = p.I + p.DI[0];
+  const auto ijm1k = p.I - p.DI[1];
+  const auto ijp1k = p.I + p.DI[1];
+  const auto ijkm1 = p.I - p.DI[2];
+  const auto ijkp1 = p.I + p.DI[2];
+
+  return gf(ijk) - (correction_order==4) * (1.0/24.0) * (
+    (gf(im1jk) - 2.0 * gf(ijk) + gf(ip1jk))
+    + (gf(ijm1k) - 2.0 * gf(ijk) + gf(ijp1k))
+    + (gf(ijkm1) - 2.0 * gf(ijk) + gf(ijkp1)));
 }
 
 } // namespace AsterUtils

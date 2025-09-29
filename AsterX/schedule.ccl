@@ -131,6 +131,13 @@ SCHEDULE AsterX_FluxAuxZero_Initial IN AsterX_TouchNonEvolVarsGroup
 
 ################################################################################
 
+SCHEDULE AsterX_CorrectVolAvgCons IN CCTK_EVOL AFTER ODESolvers_Solve
+{
+  LANG: C
+  READS: dens(interior) tau(interior) mom(interior) DEnt(interior) DYe(interior) 
+  READS: LOflag(interior)
+  WRITES: dens(interior) tau(interior) mom(interior) DEnt(interior) DYe(interior) 
+} "Apply higher order correction to pointwise conservatives"
 
 SCHEDULE AsterX_Sync AT postregrid
 {
