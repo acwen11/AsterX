@@ -4,7 +4,6 @@
 SRCS = \
   computeBfromA.cxx \
   con2prim.cxx \
-  correct_volavg_cons.cxx \
   estimate_error.cxx \
   fluxes.cxx \
   check_prims.cxx \
