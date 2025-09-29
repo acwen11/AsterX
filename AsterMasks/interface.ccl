@@ -8,3 +8,10 @@ PUBLIC:
 
 CCTK_REAL aster_mask_vc CENTERING={vvv} TYPE=gf TAGS='checkpoint="no"' "Vertex-centered mask"
 CCTK_REAL aster_mask_cc CENTERING={ccc} TYPE=gf TAGS='checkpoint="no"' "Cell-centered mask"
+
+# This scalar can be used by external thorns to indicate 
+# whether we reset the gridfunctions above as 
+# AsterMasks_SetToOne/PostStep is always scheduled. 
+# We set the gfs to one if: MaskBool = 1 
+# MaskBool = 0 by default most of the time
+CCTK_REAL MaskBool TYPE=scalar "Whether we set the mask gridfunctions to one"

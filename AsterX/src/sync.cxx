@@ -2,9 +2,9 @@
 #include <cctk_Arguments.h>
 #include <cctk_Parameters.h>
 
+#include "../../../CarpetX/CarpetX/src/fillpatch.hxx"
 #include "../../../CarpetX/CarpetX/src/schedule.hxx"
 #include "../../../CarpetX/CarpetX/src/task_manager.hxx"
-#include "../../../CarpetX/CarpetX/src/fillpatch.hxx"
 
 namespace AsterX {
 using namespace CarpetX;
