@@ -171,15 +171,17 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
       [=] CCTK_DEVICE(const GF3D2<const CCTK_REAL> &var, const PointDesc &p,
                       bool gf_is_rho,
                       bool gf_is_press) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        return reconstruct<vec<CCTK_REAL, 2>>(var, p, reconstruction, dir, gf_is_rho, gf_is_press,
-                           press, gf_vel_dir, reconstruct_params);
+        return reconstruct<vec<CCTK_REAL, 2>>(var, p, reconstruction, dir,
+                                              gf_is_rho, gf_is_press, press,
+                                              gf_vel_dir, reconstruct_params);
       };
   const auto reconstruct_loworder =
       [=] CCTK_DEVICE(const GF3D2<const CCTK_REAL> &var, const PointDesc &p,
                       bool gf_is_rho,
                       bool gf_is_press) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        return reconstruct<vec<CCTK_REAL, 2>>(var, p, reconstruction_LO, dir, gf_is_rho, gf_is_press,
-                           press, gf_vel_dir, reconstruct_params);
+        return reconstruct<vec<CCTK_REAL, 2>>(var, p, reconstruction_LO, dir,
+                                              gf_is_rho, gf_is_press, press,
+                                              gf_vel_dir, reconstruct_params);
       };
 
   const auto calcflux =
@@ -263,10 +265,11 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
       temp_rc = reconstruct_pt(temperature, p, false, false);
 
       // Use lower-order if reconstructed rho, entropy, Ye or T is <= 0
-      if ((rho_rc(0) <= 0.0) || (entropy_rc(0) <= 0.0) || (Ye_rc(0) <= 0.0) || (temp_rc(0) <= 0.0) ||
-          (rho_rc(1) <= 0.0) || (entropy_rc(1) <= 0.0) || (Ye_rc(1) <= 0.0) || (temp_rc(1) <= 0.0)) {
+      if ((rho_rc(0) <= 0.0) || (entropy_rc(0) <= 0.0) || (Ye_rc(0) <= 0.0) ||
+          (temp_rc(0) <= 0.0) || (rho_rc(1) <= 0.0) || (entropy_rc(1) <= 0.0) ||
+          (Ye_rc(1) <= 0.0) || (temp_rc(1) <= 0.0)) {
 
-      	useLO = true;
+        useLO = true;
 
         rho_rc = reconstruct_loworder(rho, p, true, true);
         entropy_rc = reconstruct_loworder(entropy, p, false, false);
@@ -289,10 +292,11 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
       press_rc = reconstruct_pt(press, p, false, true);
 
       // Use lower-order if reconstructed rho, entropy, Ye or pressure is <= 0
-      if ((rho_rc(0) <= 0.0) || (entropy_rc(0) <= 0.0) || (Ye_rc(0) <= 0.0) || (press_rc(0) <= 0.0) ||
-          (rho_rc(1) <= 0.0) || (entropy_rc(1) <= 0.0) || (Ye_rc(1) <= 0.0) || (press_rc(1) <= 0.0)) {
+      if ((rho_rc(0) <= 0.0) || (entropy_rc(0) <= 0.0) || (Ye_rc(0) <= 0.0) ||
+          (press_rc(0) <= 0.0) || (rho_rc(1) <= 0.0) ||
+          (entropy_rc(1) <= 0.0) || (Ye_rc(1) <= 0.0) || (press_rc(1) <= 0.0)) {
 
-      	useLO = true;
+        useLO = true;
 
         rho_rc = reconstruct_loworder(rho, p, true, true);
         entropy_rc = reconstruct_loworder(entropy, p, false, false);
@@ -308,7 +312,6 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
         temp_rc(f) =
             eos_3p->temp_from_valid_rho_eps_ye(rho_rc(f), eps_rc(f), Ye_rc(f));
       }
-
     }
 
     const vec<CCTK_REAL, 2> rhoh_rc([&](int f) ARITH_INLINE {
@@ -347,15 +350,15 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
     case rec_var_t::v_vec: {
 
       if (useLO) {
-	      
+
         for (int i = 0; i <= 2; ++i) { // loop over components
-            vels_rc(i) = reconstruct_loworder(gf_vels(i), p, false, false);
-	}
+          vels_rc(i) = reconstruct_loworder(gf_vels(i), p, false, false);
+        }
       } else {
 
-      	for (int i = 0; i <= 2; ++i) { // loop over components
-            vels_rc(i) = reconstruct_pt(gf_vels(i), p, false, false);
-	}
+        for (int i = 0; i <= 2; ++i) { // loop over components
+          vels_rc(i) = reconstruct_pt(gf_vels(i), p, false, false);
+        }
       }
 
       /* co-velocity measured by Eulerian observer: v_j */
@@ -376,9 +379,9 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
       // Lower-order
       if (useLO) {
 
-      	for (int i = 0; i <= 2; ++i) { // loop over components
-            zvec_rc(i) = reconstruct_loworder(gf_zvec(i), p, false, false);
-	}
+        for (int i = 0; i <= 2; ++i) { // loop over components
+          zvec_rc(i) = reconstruct_loworder(gf_zvec(i), p, false, false);
+        }
       }
       // End lower-order
 
@@ -406,9 +409,9 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
       // Lower-order
       if (useLO) {
 
-      	for (int i = 0; i <= 2; ++i) { // loop over components
-            svec_rc(i) = reconstruct_loworder(gf_svec(i), p, false, false);
-	}
+        for (int i = 0; i <= 2; ++i) { // loop over components
+          svec_rc(i) = reconstruct_loworder(gf_svec(i), p, false, false);
+        }
       }
       // End lower-order
 
@@ -417,11 +420,9 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
       const auto s2_rc = calc_contraction(sveclow_rc, svec_rc);
 
       w_lorentz_rc(0) =
-          sqrt(0.5 + sqrt(0.25 + s2_rc(0) /
-                                     rhoh_rc(0) / rhoh_rc(0)));
+          sqrt(0.5 + sqrt(0.25 + s2_rc(0) / rhoh_rc(0) / rhoh_rc(0)));
       w_lorentz_rc(1) =
-          sqrt(0.5 + sqrt(0.25 + s2_rc(1) /
-                                     rhoh_rc(1) / rhoh_rc(1)));
+          sqrt(0.5 + sqrt(0.25 + s2_rc(1) / rhoh_rc(1) / rhoh_rc(1)));
 
       for (int i = 0; i <= 2; ++i) {   // loop over components
         for (int j = 0; j <= 1; ++j) { // loop over left and right state
