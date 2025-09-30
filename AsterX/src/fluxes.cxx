@@ -99,18 +99,19 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
 
   static_assert(dir_i >= 0 && dir_i < 3, "");
 
+  // Prebind the velocity slice for this direction once
+  const auto gf_vel_dir_i = gf_vels(dir_i);
+
   const auto reconstruct_pt =
       [=] CCTK_DEVICE(const GF3D2<const CCTK_REAL> &var, const PointDesc &p,
-                      bool gf_is_rho,
-                      bool gf_is_press) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+                      bool gf_is_rho, bool gf_is_press) {
         return reconstruct<vec<CCTK_REAL, 2>>(var, p, reconstruction, dir_i,
                                               gf_is_rho, gf_is_press, press,
                                               gf_vel_dir_i, reconstruct_params);
       };
   const auto reconstruct_loworder =
       [=] CCTK_DEVICE(const GF3D2<const CCTK_REAL> &var, const PointDesc &p,
-                      bool gf_is_rho,
-                      bool gf_is_press) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+                      bool gf_is_rho, bool gf_is_press) {
         return reconstruct<vec<CCTK_REAL, 2>>(var, p, reconstruction_LO, dir_i,
                                               gf_is_rho, gf_is_press, press,
                                               gf_vel_dir_i, reconstruct_params);
@@ -273,8 +274,8 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
     auto assign_reconstructed = [&](int d) {
       auto tmp = useLO ? reconstruct_loworder(gf_Bvecs(d), p, false, false)
                        : reconstruct_pt(gf_Bvecs(d), p, false, false);
-      Bs_rc(d)(0) = tmp[0];
-      Bs_rc(d)(1) = tmp[1];
+      Bs_rc(d)(0) = tmp(0);
+      Bs_rc(d)(1) = tmp(1);
     };
 
     // Assign reconstructed values for the two perpendicular directions
