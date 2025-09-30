@@ -37,7 +37,8 @@ if (compute_MHD_spherical) {
 }
 
 if (compute_VI) {
-  SCHEDULE AsterAnalysis_VolumeIntegrals AT analysis AFTER AsterAnalysis_MHD_Spherical
+
+  SCHEDULE AsterAnalysis_ComputTemps AT analysis AFTER AsterAnalysis_MHD_Spherical
   {
     LANG: C
     READS: ADMBaseX::metric(everywhere)
@@ -48,6 +49,14 @@ if (compute_VI) {
     READS: mhd_analysis(everywhere)
     READS: mhd_spherical(everywhere)
     WRITES: mhd_temps(everywhere)
+  }
+  "Compute MHD temporary gfs required for VIs"
+
+
+  SCHEDULE AsterAnalysis_VolumeIntegrals AT analysis AFTER AsterAnalysis_ComputeTemps
+  {
+    LANG: C
+    READS: mhd_temps(everywhere)
     WRITES: total_magnetic_energy(everywhere)
     WRITES: total_kinetic_energy(everywhere)
     WRITES: mean_B(everywhere)

@@ -6,8 +6,6 @@ INHERITS: HydroBaseX AsterX
 USES INCLUDE HEADER: loop_device.hxx
 USES INCLUDE HEADER: aster_fd.hxx aster_interp.hxx aster_utils.hxx
 
-CCTK_REAL w_lorentz TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Lorentz factor"
-
 CCTK_REAL mhd_analysis TYPE=gf CENTERING={ccc} tags='checkpoint="no"'
 {
 divA, A_norm, divB, B_norm, b2small, mhd_press_ratio, mhd_energy_ratio, poynting_flux_x, poynting_flux_y, poynting_flux_z, poynting_flux_norm, poynting_vector_x, poynting_vector_y, poynting_vector_z, poynting_scalar, lambda_MRI_x, lambda_MRI_y, lambda_MRI_z
@@ -35,3 +33,7 @@ CCTK_REAL total_kinetic_energy type=SCALAR tags='checkpoint="no"' "Total kinetic
 CCTK_REAL mean_B type=SCALAR tags='checkpoint="no"' "Mean magnetic field"
 CCTK_REAL mean_B_Tor type=SCALAR tags='checkpoint="no"' "Mean magnetic toroidal field"
 CCTK_REAL mean_B_Pol type=SCALAR tags='checkpoint="no"' "Mean magnetic poloidal field"
+
+public:
+
+CCTK_REAL w_lorentz TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Lorentz factor"

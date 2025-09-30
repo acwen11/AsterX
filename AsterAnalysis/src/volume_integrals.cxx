@@ -28,8 +28,8 @@ static CCTK_REAL reduce_sum_carpetx(const char *varname, int tl = 0) {
   return red.sum; // includes dx*dy*dz
 }
 
-extern "C" void AsterAnalysis_VolumeIntegrals(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_AsterAnalysis_VolumeIntegrals;
+extern "C" void AsterAnalysis_ComputeTemps(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterAnalysis_ComputeTemps;
   DECLARE_CCTK_PARAMETERS;
 
   const smat<GF3D2<const CCTK_REAL>, 3> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
@@ -73,6 +73,11 @@ extern "C" void AsterAnalysis_VolumeIntegrals(CCTK_ARGUMENTS) {
             rho(p.I) * B_Poloidal_norm(p.I) * Wcell_fluid;
         mean_B_Tor_denominator_temps(p.I) = rho(p.I) * Wcell_fluid;
       });
+}
+
+extern "C" void AsterAnalysis_VolumeIntegrals(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterAnalysis_VolumeIntegrals;
+  DECLARE_CCTK_PARAMETERS;
 
   // ---- global reductions ----
   const CCTK_REAL EM_sum = reduce_sum_carpetx("AsterAnalysis::EMenergy_temps");
