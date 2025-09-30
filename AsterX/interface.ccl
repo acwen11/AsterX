@@ -106,9 +106,9 @@ CCTK_REAL Psi_rhs TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"' "t-component of
 CCTK_REAL Fbeta TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"'
 {
   Fbetax, Fbetay, Fbetaz
-} "Auxiliary variables which appears in the rhs of Psi"
+} "Auxiliary variables which appear in the rhs of Psi"
 
-CCTK_REAL G TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"' "Auxiliary variables which appears in the rhs of Avec"
+CCTK_REAL G TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"' "Auxiliary variable which appears in the rhs of Avec"
 
 CCTK_REAL Fx_stag TYPE=gf CENTERING={cvv} TAGS='checkpoint="no"' "x-component of F"
 CCTK_REAL Fy_stag TYPE=gf CENTERING={vcv} TAGS='checkpoint="no"' "y-component of F"

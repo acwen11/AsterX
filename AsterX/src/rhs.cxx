@@ -13,7 +13,7 @@ using namespace Arith;
 using namespace ReconX;
 using namespace AsterUtils;
 
-enum class vector_potential_gauge_t { algebraic, generalized_lorentz };
+enum class vector_potential_gauge_t { algebraic, generalized_lorenz };
 
 template <int i, vector_potential_gauge_t gauge, bool use_uct>
 void CalcRHSofAvec_impl(CCTK_ARGUMENTS, const reconstruction_t reconstruction,
@@ -47,8 +47,8 @@ void CalcRHSofAvec_impl(CCTK_ARGUMENTS, const reconstruction_t reconstruction,
                                                Avec_z_rhs};
 
   constexpr CCTK_REAL is_glorentz =
-      (gauge == vector_potential_gauge_t::generalized_lorentz) ? CCTK_REAL(1)
-                                                               : CCTK_REAL(0);
+      (gauge == vector_potential_gauge_t::generalized_lorenz) ? CCTK_REAL(1)
+                                                              : CCTK_REAL(0);
 
   // edge centered loop
   if constexpr (use_uct) { // upwind-CT
@@ -119,7 +119,7 @@ void CalcRHSofPsi_impl(CCTK_ARGUMENTS, const CCTK_REAL damp_fac) {
         grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p)
             CCTK_ATTRIBUTE_ALWAYS_INLINE { Psi_rhs(p.I) = 0.0; });
-  } else if constexpr (gauge == vector_potential_gauge_t::generalized_lorentz) {
+  } else if constexpr (gauge == vector_potential_gauge_t::generalized_lorenz) {
     grid.loop_int_device<0, 0, 0>(
         grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
@@ -150,13 +150,12 @@ void CalcRHSofAvec(CCTK_ARGUMENTS, const vector_potential_gauge_t gauge,
     }
     break;
   }
-  case vector_potential_gauge_t::generalized_lorentz: {
+  case vector_potential_gauge_t::generalized_lorenz: {
     if (use_uct) {
-      CalcRHSofAvec_impl<i, vector_potential_gauge_t::generalized_lorentz,
-                         true>(CCTK_PASS_CTOC, reconstruction,
-                               reconstruct_params);
+      CalcRHSofAvec_impl<i, vector_potential_gauge_t::generalized_lorenz, true>(
+          CCTK_PASS_CTOC, reconstruction, reconstruct_params);
     } else {
-      CalcRHSofAvec_impl<i, vector_potential_gauge_t::generalized_lorentz,
+      CalcRHSofAvec_impl<i, vector_potential_gauge_t::generalized_lorenz,
                          false>(CCTK_PASS_CTOC, reconstruction,
                                 reconstruct_params);
     }
@@ -175,8 +174,8 @@ void CalcRHSofPsi(CCTK_ARGUMENTS, const vector_potential_gauge_t gauge,
                                                            damp_fac);
     break;
   }
-  case vector_potential_gauge_t::generalized_lorentz: {
-    CalcRHSofPsi_impl<vector_potential_gauge_t::generalized_lorentz>(
+  case vector_potential_gauge_t::generalized_lorenz: {
+    CalcRHSofPsi_impl<vector_potential_gauge_t::generalized_lorenz>(
         CCTK_PASS_CTOC, damp_fac);
   } break;
   default:
@@ -191,8 +190,8 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
   vector_potential_gauge_t gauge;
   if (CCTK_EQUALS(vector_potential_gauge, "algebraic"))
     gauge = vector_potential_gauge_t::algebraic;
-  else if (CCTK_EQUALS(vector_potential_gauge, "generalized Lorentz"))
-    gauge = vector_potential_gauge_t::generalized_lorentz;
+  else if (CCTK_EQUALS(vector_potential_gauge, "generalized Lorenz"))
+    gauge = vector_potential_gauge_t::generalized_lorenz;
   else
     CCTK_ERROR("Unknown value for parameter \"vector_potential_gauge\"");
 
