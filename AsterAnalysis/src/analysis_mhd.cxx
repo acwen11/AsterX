@@ -67,6 +67,8 @@ extern "C" void AsterAnalysis_MHD(CCTK_ARGUMENTS) {
           v_low = z_low / w_lorentz(p.I);
         }
 
+        const CCTK_REAL v2 = calc_contraction(v_low, v_up);
+
         /* v^i - beta^i / alpha */
         const vec<CCTK_REAL, 3> velshift = v_up - beta_avg / alp_avg;
 
@@ -96,6 +98,23 @@ extern "C" void AsterAnalysis_MHD(CCTK_ARGUMENTS) {
         /* inverse Beta and magnetization */
         mhd_press_ratio(p.I) = b2small(p.I) / (2.0 * press(p.I));
         mhd_energy_ratio(p.I) = b2small(p.I) / (2.0 * rho(p.I));
+
+        /* EM energy integrand: (B^2 - 0.5 b^2) * √γ */
+        magnetic_energy(p.I) = (B2big - 0.5 * b2small(p.I)) * sqrt_detg;
+
+        /* Kinetic energy: 0.5*(ρ + ρ ε + p) v^2 * W * √γ */
+        const CCTK_REAL rhoH = rho(p.I) + rho(p.I) * eps(p.I) + press(p.I);
+        kinetic_energy(p.I) = 0.5 * rhoH * v2 * w_lorentz(p.I) * sqrt_detg;
+
+        /* ⟨|B|⟩ */
+        mean_B_numerator(p.I) =
+            rho(p.I) * B_norm(p.I) * w_lorentz(p.I) * sqrt_detg;
+        mean_B_denominator(p.I) = rho(p.I) * w_lorentz(p.I) * sqrt_detg;
+
+        // NOTE: Computing volume integral of mean_B must be done via
+        // post-processing To compute VI of mean_B, use sum column values in the
+        // norms files of mean_B_num and mean_B_den e.g.: mean_B = mean_B_num /
+        // mean_B_den
 
         /* ---- shift & four‑velocity ---- */
         const vec<CCTK_REAL, 3> beta_avg_low =

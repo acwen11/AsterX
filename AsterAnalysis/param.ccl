@@ -6,11 +6,7 @@ BOOLEAN compute_MHD "Compute MHD quantities?" STEERABLE=always
 
 BOOLEAN compute_MHD_spherical "Compute MHD quantities in spherical coordinates?" STEERABLE=always
 {
-} "no"
-
-BOOLEAN compute_VI "Compute volume integrals?" STEERABLE=always
-{
-} "no"
+} "yes"
 
 BOOLEAN verbose "Do we want verbose output?" STEERABLE=always
 {

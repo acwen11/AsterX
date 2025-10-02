@@ -92,6 +92,19 @@ extern "C" void AsterAnalysis_MHD_Spherical(CCTK_ARGUMENTS) {
         Brho(p.I) = Brho_up;
         B_Poloidal_norm(p.I) = Bpol_norm;
         B_Toroidal_norm(p.I) = Btor_norm;
+
+        /* ⟨|B_tor|⟩, ⟨|B_pol|⟩ using prior spherical analysis */
+        mean_B_Tor_numerator(p.I) =
+            rho(p.I) * Btor_norm * w_lorentz(p.I) * sqrt_detg;
+        mean_B_Pol_numerator(p.I) =
+            rho(p.I) * Bpol_norm * w_lorentz(p.I) * sqrt_detg;
+        mean_B_Tor_denominator(p.I) = rho(p.I) * w_lorentz(p.I) * sqrt_detg;
+
+        // NOTE: Computing volume integral of mean_B_Tor and mean_B_Pol must be
+        // done via post-processing To compute VI of mean_B_Tor and mean_B_Pol,
+        // use sum column values of mean_B_Tor_num, mean_B_Pol_num and
+        // mean_B_Tor_den e.g.: mean_B_Tor = mean_B_Tor_num / mean_B_Tor_den
+        // e.g.: mean_B_Pol = mean_B_Pol_num / mean_B_Tor_den
       });
 }
 

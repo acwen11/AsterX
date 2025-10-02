@@ -6,4 +6,5 @@ Licence      : LGPL
 
 1. Purpose
 
-Compute MHD analysis quantities
+Compute MHD analysis quantities. 
+Note that to compute the volume integrals, output for norms should be activated and grid-function name should be listed in "CarpetX::out_norm_vars".

@@ -29,40 +29,12 @@ if (compute_MHD_spherical) {
   SCHEDULE AsterAnalysis_MHD_Spherical AT analysis AFTER AsterAnalysis_MHD
   {
     LANG: C
+    READS: w_lorentz(everywhere)
     READS: ADMBaseX::metric(everywhere)
     READS: HydroBaseX::Bvec(everywhere)
+    READS: HydroBaseX::rho(everywhere)
     WRITES: mhd_spherical(everywhere)
   }
   "Compute MHD analysis quantities in spherical coordinates"
-}
-
-if (compute_VI) {
-
-  SCHEDULE AsterAnalysis_ComputTemps AT analysis AFTER AsterAnalysis_MHD_Spherical
-  {
-    LANG: C
-    READS: ADMBaseX::metric(everywhere)
-    READS: HydroBaseX::rho(everywhere)
-    READS: HydroBaseX::eps(everywhere)
-    READS: HydroBaseX::press(everywhere)
-    READS: w_lorentz(everywhere)
-    READS: mhd_analysis(everywhere)
-    READS: mhd_spherical(everywhere)
-    WRITES: mhd_temps(everywhere)
-  }
-  "Compute MHD temporary gfs required for VIs"
-
-
-  SCHEDULE AsterAnalysis_VolumeIntegrals AT analysis AFTER AsterAnalysis_ComputeTemps
-  {
-    LANG: C
-    READS: mhd_temps(everywhere)
-    WRITES: total_magnetic_energy(everywhere)
-    WRITES: total_kinetic_energy(everywhere)
-    WRITES: mean_B(everywhere)
-    WRITES: mean_B_Tor(everywhere)
-    WRITES: mean_B_Pol(everywhere)
-  }
-  "Compute MHD volume integrals"
 }
 
