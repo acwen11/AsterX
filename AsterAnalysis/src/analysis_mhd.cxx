@@ -191,9 +191,9 @@ extern "C" void AsterAnalysis_MHD(CCTK_ARGUMENTS) {
         divB(p.I) = divB_val / sqrt_detg;
 
         /* ---- divA (flat divergence of edge-centered A) ---- */
-        const CCTK_REAL divA_val = idx * (Avec_x(p.I + p.DI[0]) - Avec_x(p.I)) +
-                                   idy * (Avec_y(p.I + p.DI[1]) - Avec_y(p.I)) +
-                                   idz * (Avec_z(p.I + p.DI[2]) - Avec_z(p.I));
+        const CCTK_REAL divA_val = idx * (Avec_x(p.I) - Avec_x(p.I - p.DI[0])) +
+                                   idy * (Avec_y(p.I) - Avec_y(p.I - p.DI[1])) +
+                                   idz * (Avec_z(p.I) - Avec_z(p.I - p.DI[2]));
         divA(p.I) = divA_val;
       }); /* end grid loop */
 }
