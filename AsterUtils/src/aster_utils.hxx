@@ -168,24 +168,9 @@ calc_avg_neighbors(const vec<T, D> flag, const vec<T, D> u_nbs,
 // template <typename T>
 CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
 higher_order_correction(const GF3D2<const CCTK_REAL> &gf, const PointDesc &p, int dir,
-                        int correction_order, const CCTK_REAL theta) {
-  CCTK_REAL correction;
-  correction = 0.0;
-  /*
-  if (correction_order == 4) {
-    correction = (13.0 / 12.0) * gf(p.I) -
-                 (1.0 / 24.0) * (gf(p.I - p.DI[dir]) + gf(p.I + p.DI[dir]));
-  } else if (correction_order == 6) {
-    correction =
-        (1067.0 / 960.0) * gf(p.I) -
-        (29.0 / 480.0) * (gf(p.I - p.DI[dir]) + gf(p.I + p.DI[dir])) +
-        (3.0 / 640.0) * (gf(p.I - 2 * p.DI[dir]) + gf(p.I + 2 * p.DI[dir]));
-  } else {
-    correction = gf(p.I);
-  }
-  */
-  
-  // New code combines above stencils at two faces to directly add to RHS
+                        const GF3D2<const CCTK_REAL> &flag, int correction_order) {
+
+  // New code combines stencils at two faces to directly add to RHS
   // Here, p.I is the cell center index, gf(p.I) is the left face, gf(p.I + p.DI) is the right
   const auto Im3 = p.I - 2 * p.DI[dir];
   const auto Im2 = p.I - p.DI[dir];
@@ -193,19 +178,17 @@ higher_order_correction(const GF3D2<const CCTK_REAL> &gf, const PointDesc &p, in
   const auto Ip = p.I + p.DI[dir];
   const auto Ip2 = p.I + 2 * p.DI[dir];
   const auto Ip3 = p.I + 3 * p.DI[dir];
-  if (correction_order == 4) {
-    correction = 
-      // (9.0/8.0) * (gf(Ip) - gf(Im)) - (1.0/24.0) * (gf(Ip2) - gf(Im2)); 
-      gf(Ip) - gf(Im) + theta * ((1.0/8.0) * (gf(Ip) - gf(Im)) - (1.0/24.0) * (gf(Ip2) - gf(Im2))); 
-  } else if (correction_order == 6) {
-    correction = 
-      // (75.0/64.0) * (gf(Ip) - gf(Im)) - (25.0/384.0) * (gf(Ip2) - gf(Im2)) +
-      // (3.0/640.0) * (gf(Ip3) - gf(Im3));
-      gf(Ip) - gf(Im) + theta * ((11.0/64.0) * (gf(Ip) - gf(Im)) - (25.0/384.0) * (gf(Ip2) - gf(Im2)) +
-      (3.0/640.0) * (gf(Ip3) - gf(Im3)));
-  } else {
-    correction = gf(Ip) - gf(Im);
-  }
+
+  // Lower order if flagged
+  const CCTK_REAL theta_m = flag(Im) * flag(Im2);
+  const CCTK_REAL theta_p = flag(Im) * flag(Ip);
+
+  CCTK_REAL correction = 
+    gf(Ip) - gf(Im) 
+      - (correction==4) 
+        * (theta_p * (1.0/24.0) * (gf(Im) - 2.0 * gf(Ip) + gf(Ip2))
+          + theta_m * (1.0/24.0) * (gf(Im2) - 2.0 * gf(Im) + gf(Ip)));
+
   return correction;
 }
 

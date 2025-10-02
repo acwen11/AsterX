@@ -29,13 +29,27 @@ CCTK_INT correction_order "Order of accuracy to check if higher order correction
 {
   2 :: "Second order accurate"
   4 :: "Fourth order accurate"
-  6 :: "Sixth order accurate"
+  # 6 :: "Sixth order accurate"
 } 2
 
 CCTK_REAL eta_thresh "Threshold for shock detection measure (see Berta+ 2025, Kiuchi 2025) " STEERABLE=always
 {
   0:* :: "Larger than zero"
 } 1.0
+
+# Higher Order debugging params
+CCTK_REAL LO_rhothresh "Set LO flag to 0 below density threshold" STEERABLE=always
+{
+  0:* :: "Larger than zero"
+} 1.0
+
+BOOLEAN forceHO "Always set LO flag to 1" STEERABLE=always
+{
+} no 
+
+BOOLEAN forceLO "Always set LO flag to 0" STEERABLE=always
+{
+} no
 
 KEYWORD recon_type "Vector field used in reconstruction" STEERABLE=always
 {

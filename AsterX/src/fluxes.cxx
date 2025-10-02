@@ -270,7 +270,8 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
 
       // Use lower-order if reconstructed rho, entropy, Ye or T is <= 0
       if ((rho_rc(0) <= 0.0) || (entropy_rc(0) <= 0.0) || (Ye_rc(0) <= 0.0) || (temp_rc(0) <= 0.0) ||
-          (rho_rc(1) <= 0.0) || (entropy_rc(1) <= 0.0) || (Ye_rc(1) <= 0.0) || (temp_rc(1) <= 0.0)) {
+          (rho_rc(1) <= 0.0) || (entropy_rc(1) <= 0.0) || (Ye_rc(1) <= 0.0) || (temp_rc(1) <= 0.0) ||
+          useLO) {
 
       	useLO = true;
 
@@ -296,7 +297,8 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
 
       // Use lower-order if reconstructed rho, entropy, Ye or pressure is <= 0
       if ((rho_rc(0) <= 0.0) || (entropy_rc(0) <= 0.0) || (Ye_rc(0) <= 0.0) || (press_rc(0) <= 0.0) ||
-          (rho_rc(1) <= 0.0) || (entropy_rc(1) <= 0.0) || (Ye_rc(1) <= 0.0) || (press_rc(1) <= 0.0)) {
+          (rho_rc(1) <= 0.0) || (entropy_rc(1) <= 0.0) || (Ye_rc(1) <= 0.0) || (press_rc(1) <= 0.0) ||
+          useLO) {
 
       	useLO = true;
 
