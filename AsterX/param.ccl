@@ -25,13 +25,6 @@ KEYWORD flux_type "Flux solver" STEERABLE=always
   "HLLE" :: ""
 } "LxF"
 
-KEYWORD recon_type "Vector field used in reconstruction" STEERABLE=always
-{
-  "v_vec" :: "Eulerian 3-velocity"
-  "z_vec" :: "Lorentz factor x Eulerian 3-velocity"
-  "s_vec" :: "Purely hydrodynamic part of conserved momentum without volume factor"
-} "v_vec"
-
 BOOLEAN local_estimate_error "Use error estimation criteria of this thorn" STEERABLE=always
 {
 } yes
@@ -68,6 +61,13 @@ CCTK_INT unit_test_repetitions "Number of times each unit test should be repeate
 } 1
 
 restricted:
+
+KEYWORD recon_type "Vector field used in reconstruction" STEERABLE=always
+{
+  "v_vec" :: "Eulerian 3-velocity"
+  "z_vec" :: "Lorentz factor x Eulerian 3-velocity"
+  "s_vec" :: "Purely hydrodynamic part of conserved momentum without volume factor"
+} "v_vec"
 
 BOOLEAN interpolate_failed_c2p "Interpolate those grid points where c2p failed." STEERABLE=always
 {

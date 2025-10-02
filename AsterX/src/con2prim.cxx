@@ -25,13 +25,13 @@ enum class c2p_first_t { None, Noble, Palenzuela, Entropy };
 enum class c2p_second_t { None, Noble, Palenzuela, Entropy };
 
 enum C2PFlag : CCTK_INT {
-  C2P_INIT = 0,       // initial value
-  C2P_PRIME = 1,      // 2‑D Noble solver succeeded
-  C2P_SECOND = 2,     // 1‑D Palenzuela solver succeeded
-  C2P_ENTROPY = 3,    // 1‑D Entropy (kappa) solver succeeded
-  C2P_ATMO = 4,       // when (cv.dens <= sqrt_detg * rho_atmo_cut) is true
-  C2P_AVG = 5,        // primitives obtained by neighbour‑averaging
-  C2P_FAIL = 6        // when C2P fails
+  C2P_INIT = 0,    // initial value
+  C2P_PRIME = 1,   // first solver succeeded
+  C2P_SECOND = 2,  // second solver succeeded
+  C2P_ENTROPY = 3, // 1‑D Entropy (kappa) solver succeeded
+  C2P_ATMO = 4,    // when (cv.dens <= sqrt_detg * rho_atmo_cut) is true
+  C2P_AVG = 5,     // primitives obtained by neighbour‑averaging
+  C2P_FAIL = 6     // when C2P fails
 };
 
 template <typename EOSIDType, typename EOSType>
@@ -98,11 +98,15 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
 
       if (use_press_atmo) {
         press_atm = (radial_distance > r_atmo)
-                       ? (p_atmo * pow(r_atmo / radial_distance, n_press_atmo))
-                       : p_atmo;
-        press_atm = std::max(eos_3p->press_from_valid_rho_temp_ye(rho_atm, eos_3p->rgtemp.min, Ye_atmo), press_atm);
-        eps_atm = eos_3p->eps_from_valid_rho_press_ye(rho_atm, press_atm, Ye_atmo);
-        temp_atm = eos_3p->temp_from_valid_rho_eps_ye(rho_atm, eps_atm, Ye_atmo);
+                        ? (p_atmo * pow(r_atmo / radial_distance, n_press_atmo))
+                        : p_atmo;
+        press_atm = std::max(eos_3p->press_from_valid_rho_temp_ye(
+                                 rho_atm, eos_3p->rgtemp.min, Ye_atmo),
+                             press_atm);
+        eps_atm =
+            eos_3p->eps_from_valid_rho_press_ye(rho_atm, press_atm, Ye_atmo);
+        temp_atm =
+            eos_3p->temp_from_valid_rho_eps_ye(rho_atm, eps_atm, Ye_atmo);
       } else {
         temp_atm = (radial_distance > r_atmo)
                        ? (t_atmo * pow(r_atmo / radial_distance, n_temp_atmo))
@@ -111,7 +115,8 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
         // temp_atm = max(temp_atm, eos_3p->interptable->xmin<1>());
         press_atm =
             eos_3p->press_from_valid_rho_temp_ye(rho_atm, temp_atm, Ye_atmo);
-        eps_atm = eos_3p->eps_from_valid_rho_temp_ye(rho_atm, temp_atm, Ye_atmo);
+        eps_atm =
+            eos_3p->eps_from_valid_rho_temp_ye(rho_atm, temp_atm, Ye_atmo);
         // eps_atm should be kept consistent with temp_atm, so we do not use
         // the setting below
         // eps_atm =
@@ -120,6 +125,8 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
 
     } else {
       const CCTK_REAL gm1 = eos_1p->gm1_from_valid_rho(rho_atm);
+      temp_atm = eos_1p->temp_from_valid_gm1(gm1);
+      temp_atm = std::max(eos_3p->rgtemp.min, temp_atm);
       eps_atm = eos_1p->sed_from_valid_gm1(gm1);
       eps_atm =
           std::min(std::max(eos_3p->rgeps.min, eps_atm), eos_3p->rgeps.max);
@@ -137,17 +144,20 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     // Construct Noble c2p object:
     c2p_2DNoble c2p_Noble(eos_3p, atmo, max_iter, c2p_tol, alp_thresh,
                           cons_error_limit, vw_lim, B_lim, rho_BH, eps_BH,
-                          vwlim_BH, Ye_lenient, use_z, use_temperature, use_press_atmo);
+                          vwlim_BH, Ye_lenient, use_z, use_temperature,
+                          use_press_atmo);
 
     // Construct Palenzuela c2p object:
     c2p_1DPalenzuela c2p_Pal(eos_3p, atmo, max_iter, c2p_tol, alp_thresh,
                              cons_error_limit, vw_lim, B_lim, rho_BH, eps_BH,
-                             vwlim_BH, Ye_lenient, use_z, use_temperature, use_press_atmo);
+                             vwlim_BH, Ye_lenient, use_z, use_temperature,
+                             use_press_atmo);
 
     // Construct Entropy c2p object:
     c2p_1DEntropy c2p_Ent(eos_3p, atmo, max_iter, c2p_tol, alp_thresh,
                           cons_error_limit, vw_lim, B_lim, rho_BH, eps_BH,
-                          vwlim_BH, Ye_lenient, use_z, use_temperature, use_press_atmo);
+                          vwlim_BH, Ye_lenient, use_z, use_temperature,
+                          use_press_atmo);
 
     // ----------
 
@@ -308,12 +318,12 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
       if (rep_first.failed() && rep_second.failed()) {
 
         if (use_entropy_fix) {
-          
-          c2p_flag_code = C2P_ENTROPY; 
+
+          c2p_flag_code = C2P_ENTROPY;
           c2p_Ent.solve(eos_3p, pv, cv, glo, rep_ent);
-           
+
           if (rep_ent.failed()) {
-            
+
             c2p_flag_local = false;
             c2p_flag_code = C2P_FAIL;
 

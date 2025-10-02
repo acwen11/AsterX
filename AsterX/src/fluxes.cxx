@@ -166,40 +166,39 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
 
   const auto reconstruct_pt =
       [=] CCTK_DEVICE(const GF3D2<const CCTK_REAL> &var, const PointDesc &p,
-                      const bool &gf_is_rho,
-                      const bool &gf_is_press) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+                      const bool &gf_is_rho, const bool &gf_is_press) {
         return reconstruct(var, p, reconstruction, dir, gf_is_rho, gf_is_press,
                            press, gf_vels(dir), reconstruct_params);
       };
   const auto reconstruct_loworder =
       [=] CCTK_DEVICE(const GF3D2<const CCTK_REAL> &var, const PointDesc &p,
-                      const bool &gf_is_rho,
-                      const bool &gf_is_press) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        return reconstruct(var, p, reconstruction_LO, dir, gf_is_rho, gf_is_press,
-                           press, gf_vels(dir), reconstruct_params);
+                      const bool &gf_is_rho, const bool &gf_is_press) {
+        return reconstruct(var, p, reconstruction_LO, dir, gf_is_rho,
+                           gf_is_press, press, gf_vels(dir),
+                           reconstruct_params);
       };
-  const auto calcflux =
-      [=] CCTK_DEVICE(vec<vec<CCTK_REAL, 4>, 2> lam, vec<CCTK_REAL, 2> var,
-                      vec<CCTK_REAL, 2> flux) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        CCTK_REAL flx;
-        switch (fluxtype) {
+  const auto calcflux = [=] CCTK_DEVICE(vec<vec<CCTK_REAL, 4>, 2> lam,
+                                        vec<CCTK_REAL, 2> var,
+                                        vec<CCTK_REAL, 2> flux) {
+    CCTK_REAL flx;
+    switch (fluxtype) {
 
-        case flux_t::LxF: {
-          flx = laxf(lam, var, flux);
-          break;
-        }
+    case flux_t::LxF: {
+      flx = laxf(lam, var, flux);
+      break;
+    }
 
-        case flux_t::HLLE: {
-          flx = hlle(lam, var, flux);
-          break;
-        }
+    case flux_t::HLLE: {
+      flx = hlle(lam, var, flux);
+      break;
+    }
 
-        default:
-          assert(0);
-        }
+    default:
+      assert(0);
+    }
 
-        return flx;
-      };
+    return flx;
+  };
 
   // Face-centred grid functions (in direction `dir`)
   constexpr array<int, dim> face_centred = {!(dir == 0), !(dir == 1),
@@ -261,19 +260,23 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
       temp_rc_dummy = reconstruct_pt(temperature, p, false, false);
 
       // Use lower-order if reconstructed rho, entropy, Ye or T is <= 0
-      if ((rho_rc(0) <= 0.0) || (entropy_rc(0) <= 0.0) || (Ye_rc(0) <= 0.0) || (temp_rc_dummy[0] <= 0.0)) {
+      if ((rho_rc(0) <= 0.0) || (entropy_rc(0) <= 0.0) || (Ye_rc(0) <= 0.0) ||
+          (temp_rc_dummy[0] <= 0.0)) {
         useLO_0 = true;
       }
-      if ((rho_rc(1) <= 0.0) || (entropy_rc(1) <= 0.0) || (Ye_rc(1) <= 0.0) || (temp_rc_dummy[1] <= 0.0)) {
+      if ((rho_rc(1) <= 0.0) || (entropy_rc(1) <= 0.0) || (Ye_rc(1) <= 0.0) ||
+          (temp_rc_dummy[1] <= 0.0)) {
         useLO_1 = true;
       }
 
       // Lower-order
       if (useLO_0) {
         vec<CCTK_REAL, 2> rhoLO_rc{reconstruct_loworder(rho, p, true, true)};
-        vec<CCTK_REAL, 2> entropyLO_rc{reconstruct_loworder(entropy, p, false, false)};
+        vec<CCTK_REAL, 2> entropyLO_rc{
+            reconstruct_loworder(entropy, p, false, false)};
         vec<CCTK_REAL, 2> YeLO_rc{reconstruct_loworder(Ye, p, false, false)};
-        vec<CCTK_REAL, 2> tempLO_rc{reconstruct_loworder(temperature, p, false, false)};
+        vec<CCTK_REAL, 2> tempLO_rc{
+            reconstruct_loworder(temperature, p, false, false)};
 
         rho_rc(0) = rhoLO_rc(0);
         entropy_rc(0) = entropyLO_rc(0);
@@ -283,9 +286,11 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
 
       if (useLO_1) {
         vec<CCTK_REAL, 2> rhoLO_rc{reconstruct_loworder(rho, p, true, true)};
-        vec<CCTK_REAL, 2> entropyLO_rc{reconstruct_loworder(entropy, p, false, false)};
+        vec<CCTK_REAL, 2> entropyLO_rc{
+            reconstruct_loworder(entropy, p, false, false)};
         vec<CCTK_REAL, 2> YeLO_rc{reconstruct_loworder(Ye, p, false, false)};
-        vec<CCTK_REAL, 2> tempLO_rc{reconstruct_loworder(temperature, p, false, false)};
+        vec<CCTK_REAL, 2> tempLO_rc{
+            reconstruct_loworder(temperature, p, false, false)};
 
         rho_rc(1) = rhoLO_rc(1);
         entropy_rc(1) = entropyLO_rc(1);
@@ -310,19 +315,23 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
       press_rc_dummy = reconstruct_pt(press, p, false, true);
 
       // Use lower-order if reconstructed rho, entropy, Ye or pressure is <= 0
-      if ((rho_rc(0) <= 0.0) || (entropy_rc(0) <= 0.0) || (Ye_rc(0) <= 0.0) || (press_rc_dummy[0] <= 0.0)) {
+      if ((rho_rc(0) <= 0.0) || (entropy_rc(0) <= 0.0) || (Ye_rc(0) <= 0.0) ||
+          (press_rc_dummy[0] <= 0.0)) {
         useLO_0 = true;
       }
-      if ((rho_rc(1) <= 0.0) || (entropy_rc(1) <= 0.0) || (Ye_rc(1) <= 0.0) || (press_rc_dummy[1] <= 0.0)) {
+      if ((rho_rc(1) <= 0.0) || (entropy_rc(1) <= 0.0) || (Ye_rc(1) <= 0.0) ||
+          (press_rc_dummy[1] <= 0.0)) {
         useLO_1 = true;
       }
 
       // Lower-order
       if (useLO_0) {
         vec<CCTK_REAL, 2> rhoLO_rc{reconstruct_loworder(rho, p, true, true)};
-        vec<CCTK_REAL, 2> entropyLO_rc{reconstruct_loworder(entropy, p, false, false)};
+        vec<CCTK_REAL, 2> entropyLO_rc{
+            reconstruct_loworder(entropy, p, false, false)};
         vec<CCTK_REAL, 2> YeLO_rc{reconstruct_loworder(Ye, p, false, false)};
-        vec<CCTK_REAL, 2> pressLO_rc{reconstruct_loworder(press, p, false, true)};
+        vec<CCTK_REAL, 2> pressLO_rc{
+            reconstruct_loworder(press, p, false, true)};
 
         rho_rc(0) = rhoLO_rc(0);
         entropy_rc(0) = entropyLO_rc(0);
@@ -332,9 +341,11 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
 
       if (useLO_1) {
         vec<CCTK_REAL, 2> rhoLO_rc{reconstruct_loworder(rho, p, true, true)};
-        vec<CCTK_REAL, 2> entropyLO_rc{reconstruct_loworder(entropy, p, false, false)};
+        vec<CCTK_REAL, 2> entropyLO_rc{
+            reconstruct_loworder(entropy, p, false, false)};
         vec<CCTK_REAL, 2> YeLO_rc{reconstruct_loworder(Ye, p, false, false)};
-        vec<CCTK_REAL, 2> pressLO_rc{reconstruct_loworder(press, p, false, true)};
+        vec<CCTK_REAL, 2> pressLO_rc{
+            reconstruct_loworder(press, p, false, true)};
 
         rho_rc(1) = rhoLO_rc(1);
         entropy_rc(1) = entropyLO_rc(1);
@@ -351,7 +362,6 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
         temp_rc(f) =
             eos_3p->temp_from_valid_rho_eps_ye(rho_rc(f), eps_rc(f), Ye_rc(f));
       }
-
     }
 
     const vec<CCTK_REAL, 2> rhoh_rc([&](int f) ARITH_INLINE {
@@ -396,15 +406,15 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
     switch (rec_var) {
     case rec_var_t::v_vec: {
 
-      array<CCTK_REAL, 2>
-          vels_rc_dummy; // note: can't copy array<,2> to vec<,2>, only construct
+      array<CCTK_REAL, 2> vels_rc_dummy; // note: can't copy array<,2> to
+                                         // vec<,2>, only construct
 
       for (int i = 0; i <= 2; ++i) { // loop over components
         vels_rc_dummy = reconstruct_pt(gf_vels(i), p, false, false);
         vels_rc(i)(0) = vels_rc_dummy[0];
         vels_rc(i)(1) = vels_rc_dummy[1];
 
-	// Lower-order
+        // Lower-order
         if (useLO_0) {
           vels_rc_dummy = reconstruct_loworder(gf_vels(i), p, false, false);
           vels_rc(i)(0) = vels_rc_dummy[0];
@@ -413,7 +423,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
           vels_rc_dummy = reconstruct_loworder(gf_vels(i), p, false, false);
           vels_rc(i)(1) = vels_rc_dummy[1];
         }
-	// End lower-order
+        // End lower-order
       }
 
       /* co-velocity measured by Eulerian observer: v_j */
@@ -433,21 +443,23 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
       // Lower-order
       if (useLO_0) {
         vec<vec<CCTK_REAL, 2>, 3> zvecLO_rc([&](int i) ARITH_INLINE {
-          return vec<CCTK_REAL, 2>{reconstruct_loworder(gf_zvec(i), p, false, false)};
+          return vec<CCTK_REAL, 2>{
+              reconstruct_loworder(gf_zvec(i), p, false, false)};
         });
-        
-	for (int i = 0; i <= 2; ++i) { // loop over components
+
+        for (int i = 0; i <= 2; ++i) { // loop over components
           zvec_rc(i)(0) = zvecLO_rc(i)(0);
-	}
+        }
       }
       if (useLO_1) {
         vec<vec<CCTK_REAL, 2>, 3> zvecLO_rc([&](int i) ARITH_INLINE {
-          return vec<CCTK_REAL, 2>{reconstruct_loworder(gf_zvec(i), p, false, false)};
+          return vec<CCTK_REAL, 2>{
+              reconstruct_loworder(gf_zvec(i), p, false, false)};
         });
-        
-	for (int i = 0; i <= 2; ++i) { // loop over components
+
+        for (int i = 0; i <= 2; ++i) { // loop over components
           zvec_rc(i)(1) = zvecLO_rc(i)(1);
-	}
+        }
       }
       // End lower-order
 
@@ -474,21 +486,23 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
       // Lower-order
       if (useLO_0) {
         vec<vec<CCTK_REAL, 2>, 3> svecLO_rc([&](int i) ARITH_INLINE {
-          return vec<CCTK_REAL, 2>{reconstruct_loworder(gf_svec(i), p, false, false)};
+          return vec<CCTK_REAL, 2>{
+              reconstruct_loworder(gf_svec(i), p, false, false)};
         });
-        
-	for (int i = 0; i <= 2; ++i) { // loop over components
+
+        for (int i = 0; i <= 2; ++i) { // loop over components
           svec_rc(i)(0) = svecLO_rc(i)(0);
-	}
+        }
       }
       if (useLO_1) {
         vec<vec<CCTK_REAL, 2>, 3> svecLO_rc([&](int i) ARITH_INLINE {
-          return vec<CCTK_REAL, 2>{reconstruct_loworder(gf_svec(i), p, false, false)};
+          return vec<CCTK_REAL, 2>{
+              reconstruct_loworder(gf_svec(i), p, false, false)};
         });
-        
-	for (int i = 0; i <= 2; ++i) { // loop over components
+
+        for (int i = 0; i <= 2; ++i) { // loop over components
           svec_rc(i)(1) = svecLO_rc(i)(1);
-	}
+        }
       }
       // End lower-order
 

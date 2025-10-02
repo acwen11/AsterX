@@ -33,7 +33,7 @@ enum class reconstruction_t {
   mp5
 };
 
-inline CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_HOST CCTK_DEVICE array<CCTK_REAL, 2>
+inline CCTK_HOST CCTK_DEVICE array<CCTK_REAL, 2>
 reconstruct(const GF3D2<const CCTK_REAL> &gf_var, const PointDesc &p,
             const reconstruction_t &reconstruction, const int &dir,
             const bool &gf_is_rho, const bool &gf_is_press,

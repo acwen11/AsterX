@@ -13,7 +13,7 @@ namespace ReconX {
 using std::array;
 
 template <typename T = CCTK_REAL>
-inline CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_DEVICE CCTK_HOST T
+inline CCTK_DEVICE CCTK_HOST T
 monocentral(const T &x, const T &y) {
 
   using std::fabs;
@@ -26,7 +26,7 @@ monocentral(const T &x, const T &y) {
 }
 
 template <typename T = CCTK_REAL>
-inline CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_DEVICE CCTK_HOST array<T, 2>
+inline CCTK_DEVICE CCTK_HOST array<T, 2>
 monocentral_reconstruct(T q_Imm, T q_Im, T q_Ip, T q_Ipp) {
   // reconstructs values of Im and Ip at the common face between these
   // two cells

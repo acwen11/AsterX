@@ -743,6 +743,7 @@ SpacetimeX/Z4c
 !TARGET   = $ARR
 !TYPE     = ignore
 !CHECKOUT =
+AsterX/AsterAnalysis
 AsterX/AsterSeeds
 AsterX/AsterUtils
 AsterX/AsterX
