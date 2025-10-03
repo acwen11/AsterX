@@ -32,7 +32,7 @@ extern "C" void AsterAnalysis_MHD(CCTK_ARGUMENTS) {
   const CCTK_REAL idy = 1.0 / CCTK_DELTA_SPACE(1);
   const CCTK_REAL idz = 1.0 / CCTK_DELTA_SPACE(2);
 
-  grid.loop_all_device<1, 1, 1>(
+  grid.loop_int_device<1, 1, 1>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         /* ---- metric averages at cell center ---- */

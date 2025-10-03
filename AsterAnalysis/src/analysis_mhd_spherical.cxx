@@ -29,8 +29,8 @@ extern "C" void AsterAnalysis_MHD_Spherical(CCTK_ARGUMENTS) {
     return (i == j) ? CCTK_REAL(1) : CCTK_REAL(0);
   });
 
-  /* main loop over all zone‑centred points */
-  grid.loop_all_device<1, 1, 1>(
+  /* main loop over interior zone‑centred points */
+  grid.loop_int_device<1, 1, 1>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         /* metric at centre */
