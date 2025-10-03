@@ -26,8 +26,8 @@ enum class c2p_second_t { None, Noble, Palenzuela, Entropy };
 
 enum C2PFlag : CCTK_INT {
   C2P_INIT = 0,    // initial value
-  C2P_PRIME = 1,   // 2‑D Noble solver succeeded
-  C2P_SECOND = 2,  // 1‑D Palenzuela solver succeeded
+  C2P_PRIME = 1,   // first solver succeeded
+  C2P_SECOND = 2,  // second solver succeeded
   C2P_ENTROPY = 3, // 1‑D Entropy (kappa) solver succeeded
   C2P_ATMO = 4,    // when (cv.dens <= sqrt_detg * rho_atmo_cut) is true
   C2P_AVG = 5,     // primitives obtained by neighbour‑averaging
@@ -122,6 +122,8 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
 
     } else {
       const CCTK_REAL gm1 = eos_1p->gm1_from_valid_rho(rho_atm);
+      temp_atm = eos_1p->temp_from_valid_gm1(gm1);
+      temp_atm = std::max(eos_3p->rgtemp.min, temp_atm);
       eps_atm = eos_1p->sed_from_valid_gm1(gm1);
       eps_atm = std::max(eos_3p->eps_from_valid_rho_temp_ye(
                              rho_atm, eos_3p->rgtemp.min, Ye_atmo),

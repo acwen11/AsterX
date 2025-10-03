@@ -30,7 +30,7 @@ typedef struct {
 } reconstruct_params_t;
 
 template <typename T>
-inline CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_DEVICE CCTK_HOST int sgn(T val) {
+inline CCTK_DEVICE CCTK_HOST int sgn(T val) {
   return (T(0) < val) - (val < T(0));
 }
 

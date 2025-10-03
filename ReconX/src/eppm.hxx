@@ -25,7 +25,7 @@ using namespace std;
 using namespace Arith;
 using namespace Loop;
 
-inline CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_DEVICE CCTK_HOST CCTK_REAL
+inline CCTK_DEVICE CCTK_HOST CCTK_REAL
 approx_at_cell_interface(const array<const CCTK_REAL, 5> &gf,
                          const CCTK_INT interface) {
   const CCTK_INT Im = interface;
@@ -36,7 +36,7 @@ approx_at_cell_interface(const array<const CCTK_REAL, 5> &gf,
   return 7.0 / 12.0 * (gf[I] + gf[Ip]) - (1.0 / 12.0) * (gf[Im] + gf[Ipp]);
 }
 
-inline CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_DEVICE CCTK_HOST CCTK_REAL
+inline CCTK_DEVICE CCTK_HOST CCTK_REAL
 limit(const array<const CCTK_REAL, 5> &gf, const CCTK_REAL gf_rc,
       const CCTK_INT interface, const CCTK_REAL C,
       const bool &keep_var_positive) {
@@ -63,7 +63,7 @@ limit(const array<const CCTK_REAL, 5> &gf, const CCTK_REAL gf_rc,
   }
 }
 
-inline CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_DEVICE CCTK_HOST void
+inline CCTK_DEVICE CCTK_HOST void
 monotonize(const array<const CCTK_REAL, 5> &gf, CCTK_REAL &rc_minus,
            CCTK_REAL &rc_plus, const CCTK_REAL C) {
   const CCTK_INT Imm = 0;
@@ -111,7 +111,7 @@ monotonize(const array<const CCTK_REAL, 5> &gf, CCTK_REAL &rc_minus,
 
 /* ePPM reconstruction scheme. (see Reisswig et al. 2013) based on McCorquodale
    & Colella (2011) */
-inline CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_DEVICE CCTK_HOST array<CCTK_REAL, 2>
+inline CCTK_DEVICE CCTK_HOST array<CCTK_REAL, 2>
 eppm(const GF3D2<const CCTK_REAL> &gf_var,
      const array<const vect<int, dim>, 5> &cells, const bool &keep_var_positive,
      const GF3D2<const CCTK_REAL> &gf_press,

@@ -19,7 +19,7 @@ using std::array;
  * the Spritz code for details
  */
 template <typename T = CCTK_REAL>
-inline CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_DEVICE CCTK_HOST array<T, 2>
+inline CCTK_DEVICE CCTK_HOST array<T, 2>
 wenoz(T gf_Imm, T gf_Im, T gf_I, T gf_Ip, T gf_Ipp, T weno_eps) {
 
   using Arith::vec;
@@ -102,7 +102,7 @@ wenoz(T gf_Imm, T gf_Im, T gf_I, T gf_Ip, T gf_Ipp, T weno_eps) {
 }
 
 template <typename T = CCTK_REAL>
-inline CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_DEVICE CCTK_HOST array<T, 2>
+inline CCTK_DEVICE CCTK_HOST array<T, 2>
 wenoz_reconstruct(T gf_Immm, T gf_Imm, T gf_Im, T gf_Ip, T gf_Ipp, T gf_Ippp,
                   T weno_eps) {
 

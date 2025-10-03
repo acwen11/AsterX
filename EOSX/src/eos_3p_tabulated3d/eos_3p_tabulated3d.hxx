@@ -41,6 +41,7 @@ public:
     XP = 15,     // "Xp"
     ABAR = 16,   // "Abar"
     ZBAR = 17,   // "Zbar"
+    GAMMA = 18,  // "Gamma"
     NUM_VARS
   };
 
@@ -89,15 +90,17 @@ public:
         ntemp * sizeof(CCTK_REAL));
     CCTK_REAL *yes =
         (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(nye * sizeof(CCTK_REAL));
+    CCTK_REAL *alltables_tmp = (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(
+        npoints * NTABLES * sizeof(CCTK_REAL));
     CCTK_REAL *alltables = (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(
         npoints * NTABLES * sizeof(CCTK_REAL));
     energy_shift =
         (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(sizeof(CCTK_REAL));
 
     static const char *dnames[NTABLES] = {
-        "logpress", "logenergy", "entropy", "munu", "cs2",  "dedt",
-        "dpdrhoe",  "dpderho",   "muhat",   "mu_e", "mu_p", "mu_n",
-        "Xa",       "Xh",        "Xn",      "Xp",   "Abar", "Zbar"};
+        "logpress", "logenergy", "entropy", "munu", "cs2",  "dedt", "dpdrhoe",
+        "dpderho",  "muhat",     "mu_e",    "mu_p", "mu_n", "Xa",   "Xh",
+        "Xn",       "Xp",        "Abar",    "Zbar", "gamma"};
 
 #ifdef H5_HAVE_PARALLEL
     get_hdf5_real_dset(file_id, "logrho", nrho, logrho);
@@ -106,8 +109,21 @@ public:
     get_hdf5_real_dset(file_id, "energy_shift", 1, energy_shift);
     for (int iv = 0; iv < NTABLES; iv++) {
       get_hdf5_real_dset(file_id, dnames[iv], npoints,
-                         &alltables[iv * npoints]);
+                         &alltables_tmp[iv * npoints]);
     }
+
+    // change ordering of alltables array so that
+    // the table kind is the fastest changing index
+    for (int iv = 0; iv < NTABLES; iv++)
+      for (int k = 0; k < nye; k++)
+        for (int j = 0; j < ntemp; j++)
+          for (int i = 0; i < nrho; i++) {
+            int indold = i + nrho * (j + ntemp * (k + nye * iv));
+            int indnew = iv + NTABLES * (i + nrho * (j + ntemp * k));
+            alltables[indnew] = alltables_tmp[indold];
+          }
+    amrex::The_Managed_Arena()->free(alltables_tmp);
+
     CHECK_ERROR(H5Fclose(file_id));
     CHECK_ERROR(H5Pclose(fapl_id));
 #else
@@ -118,10 +134,23 @@ public:
       get_hdf5_real_dset(file_id, "energy_shift", 1, energy_shift);
       for (int iv = 0; iv < NTABLES; iv++) {
         get_hdf5_real_dset(file_id, dnames[iv], npoints,
-                           &alltables[iv * npoints]);
+                           &alltables_tmp[iv * npoints]);
       }
       CHECK_ERROR(H5Fclose(file_id));
+
+      // change ordering of alltables array so that
+      // the table kind is the fastest changing index
+      for (int iv = 0; iv < NTABLES; iv++)
+        for (int k = 0; k < nye; k++)
+          for (int j = 0; j < ntemp; j++)
+            for (int i = 0; i < nrho; i++) {
+              int indold = i + nrho * (j + ntemp * (k + nye * iv));
+              int indnew = iv + NTABLES * (i + nrho * (j + ntemp * k));
+              alltables[indnew] = alltables_tmp[indold];
+            }
     }
+    amrex::The_Managed_Arena()->free(alltables_tmp);
+
     MPI_Bcast(logrho, nrho, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Bcast(logtemp, ntemp, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Bcast(yes, nye, MPI_DOUBLE, 0, MPI_COMM_WORLD);
@@ -165,37 +194,63 @@ public:
 
   // Device‐callable routines
 
+  //// Table inversions
+  template<size_t var>
   CCTK_HOST CCTK_DEVICE inline CCTK_REAL
-  logtemp_from_valid_rho_eps_ye(const CCTK_REAL rho, CCTK_REAL &eps,
+  logtemp_from_valid_rho_var_ye(const CCTK_REAL rho, CCTK_REAL &invar,
                                 const CCTK_REAL ye) const {
     // bound inputs
     CCTK_REAL r = std::fmin(std::fmax(rho, rgrho.min), rgrho.max);
-    eps = std::fmax(eps + *energy_shift, rgeps.min + *energy_shift) -
-          *energy_shift;
     CCTK_REAL lrho = std::log(r);
-    CCTK_REAL leps = std::log(eps + *energy_shift);
 
     // table‐edge clamp
     auto vmin =
-        interptable->interpolate<EV::EPS>(lrho, interptable->xmin<1>(), ye)[0];
+        interptable->interpolate<var>(lrho, interptable->xmin<1>(), ye)[0];
     auto vmax =
-        interptable->interpolate<EV::EPS>(lrho, interptable->xmax<1>(), ye)[0];
-    if (leps <= vmin) {
-      eps = exp(vmin) - *energy_shift;
+        interptable->interpolate<var>(lrho, interptable->xmax<1>(), ye)[0];
+    if (invar <= vmin) {
+      // eps = exp(vmin) - *energy_shift;
+      invar = vmin;
       return interptable->xmin<1>();
     }
-    if (leps >= vmax) {
-      eps = exp(vmax) - *energy_shift;
+    if (invar >= vmax) {
+      // eps = exp(vmax) - *energy_shift;
+      invar = vmax;
       return interptable->xmax<1>();
     }
 
     // root‐find for logtemp
     auto func = [&](CCTK_REAL &lt) {
-      CCTK_REAL val = interptable->interpolate<EV::EPS>(lrho, lt, ye)[0];
-      return leps - val;
+      CCTK_REAL val = interptable->interpolate<var>(lrho, lt, ye)[0];
+      return invar - val;
     };
     return zero_brent(interptable->xmin<1>(), interptable->xmax<1>(), 1.e-14,
                       func);
+  }
+
+  CCTK_HOST CCTK_DEVICE inline CCTK_REAL
+  logtemp_from_valid_rho_eps_ye(const CCTK_REAL rho, CCTK_REAL &eps,
+                                const CCTK_REAL ye) const {
+    // bound inputs
+    eps = std::fmax(eps, rgeps.min);
+    CCTK_REAL leps = std::log(eps + *energy_shift);
+    CCTK_REAL lt = logtemp_from_valid_rho_var_ye<EV::EPS>(rho, leps, ye);
+    eps = exp(leps) - *energy_shift;
+    return lt;
+  }
+
+  CCTK_HOST CCTK_DEVICE inline CCTK_REAL
+  temp_from_valid_rho_eps_ye(const CCTK_REAL rho, CCTK_REAL &eps,
+                                const CCTK_REAL ye) const {
+    CCTK_REAL lt = logtemp_from_valid_rho_eps_ye(rho, eps, ye);
+    return exp(lt);
+  }
+
+  CCTK_HOST CCTK_DEVICE inline CCTK_REAL
+  temp_from_valid_rho_entropy_ye(const CCTK_REAL rho, CCTK_REAL &ent,
+                                const CCTK_REAL ye) const {
+    CCTK_REAL lt = logtemp_from_valid_rho_var_ye<EV::S>(rho, ent, ye);
+    return exp(lt);
   }
 
   CCTK_HOST CCTK_DEVICE inline CCTK_REAL
@@ -259,13 +314,6 @@ public:
     return sqrt(v);
   }
 
-  CCTK_HOST CCTK_DEVICE inline CCTK_REAL
-  temp_from_valid_rho_eps_ye(const CCTK_REAL rho, CCTK_REAL &eps,
-                             const CCTK_REAL ye) const {
-    CCTK_REAL lt = logtemp_from_valid_rho_eps_ye(rho, eps, ye);
-    return exp(lt);
-  }
-
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
   press_derivs_from_valid_rho_eps_ye(CCTK_REAL &press, CCTK_REAL &dpdrho,
                                      CCTK_REAL &dpdeps, const CCTK_REAL rho,
@@ -281,6 +329,24 @@ public:
     CCTK_REAL lr = std::log(std::fmin(std::fmax(rho, rgrho.min), rgrho.max));
     CCTK_REAL lt = std::log(std::fmin(std::fmax(temp, rgtemp.min), rgtemp.max));
     return interptable->interpolate<EV::S>(lr, lt, ye)[0];
+  }
+
+  CCTK_HOST CCTK_DEVICE inline void
+  mu_pne_from_valid_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
+                                 const CCTK_REAL ye, CCTK_REAL &mup, CCTK_REAL &mun, CCTK_REAL &mue) const {
+    CCTK_REAL lr = std::log(std::fmin(std::fmax(rho, rgrho.min), rgrho.max));
+    CCTK_REAL lt = std::log(std::fmin(std::fmax(temp, rgtemp.min), rgtemp.max));
+    mup = interptable->interpolate<EV::MU_P>(lr, lt, ye)[0];
+    mun = interptable->interpolate<EV::MU_N>(lr, lt, ye)[0];
+    mue = interptable->interpolate<EV::MU_E>(lr, lt, ye)[0];
+  }
+
+  CCTK_HOST CCTK_DEVICE inline CCTK_REAL
+  mu_lepton_from_valid_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
+                                 const CCTK_REAL ye) const {
+    CCTK_REAL mup, mun, mue;
+    mu_pne_from_valid_rho_temp_ye(rho, temp, ye, mup, mun, mue);
+    return mue + mup - mun;
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
@@ -333,6 +399,7 @@ public:
       eps_min = std::fmin(eps_min, val);
       eps_max = std::fmax(eps_max, val);
     }
+    eps_min = std::fmax(eps_min, 1e-15); // Force eps positive
     return range{eps_min, eps_max};
   }
 
