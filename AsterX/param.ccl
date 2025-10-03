@@ -3,8 +3,8 @@
 KEYWORD vector_potential_gauge "Gauge choice of four-vector potential A" STEERABLE=always
 {
   "algebraic" :: ""
-  "generalized Lorentz" :: ""
-} "generalized Lorentz"
+  "generalized Lorenz" :: ""
+} "generalized Lorenz"
 
 CCTK_REAL lorenz_damp_fac "Damping factor used in the Lorenz Gauge (see Farris et al 2012)" STEERABLE=always
 {
