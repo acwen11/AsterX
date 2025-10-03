@@ -46,7 +46,7 @@ void CalcRHSofAvec_impl(CCTK_ARGUMENTS, const reconstruction_t reconstruction,
   const vec<GF3D2<CCTK_REAL>, dim> gf_Avec_rhs{Avec_x_rhs, Avec_y_rhs,
                                                Avec_z_rhs};
 
-  constexpr CCTK_REAL is_glorentz =
+  constexpr CCTK_REAL is_glorenz =
       (gauge == vector_potential_gauge_t::generalized_lorenz) ? CCTK_REAL(1)
                                                               : CCTK_REAL(0);
 
@@ -89,7 +89,7 @@ void CalcRHSofAvec_impl(CCTK_ARGUMENTS, const reconstruction_t reconstruction,
               hll_upwind(BjL, BjR, vkL * BjL, vkR * BjR, ap_k, am_k) -
               hll_upwind(BkL, BkR, vjL * BkL, vjR * BkR, ap_j, am_j);
 
-          gf_Avec_rhs(i)(p.I) = -E - is_glorentz * calc_fd2_v2e<i>(G, p);
+          gf_Avec_rhs(i)(p.I) = -E - is_glorenz * calc_fd2_v2e<i>(G, p);
         });
   } else { // flux-CT
     grid.loop_int_device<i == 0, i == 1, i == 2>(
@@ -101,7 +101,7 @@ void CalcRHSofAvec_impl(CCTK_ARGUMENTS, const reconstruction_t reconstruction,
           const CCTK_REAL Fkj_m = gf_fBs(k)(j)(p.I - p.DI[k]);
           const CCTK_REAL E = CCTK_REAL(0.25) * ((Fjk + Fjk_m) - (Fkj + Fkj_m));
 
-          gf_Avec_rhs(i)(p.I) = -E - is_glorentz * calc_fd2_v2e<i>(G, p);
+          gf_Avec_rhs(i)(p.I) = -E - is_glorenz * calc_fd2_v2e<i>(G, p);
         });
   }
 }
