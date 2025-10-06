@@ -181,7 +181,7 @@ higher_order_correction(const GF3D2<const CCTK_REAL> &gf, const PointDesc &p, in
 
   CCTK_REAL correction = 
     gf(Ip) - gf(Im) 
-      + (correction==4) 
+      + (correction_order==4) 
         * ((1.0/8.0) * (gf(Ip) - gf(Im)) - (1.0/24.0) * (gf(Ip2) - gf(Im2)));
 
   return correction;

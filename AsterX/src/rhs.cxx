@@ -111,7 +111,7 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
           // return gf_fluxes(i)(p.I + p.DI[i]) - gf_fluxes(i)(p.I);
           const bool drop_order = (LOflag(p.I - p.DI[i]) * LOflag(p.I) * LOflag(p.I + p.DI[i])) == 0.0;
           const CCTK_INT corr_ordL = drop_order ? 2 : correction_order;
-          return higher_order_correction(gf_fluxes(i), p, i, correction_order);
+          return higher_order_correction(gf_fluxes(i), p, i, corr_ordL);
         });
         return -calc_contraction(idx, dfluxes);
       };
