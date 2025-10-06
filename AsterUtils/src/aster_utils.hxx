@@ -168,7 +168,7 @@ calc_avg_neighbors(const vec<T, D> flag, const vec<T, D> u_nbs,
 // template <typename T>
 CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
 higher_order_correction(const GF3D2<const CCTK_REAL> &gf, const PointDesc &p, int dir,
-                        const GF3D2<const CCTK_REAL> &flag, int correction_order) {
+                        int correction_order) {
 
   // New code combines stencils at two faces to directly add to RHS
   // Here, p.I is the cell center index, gf(p.I) is the left face, gf(p.I + p.DI) is the right
@@ -179,15 +179,10 @@ higher_order_correction(const GF3D2<const CCTK_REAL> &gf, const PointDesc &p, in
   const auto Ip2 = p.I + 2 * p.DI[dir];
   const auto Ip3 = p.I + 3 * p.DI[dir];
 
-  // Lower order if flagged
-  const CCTK_REAL theta_m = flag(Im) * flag(Im2);
-  const CCTK_REAL theta_p = flag(Im) * flag(Ip);
-
   CCTK_REAL correction = 
     gf(Ip) - gf(Im) 
-      - (correction==4) 
-        * (theta_p * (1.0/24.0) * (gf(Im) - 2.0 * gf(Ip) + gf(Ip2))
-          + theta_m * (1.0/24.0) * (gf(Im2) - 2.0 * gf(Im) + gf(Ip)));
+      + (correction==4) 
+        * ((1.0/8.0) * (gf(Ip) - gf(Im)) - (1.0/24.0) * (gf(Ip2) - gf(Im2)));
 
   return correction;
 }
