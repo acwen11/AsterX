@@ -109,7 +109,9 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
                       const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         vec<CCTK_REAL, 3> dfluxes([&](int i) ARITH_INLINE {
           // return gf_fluxes(i)(p.I + p.DI[i]) - gf_fluxes(i)(p.I);
-          return higher_order_correction(gf_fluxes(i), p, i, LOflag, correction_order);
+          const bool drop_order = (LOflag(p.I - p.DI[i]) * LOflag(p.I) * LOflag(p.I + p.DI[i])) == 0.0;
+          const CCTK_INT corr_ordL = drop_order ? 2 : correction_order;
+          return higher_order_correction(gf_fluxes(i), p, i, correction_order);
         });
         return -calc_contraction(idx, dfluxes);
       };

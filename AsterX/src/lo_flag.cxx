@@ -81,7 +81,7 @@ void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p, const bool havetemp) {
       return;
     }
 
-    // Store highest etac as diagnostic. Note that this is only truly the highest
+    // Store largest etac as diagnostic. Note that this is only truly the largest
     // if all checks pass.
     CCTK_REAL etac_tot = 0.0;
 
@@ -127,6 +127,7 @@ void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p, const bool havetemp) {
       }
     }
       
+    /* Disable this for now
     // Calculate |B|
     const vec<CCTK_REAL, 3> BvecsL{Bvecx(p.I), Bvecy(p.I), Bvecz(p.I)};
     const smat<CCTK_REAL, 3> g_avg([&](int i, int j) ARITH_INLINE {
@@ -145,6 +146,7 @@ void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p, const bool havetemp) {
         return;
       }
     }
+    */
 
     // All checks pass
     etac(p.I) = etac_tot;
@@ -152,20 +154,6 @@ void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p, const bool havetemp) {
 
   });
 }
-
-/*
-extern "C" void AsterX_InitLOAuxGF(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_AsterX_InitLOAuxGF;
-  DECLARE_CCTK_PARAMETERS;
-
-  // Initialize aux GF
-  grid.loop_all_device<1, 1, 1>(
-        grid.nghostzones,
-        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-    lo_auxgf(p.I) = 0.0;
-  });
-}
-*/
 
 extern "C" void AsterX_SetLOFlag(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_SetLOFlag;
