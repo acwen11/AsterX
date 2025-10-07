@@ -69,12 +69,12 @@ calc_avg_e2e(const GF3D2<const T> &gf, const PointDesc &p) {
 
 // Second-order average of edge-centered grid functions (along dir) to cell
 // center
-template <typename T>
+template <int dir, typename T>
 CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
-calc_avg_e2c(const GF3D2<const T> &gf, const PointDesc &p, const int dir) {
-  T gf_avg = 0.0;
-  const int j = (dir == 0) ? 1 : ((dir == 1) ? 2 : 0);
-  const int k = (dir == 0) ? 2 : ((dir == 1) ? 0 : 1);
+calc_avg_e2c(const GF3D2<const T> &gf, const PointDesc &p) {
+  T gf_avg = 0;
+  constexpr int j = (dir == 0) ? 1 : ((dir == 1) ? 2 : 0);
+  constexpr int k = (dir == 0) ? 2 : ((dir == 1) ? 0 : 1);
   for (int dk = 0; dk < 2; ++dk) {
     for (int dj = 0; dj < 2; ++dj) {
       gf_avg += gf(p.I + p.DI[j] * dj + p.DI[k] * dk);
