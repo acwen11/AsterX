@@ -124,11 +124,7 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
       const CCTK_REAL gm1 = eos_1p->gm1_from_valid_rho(rho_atm);
       temp_atm = eos_1p->temp_from_valid_gm1(gm1);
       temp_atm = std::max(eos_3p->rgtemp.min, temp_atm);
-      eps_atm = eos_1p->sed_from_valid_gm1(gm1);
-      eps_atm = std::max(eos_3p->eps_from_valid_rho_temp_ye(
-                             rho_atm, eos_3p->rgtemp.min, Ye_atmo),
-                         eps_atm);
-      temp_atm = eos_3p->temp_from_valid_rho_eps_ye(rho_atm, eps_atm, Ye_atmo);
+      eps_atm = eos_3p->eps_from_valid_rho_temp_ye(rho_atm, temp_atm, Ye_atmo);
       // eps_atm should be kept consistent with temp_atm, so we do not use
       // the setting below
       // eps_atm =
