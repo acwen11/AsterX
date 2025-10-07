@@ -21,28 +21,28 @@ public:
       const CCTK_REAL rho, ///< Rest mass density  \f$ \rho \f$
       CCTK_REAL &eps,      ///< Specific internal energy \f$ \epsilon \f$
       const CCTK_REAL ye   ///< Electron fraction \f$ Y_e \f$
-      ) const;
+  ) const;
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   eps_from_valid_rho_press_ye(
       const CCTK_REAL rho,   ///< Rest mass density  \f$ \rho \f$
       const CCTK_REAL press, ///< Pressure \f$ P \f$
       const CCTK_REAL ye     ///< Electron fraction \f$ Y_e \f$
-      ) const;
+  ) const;
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   csnd_from_valid_rho_eps_ye(
       const CCTK_REAL rho, ///< Rest mass density  \f$ \rho \f$
       CCTK_REAL &eps,      ///< Specific internal energy \f$ \epsilon \f$
       const CCTK_REAL ye   ///< Electron fraction \f$ Y_e \f$
-      ) const;
+  ) const;
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   temp_from_valid_rho_eps_ye(
       const CCTK_REAL rho, ///< Rest mass density  \f$ \rho \f$
       CCTK_REAL &eps,      ///< Specific internal energy \f$ \epsilon \f$
       const CCTK_REAL ye   ///< Electron fraction \f$ Y_e \f$
-      ) const;
+  ) const;
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
   press_derivs_from_valid_rho_eps_ye(
@@ -54,35 +54,35 @@ public:
       const CCTK_REAL rho, ///< Rest mass density  \f$ \rho \f$
       const CCTK_REAL eps, ///< Specific internal energy \f$ \epsilon \f$
       const CCTK_REAL ye   ///< Electron fraction \f$ Y_e \f$
-      ) const;
+  ) const;
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   entropy_from_valid_rho_temp_ye(
       const CCTK_REAL rho,  ///< Rest mass density  \f$ \rho \f$
       const CCTK_REAL temp, ///< Temperature \f$ T \f$
       const CCTK_REAL ye    ///< Electron fraction \f$ Y_e \f$
-      ) const;
+  ) const;
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   entropy_from_valid_rho_eps_ye(
       const CCTK_REAL rho, ///< Rest mass density  \f$ \rho \f$
       const CCTK_REAL eps, ///< Specific internal energy \f$ \epsilon \f$
       const CCTK_REAL ye   ///< Electron fraction \f$ Y_e \f$
-      ) const;
+  ) const;
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   eps_from_valid_rho_temp_ye(
       const CCTK_REAL rho,  ///< Rest mass density  \f$ \rho \f$
       const CCTK_REAL temp, ///< Temperature \f$ T \f$ in MeV
       const CCTK_REAL ye    ///< Electron fraction \f$ Y_e \f$
-      ) const;
+  ) const;
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   press_from_valid_rho_temp_ye(
       const CCTK_REAL rho,  ///< Rest mass density  \f$ \rho \f$
       const CCTK_REAL temp, ///< Temperature \f$ T \f$ in MeV
       const CCTK_REAL ye    ///< Electron fraction \f$ Y_e \f$
-      ) const;
+  ) const;
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   press_from_valid_rho_kappa_ye(const CCTK_REAL rho,
@@ -109,7 +109,13 @@ public:
   range_eps_from_valid_rho_ye(
       const CCTK_REAL rho, ///< Rest mass density  \f$ \rho \f$
       const CCTK_REAL ye   ///< Electron fraction \f$ Y_e \f$
-      ) const;
+  ) const;
+
+  // Note that the function below do not apply for ideal gas EOS
+  // They are used for testing nuX with toy problems
+  CCTK_HOST CCTK_DEVICE inline CCTK_REAL
+  mu_lepton_from_valid_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
+                                   const CCTK_REAL ye) const;
 };
 
 CCTK_HOST
@@ -232,6 +238,15 @@ CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline eos_3p::range
 eos_3p_idealgas::range_eps_from_valid_rho_ye(const CCTK_REAL rho,
                                              const CCTK_REAL ye) const {
   return rgeps;
+}
+
+// Note that the function below do not apply for ideal gas EOS
+// They are used for testing nuX with toy problems
+CCTK_HOST CCTK_DEVICE inline CCTK_REAL
+eos_3p_idealgas::mu_lepton_from_valid_rho_temp_ye(const CCTK_REAL rho,
+                                                  const CCTK_REAL temp,
+                                                  const CCTK_REAL ye) const {
+  return 0.0;
 }
 
 } // namespace EOSX
