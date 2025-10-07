@@ -79,17 +79,8 @@ extern "C" void AsterAnalysis_MHD(CCTK_ARGUMENTS) {
         B_norm(p.I) = sqrt(B2big);
 
         /* cell-centered A^i and A_i */
-
-        const vec<CCTK_REAL, 3> A_low([&](int i) ARITH_INLINE -> CCTK_REAL {
-          switch (i) {
-          case 0:
-            return calc_avg_e2c<0>(gf_Avec(0), p);
-          case 1:
-            return calc_avg_e2c<1>(gf_Avec(1), p);
-          default:
-            return calc_avg_e2c<2>(gf_Avec(2), p);
-          }
-        });
+        const vec<CCTK_REAL, 3> A_low(
+            [&](int i) ARITH_INLINE { return calc_avg_e2c(gf_Avec(i), p, i); });
 
         const vec<CCTK_REAL, 3> A_up = calc_contraction(ug_avg, A_low);
 
