@@ -588,19 +588,36 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
                     w_lorentz_rc, h_rc, bsq_rc);
 
     /* Calculate numerical fluxes */
-    fluxdenss(dir)(p.I) = calcflux(lambda, dens_rc, flux_dens);
-    fluxDEnts(dir)(p.I) = calcflux(lambda, DEnt_rc, flux_DEnt);
-    fluxmomxs(dir)(p.I) = calcflux(lambda, moms_rc(0), flux_moms(0));
-    fluxmomys(dir)(p.I) = calcflux(lambda, moms_rc(1), flux_moms(1));
-    fluxmomzs(dir)(p.I) = calcflux(lambda, moms_rc(2), flux_moms(2));
-    fluxtaus(dir)(p.I) = calcflux(lambda, tau_rc, flux_tau);
-    fluxDYes(dir)(p.I) = calcflux(lambda, DYe_rc, flux_DYe);
-    fluxBxs(dir)(p.I) =
-        (dir != 0) * calcflux(lambda, Btildes_rc(0), flux_Btildes(0));
-    fluxBys(dir)(p.I) =
-        (dir != 1) * calcflux(lambda, Btildes_rc(1), flux_Btildes(1));
-    fluxBzs(dir)(p.I) =
-        (dir != 2) * calcflux(lambda, Btildes_rc(2), flux_Btildes(2));
+		if (!useLO) {
+			fluxdenss(dir)(p.I) = calcflux(lambda, dens_rc, flux_dens);
+			fluxDEnts(dir)(p.I) = calcflux(lambda, DEnt_rc, flux_DEnt);
+			fluxmomxs(dir)(p.I) = calcflux(lambda, moms_rc(0), flux_moms(0));
+			fluxmomys(dir)(p.I) = calcflux(lambda, moms_rc(1), flux_moms(1));
+			fluxmomzs(dir)(p.I) = calcflux(lambda, moms_rc(2), flux_moms(2));
+			fluxtaus(dir)(p.I) = calcflux(lambda, tau_rc, flux_tau);
+			fluxDYes(dir)(p.I) = calcflux(lambda, DYe_rc, flux_DYe);
+			fluxBxs(dir)(p.I) =
+					(dir != 0) * calcflux(lambda, Btildes_rc(0), flux_Btildes(0));
+			fluxBys(dir)(p.I) =
+					(dir != 1) * calcflux(lambda, Btildes_rc(1), flux_Btildes(1));
+			fluxBzs(dir)(p.I) =
+					(dir != 2) * calcflux(lambda, Btildes_rc(2), flux_Btildes(2));
+		}
+		else {
+			fluxdenss(dir)(p.I) = laxf(lambda, dens_rc, flux_dens);
+			fluxDEnts(dir)(p.I) = laxf(lambda, DEnt_rc, flux_DEnt);
+			fluxmomxs(dir)(p.I) = laxf(lambda, moms_rc(0), flux_moms(0));
+			fluxmomys(dir)(p.I) = laxf(lambda, moms_rc(1), flux_moms(1));
+			fluxmomzs(dir)(p.I) = laxf(lambda, moms_rc(2), flux_moms(2));
+			fluxtaus(dir)(p.I) = laxf(lambda, tau_rc, flux_tau);
+			fluxDYes(dir)(p.I) = laxf(lambda, DYe_rc, flux_DYe);
+			fluxBxs(dir)(p.I) =
+					(dir != 0) * laxf(lambda, Btildes_rc(0), flux_Btildes(0));
+			fluxBys(dir)(p.I) =
+					(dir != 1) * laxf(lambda, Btildes_rc(1), flux_Btildes(1));
+			fluxBzs(dir)(p.I) =
+					(dir != 2) * laxf(lambda, Btildes_rc(2), flux_Btildes(2));
+		}
 
     if (isnan(dens_rc(0)) || isnan(dens_rc(1)) || isnan(moms_rc(0)(0)) ||
         isnan(moms_rc(0)(1)) || isnan(moms_rc(1)(0)) || isnan(moms_rc(1)(1)) ||
