@@ -71,7 +71,7 @@ extern "C" void AsterX_ApplyOuterBCOnPrim(CCTK_ARGUMENTS) {
   ApplyOuterBC(CCTK_PASS_CTOC, groups);
 }
 
-extern "C" void AsterX_ApplyOuterBCOnFluxes(CCTK_ARGUMENTS) {
+extern "C" void AsterX_RestrictAndApplyOuterBCOnFluxes(CCTK_ARGUMENTS) {
   DECLARE_CCTK_PARAMETERS;
 
   std::vector<int> groups;
@@ -86,6 +86,11 @@ extern "C" void AsterX_ApplyOuterBCOnFluxes(CCTK_ARGUMENTS) {
   groups.push_back(CCTK_GroupIndex("AsterX::a_xface"));
   groups.push_back(CCTK_GroupIndex("AsterX::a_yface"));
   groups.push_back(CCTK_GroupIndex("AsterX::a_zface"));
+
+  active_levels->loop_fine_to_coarse([&](const auto &leveldata) {
+    if (leveldata.level < ghext->num_levels() - 1)
+      RestrictNoPoison(cctkGH, leveldata.level, groups);
+  });
 
   ApplyOuterBC(CCTK_PASS_CTOC, groups);
 }

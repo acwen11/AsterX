@@ -223,7 +223,7 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
 } "Calculate the hydro fluxes"
 
-SCHEDULE AsterX_ApplyOuterBCOnFluxes IN AsterX_RHSGroup AFTER AsterX_Fluxes BEFORE AsterX_RHS
+SCHEDULE AsterX_RestrictAndApplyOuterBCOnFluxes IN AsterX_RHSGroup AFTER AsterX_Fluxes BEFORE AsterX_RHS
 {
   LANG: C
   OPTIONS: global
