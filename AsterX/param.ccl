@@ -25,6 +25,10 @@ KEYWORD flux_type "Flux solver" STEERABLE=always
   "HLLE" :: ""
 } "LxF"
 
+BOOLEAN loworder_flux "Fall back to Lax-Friedrichs flux on flagged points?" STEERABLE=always
+{
+} "no"
+
 CCTK_INT correction_order "Order of accuracy to check if higher order corrections are to be applied" STEERABLE=never
 {
   2 :: "Second order accurate"

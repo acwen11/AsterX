@@ -588,7 +588,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
                     w_lorentz_rc, h_rc, bsq_rc);
 
     /* Calculate numerical fluxes */
-		if (!useLO) {
+		if (!useLO || !loworder_flux) {
 			fluxdenss(dir)(p.I) = calcflux(lambda, dens_rc, flux_dens);
 			fluxDEnts(dir)(p.I) = calcflux(lambda, DEnt_rc, flux_DEnt);
 			fluxmomxs(dir)(p.I) = calcflux(lambda, moms_rc(0), flux_moms(0));
