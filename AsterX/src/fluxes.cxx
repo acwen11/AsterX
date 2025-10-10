@@ -279,14 +279,14 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
         ? (rho_abs_min * pow((r_atmo / r_atm(0)), n_rho_atmo))
         : rho_abs_min;
     rho_atm(0) = std::max(eos_3p->rgrho.min, rho_atm(0));
-    rho_cut(0) = rho_atm(0) * (1 + atmo_tol);
+    rho_cut(0) = rho_atm(0) * recon_fthr;
 
     rho_atm(1) =
       (r_atm(1) > r_atmo)
         ? (rho_abs_min * pow((r_atmo / r_atm(1)), n_rho_atmo))
         : rho_abs_min;
     rho_atm(1) = std::max(eos_3p->rgrho.min, rho_atm(1));
-    rho_cut(1) = rho_atm(1) * (1 + atmo_tol);
+    rho_cut(1) = rho_atm(1) * recon_fthr;
 
     // Grading temperature or pressure
     if (use_press_atmo) {
