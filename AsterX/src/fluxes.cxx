@@ -241,13 +241,10 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
     const CCTK_REAL detg_avg = calc_det(g_avg);
     const CCTK_REAL sqrtg = sqrt(detg_avg);
 
-    // Boolean to decide whether to use low order
-    // reconstruction
+    // Booleans controlling reconstruction fallbacks
     bool useLO = false;
-
-    // First, check shock detection flag
-    if (LOflag(p.I) == 0.0 || LOflag(p.I - p.DI[dir]) == 0.0)
-      useLO = true;
+    bool resetL = false;
+    bool resetR = false;
 
     // Reconstruct density
     auto rho_rc = reconstruct_pt(rho, p, true, true);
@@ -263,14 +260,79 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
     vec<CCTK_REAL, 2> press_rc;
     vec<CCTK_REAL, 2> temp_rc;
 
+    // Setting up atmosphere for two neighboring cell centers
+    vec<CCTK_REAL, 2> r_atm;
+    vec<CCTK_REAL, 2> rho_atm;
+    vec<CCTK_REAL, 2> rho_cut;
+    vec<CCTK_REAL, 2> press_atm;
+    vec<CCTK_REAL, 2> eps_atm;
+    vec<CCTK_REAL, 2> temp_atm;
+
+    const auto coord_i = p.X;
+    const auto coord_im = p.X - p.DX[dir];
+    r_atm(0) = sqrt(coord_im[0] * coord_im[0] + coord_im[1] * coord_im[1] + coord_im[2] * coord_im[2]);
+    r_atm(1) = sqrt(coord_i[0] * coord_i[0] + coord_i[1] * coord_i[1] + coord_i[2] * coord_i[2]);
+
+    // Grading rho
+    rho_atm(0) =
+      (r_atm(0) > r_atmo)
+        ? (rho_abs_min * pow((r_atmo / r_atm(0)), n_rho_atmo))
+        : rho_abs_min;
+    rho_atm(0) = std::max(eos_3p->rgrho.min, rho_atm(0));
+    rho_cut(0) = rho_atm(0) * (1 + atmo_tol);
+
+    rho_atm(1) =
+      (r_atm(1) > r_atmo)
+        ? (rho_abs_min * pow((r_atmo / r_atm(1)), n_rho_atmo))
+        : rho_abs_min;
+    rho_atm(1) = std::max(eos_3p->rgrho.min, rho_atm(1));
+    rho_cut(1) = rho_atm(1) * (1 + atmo_tol);
+
+    // Grading temperature or pressure
+    if (use_press_atmo) {
+      press_atm(0) = (r_atm(0) > r_atmo)
+                     ? (p_atmo * pow(r_atmo / r_atm(0), n_press_atmo))
+                     : p_atmo;
+      press_atm(0) = std::max(eos_3p->press_from_valid_rho_temp_ye(rho_atm(0), eos_3p->rgtemp.min, Ye_atmo), press_atm(0));
+      press_atm(1) = (r_atm(1) > r_atmo)
+                     ? (p_atmo * pow(r_atmo / r_atm(1), n_press_atmo))
+                     : p_atmo;
+      press_atm(1) = std::max(eos_3p->press_from_valid_rho_temp_ye(rho_atm(1), eos_3p->rgtemp.min, Ye_atmo), press_atm(1));
+      eps_atm(0) = eos_3p->eps_from_valid_rho_press_ye(rho_atm(0), press_atm(0), Ye_atmo);
+      eps_atm(1) = eos_3p->eps_from_valid_rho_press_ye(rho_atm(1), press_atm(1), Ye_atmo);
+      temp_atm(0) = eos_3p->temp_from_valid_rho_eps_ye(rho_atm(0), eps_atm(0), Ye_atmo);
+      temp_atm(1) = eos_3p->temp_from_valid_rho_eps_ye(rho_atm(1), eps_atm(1), Ye_atmo);
+    } else {
+      temp_atm(0) = (r_atm(0) > r_atmo)
+                     ? (t_atmo * pow(r_atmo / r_atm(0), n_temp_atmo))
+                     : t_atmo;
+      temp_atm(0) = std::max(eos_3p->rgtemp.min, temp_atm(0));
+
+      temp_atm(1) = (r_atm(1) > r_atmo)
+                     ? (t_atmo * pow(r_atmo / r_atm(1), n_temp_atmo))
+                     : t_atmo;
+      temp_atm(1) = std::max(eos_3p->rgtemp.min, temp_atm(1));
+      press_atm(0) =
+          eos_3p->press_from_valid_rho_temp_ye(rho_atm(0), temp_atm(0), Ye_atmo);
+      press_atm(1) =
+          eos_3p->press_from_valid_rho_temp_ye(rho_atm(1), temp_atm(1), Ye_atmo);
+      eps_atm(0) = eos_3p->eps_from_valid_rho_temp_ye(rho_atm(0), temp_atm(0), Ye_atmo);
+      eps_atm(1) = eos_3p->eps_from_valid_rho_temp_ye(rho_atm(1), temp_atm(1), Ye_atmo);
+    }
+    // End atmosphere
+
+    // Check shock detection flag
+    if (LOflag(p.I) == 0.0 || LOflag(p.I - p.DI[dir]) == 0.0)
+      useLO = true;
+
     if (reconstruct_with_temperature) {
 
       // Reconstruct temperature
       temp_rc = reconstruct_pt(temperature, p, false, false);
 
       // Use lower-order if reconstructed rho, entropy, Ye or T is <= 0
-      if ((rho_rc(0) <= 0.0) || (entropy_rc(0) <= 0.0) || (Ye_rc(0) <= 0.0) || (temp_rc(0) <= 0.0) ||
-          (rho_rc(1) <= 0.0) || (entropy_rc(1) <= 0.0) || (Ye_rc(1) <= 0.0) || (temp_rc(1) <= 0.0) ||
+      if ((rho_rc(0) <= rho_cut(0)) || (entropy_rc(0) <= 0.0) || (Ye_rc(0) <= 0.0) || (temp_rc(0) <= 0.0) ||
+          (rho_rc(1) <= rho_cut(1)) || (entropy_rc(1) <= 0.0) || (Ye_rc(1) <= 0.0) || (temp_rc(1) <= 0.0) ||
           useLO) {
 
       	useLO = true;
@@ -279,6 +341,22 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
         entropy_rc = reconstruct_loworder(entropy, p, false, false);
         Ye_rc = reconstruct_loworder(Ye, p, false, false);
         temp_rc = reconstruct_loworder(temperature, p, false, false);
+      }
+
+      // If reconstructed rho is still <= atmo, flag for reset
+      if (rho_rc(0) <= rho_cut(0)) {
+        resetL = true;
+        rho_rc(0) = rho_atm(0);
+        entropy_rc(0) = eos_3p->kappa_from_valid_rho_eps_ye(rho_atm(0), eps_atm(0), Ye_atmo);
+        temp_rc(0) = temp_atm(0);
+        Ye_rc(0) = Ye_atmo;
+      }
+      if (rho_rc(1) <= rho_cut(1)) {
+      	resetR = true;
+        rho_rc(1) = rho_atm(1);
+        entropy_rc(1) = eos_3p->kappa_from_valid_rho_eps_ye(rho_atm(1), eps_atm(1), Ye_atmo);
+        temp_rc(1) = temp_atm(1);
+        Ye_rc(1) = Ye_atmo;
       }
       // End lower-order
 
@@ -295,10 +373,10 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
       // Reconstruct pressure
       press_rc = reconstruct_pt(press, p, false, true);
 
-      // Use lower-order if reconstructed rho, entropy, Ye or pressure is <= 0
-      if ((rho_rc(0) <= 0.0) || (entropy_rc(0) <= 0.0) || (Ye_rc(0) <= 0.0) || (press_rc(0) <= 0.0) ||
-          (rho_rc(1) <= 0.0) || (entropy_rc(1) <= 0.0) || (Ye_rc(1) <= 0.0) || (press_rc(1) <= 0.0) ||
-          useLO) {
+      // Use lower-order if reconstructed rho, entropy, Ye or press is <= 0
+      if ((rho_rc(0) <= rho_cut(0)) || (entropy_rc(0) <= 0.0) || (Ye_rc(0) <= 0.0) || (press_rc(0) <= 0.0) ||
+          (rho_rc(1) <= rho_cut(1)) || (entropy_rc(1) <= 0.0) || (Ye_rc(1) <= 0.0) || (press_rc(1) <= 0.0) ||
+           useLO) {
 
       	useLO = true;
 
@@ -307,6 +385,23 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
         Ye_rc = reconstruct_loworder(Ye, p, false, false);
         press_rc = reconstruct_loworder(press, p, false, true);
       }
+
+      // If reconstructed rho is still <= atmo, flag for reset
+      if (rho_rc(0) <= rho_cut(0)) {
+        resetL = true;
+        rho_rc(0) = rho_atm(0);
+        entropy_rc(0) = eos_3p->kappa_from_valid_rho_eps_ye(rho_atm(0), eps_atm(0), Ye_atmo);
+        press_rc(0) = press_atm(0);
+        Ye_rc(0) = Ye_atmo;
+      }
+      if (rho_rc(1) <= rho_cut(1)) {
+      	resetR = true;
+        rho_rc(1) = rho_atm(1);
+        entropy_rc(1) = eos_3p->kappa_from_valid_rho_eps_ye(rho_atm(1), eps_atm(1), Ye_atmo);
+        press_rc(1) = press_atm(1);
+        Ye_rc(1) = Ye_atmo;
+      }
+
       // End lower-order
 
       // Compute eps_rc and temp_rc using lambdas
@@ -441,6 +536,22 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
     };
     }
 
+    if (resetL) {
+      w_lorentz_rc(0) = 1.0;
+      for (int i = 0; i <= 2; ++i) {   // loop over components
+        vels_rc(i)(0) = 0.0;
+        vlows_rc(i)(0) = 0.0;
+      }
+    }
+    if (resetR) {
+      w_lorentz_rc(1) = 1.0;
+      for (int i = 0; i <= 2; ++i) {   // loop over components
+        vels_rc(i)(1) = 0.0;
+        vlows_rc(i)(1) = 0.0;
+      }
+    }
+    /* END RECONSTRUCTION */
+      
     /* vtilde^i = alpha * v^i - beta^i */
     const vec<vec<CCTK_REAL, 2>, 3> vtildes_rc([&](int i) ARITH_INLINE {
       return vec<CCTK_REAL, 2>([&](int f) ARITH_INLINE {
