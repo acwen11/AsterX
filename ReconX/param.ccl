@@ -10,6 +10,7 @@ KEYWORD reconstruction_method "Reconstruction method" STEERABLE=never
   "ppm" :: ""
   "eppm" :: ""
   "wenoz" :: ""
+  "wenozp" :: ""
   "mp5" :: ""
 } "Godunov"
 
