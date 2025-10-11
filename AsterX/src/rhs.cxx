@@ -30,8 +30,12 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
     reconstruction = reconstruction_t::ppm;
   else if (CCTK_EQUALS(reconstruction_method, "eppm"))
     reconstruction = reconstruction_t::eppm;
+  else if (CCTK_EQUALS(reconstruction_method, "weno5"))
+    reconstruction = reconstruction_t::weno5;
   else if (CCTK_EQUALS(reconstruction_method, "wenoz"))
     reconstruction = reconstruction_t::wenoz;
+  else if (CCTK_EQUALS(reconstruction_method, "wenozp"))
+    reconstruction = reconstruction_t::wenozp;
   else if (CCTK_EQUALS(reconstruction_method, "mp5"))
     reconstruction = reconstruction_t::mp5;
   else
