@@ -93,6 +93,8 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
     reconstruction = reconstruction_t::ppm;
   else if (CCTK_EQUALS(reconstruction_method, "eppm"))
     reconstruction = reconstruction_t::eppm;
+  else if (CCTK_EQUALS(reconstruction_method, "weno5"))
+    reconstruction = reconstruction_t::weno5;
   else if (CCTK_EQUALS(reconstruction_method, "wenoz"))
     reconstruction = reconstruction_t::wenoz;
   else if (CCTK_EQUALS(reconstruction_method, "wenozp"))
@@ -140,10 +142,15 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
   case reconstruction_t::eppm:
     assert(cctk_nghostzones[dir] >= 3);
     break;
+  case reconstruction_t::weno5:
+    assert(cctk_nghostzones[dir] >= 3);
+    break;
   case reconstruction_t::wenoz:
     assert(cctk_nghostzones[dir] >= 3);
+    break;
   case reconstruction_t::wenozp:
     assert(cctk_nghostzones[dir] >= 3);
+    break;
   case reconstruction_t::mp5:
     assert(cctk_nghostzones[dir] >= 3);
     break;
