@@ -104,7 +104,7 @@ reconstruct(const GF3D2<const CCTK_REAL> &gf_var, const PointDesc &p,
 		const CCTK_REAL dx = 0.0;
     tmp = wenozp_reconstruct(gf_var(Immm), gf_var(Imm), gf_var(Im), gf_var(Ip),
                              gf_var(Ipp), gf_var(Ippp), dx,
-                             reconstruct_params.weno_eps);
+                             reconstruct_params.weno_eps, reconstruct_params.weno_mp);
     break;
   }
 
