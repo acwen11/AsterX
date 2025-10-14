@@ -13,27 +13,29 @@ namespace ReconX {
 using std::array;
 
 /**
- * WENO-Z: Performs the reconstruction of a given variable using 5th order
- * WENO-Z method based on Borges et al., "An improved weighted essentially
- * non-oscillatory scheme for hyperbolic conservation laws", 2008). Also, see
- * the Spritz code for details
+ * WENO-Z+  
  */
 template <typename T = CCTK_REAL>
 inline CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_DEVICE CCTK_HOST array<T, 2>
-wenozp(T gf_Imm, T gf_Im, T gf_I, T gf_Ip, T gf_Ipp, const CCTK_REAL dx, T weno_eps) {
+wenozp(T gf_Imm, T gf_Im, T gf_I, T gf_Ip, T gf_Ipp, const CCTK_REAL dx, T weno_eps, bool mp) {
 
   using Arith::vec;
   using std::abs;
 
   // Computing the smoothness indicators (Borges et al. 2008)
+  const vec<T, 3> dj{
+			gf_Imm - 2.0 * gf_Im + gf_I,
+			gf_Im - 2.0 * gf_I + gf_Ip,
+			gf_I - 2.0 * gf_Ip + gf_Ipp};
+
   const vec<T, 3> betaZ{
-      (13.0 / 12.0) * pow2(gf_Imm - 2.0 * gf_Im + gf_I) +
+      (13.0 / 12.0) * pow2(dj(0)) +
           (1.0 / 4.0) * pow2(gf_Imm - 4.0 * gf_Im + 3.0 * gf_I),
 
-      (13.0 / 12.0) * pow2(gf_Im - 2.0 * gf_I + gf_Ip) +
+      (13.0 / 12.0) * pow2(dj(1)) +
           (1.0 / 4.0) * pow2(gf_Im - gf_Ip),
 
-      (13.0 / 12.0) * pow2(gf_I - 2.0 * gf_Ip + gf_Ipp) +
+      (13.0 / 12.0) * pow2(dj(2)) +
           (1.0 / 4.0) * pow2(3.0 * gf_I - 4.0 * gf_Ip + gf_Ipp)};
 
   // Defining tau5 based on eq. 25 of (Borges et al. 2008)
@@ -85,27 +87,48 @@ wenozp(T gf_Imm, T gf_Im, T gf_I, T gf_Ip, T gf_Ipp, const CCTK_REAL dx, T weno_
   // interfaces
 
   // Spritz Weights:
-  const T var_m =
+  T var_m =
       omegaZ(2)(0) * (3.0 * gf_Ipp - 10.0 * gf_Ip + 15.0 * gf_I) +
       omegaZ(1)(0) * (-1.0 * gf_Ip + 6.0 * gf_I + 3.0 * gf_Im) +
       omegaZ(0)(0) * (3.0 * gf_I + 6.0 * gf_Im - 1.0 * gf_Imm);
 
-  const T var_p =
+  T var_p =
       omegaZ(0)(1) * (3.0 * gf_Imm - 10.0 * gf_Im + 15.0 * gf_I) +
       omegaZ(1)(1) * (-1.0 * gf_Im + 6.0 * gf_I + 3.0 * gf_Ip) +
       omegaZ(2)(1) * (3.0 * gf_I + 6.0 * gf_Ip - 1.0 * gf_Ipp);
 
-  /* GRHydro Weights:
-  const T var_m{
-      (omegaZ(2)(0) / 6.0) * (2.0 * gf_Ipp - 7.0 * gf_Ip + 11.0 * gf_I) +
-      (omegaZ(1)(0) / 6.0) * (-1.0 * gf_Ip + 5.0 * gf_I + 2.0 * gf_Im) +
-      (omegaZ(0)(0) / 6.0) * (2.0 * gf_I + 5.0 * gf_Im - 1.0 * gf_Imm)};
+	if (mp) {
+		const CCTK_REAL mpw_alp = 2.0; // Parameters from Balsara + Shu 2000
+		const CCTK_REAL mpw_beta = 4.0; 
 
-  const T var_p{
-      (omegaZ(0)(1) / 6.0) * (2.0 * gf_Imm - 7.0 * gf_Im + 11.0 * gf_I) +
-      (omegaZ(1)(1) / 6.0) * (-1.0 * gf_Im + 5.0 * gf_I + 2.0 * gf_Ip) +
-      (omegaZ(2)(1) / 6.0) * (2.0 * gf_I + 5.0 * gf_Ip - 1.0 * gf_Ipp)};
-  */
+		// Right side (Left face)
+  	const vec<T, 4> mp_p{4.0 * dj(1) - dj(2), 4.0 * dj(2) - dj(1), dj(1), dj(2)};
+		const T dM4_p = (1.0/4.0) * (sgn(mp_p(0)) + sgn(mp_p(1)) + sgn(mp_p(2)) + sgn(mp_p(3)))
+				* min({fabs(mp_p(0)), fabs(mp_p(1)), fabs(mp_p(2)), fabs(mp_p(3))});
+				
+		const T uUL_p = gf_I + mpw_alp * (gf_I - gf_Im);
+		const T uMD_p = 0.5 * (gf_I + gf_Ip - dM4_p);
+		const T uLC_p = gf_I + 0.5 * (gf_I - gf_Im) + (mpw_beta/3.0) * dM4_p;
+		
+		const T up_min = max(min({gf_I, gf_Ip, uMD_p}), min({gf_I, uUL_p, uLC_p}));
+		const T up_max = min(max({gf_I, gf_Ip, uMD_p}), max({gf_I, uUL_p, uLC_p}));
+
+		var_p = var_p + minmod(up_min - var_p, up_max - var_p);
+
+		// Left side (Right face)
+  	const vec<T, 4> mp_m{4.0 * dj(0) - dj(1), 4.0 * dj(1) - dj(0), dj(0), dj(1)};
+		const T dM4_m = (1.0/4.0) * (sgn(mp_m(0)) + sgn(mp_m(1)) + sgn(mp_m(2)) + sgn(mp_m(3)))
+				* min({fabs(mp_m(0)), fabs(mp_m(1)), fabs(mp_m(2)), fabs(mp_m(3))});
+				
+		const T uUL_m = gf_I + mpw_alp * (gf_I - gf_Ip);
+		const T uMD_m = 0.5 * (gf_I + gf_Im - dM4_m);
+		const T uLC_m = gf_I + 0.5 * (gf_I - gf_Ip) + (mpw_beta/3.0) * dM4_m;
+		
+		const T um_min = max(min({gf_I, gf_Im, uMD_m}), min({gf_I, uUL_m, uLC_m}));
+		const T um_max = min(max({gf_I, gf_Im, uMD_m}), max({gf_I, uUL_m, uLC_m}));
+
+		var_m = var_m + minmod(um_min - var_m, um_max - var_m);
+	}
 
   return {var_m, var_p};
 }
@@ -113,10 +136,10 @@ wenozp(T gf_Imm, T gf_Im, T gf_I, T gf_Ip, T gf_Ipp, const CCTK_REAL dx, T weno_
 template <typename T = CCTK_REAL>
 inline CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_DEVICE CCTK_HOST array<T, 2>
 wenozp_reconstruct(T gf_Immm, T gf_Imm, T gf_Im, T gf_Ip, T gf_Ipp, T gf_Ippp,
-                  const CCTK_REAL dx, T weno_eps) {
+                  const CCTK_REAL dx, T weno_eps, bool mp) {
 
-  const auto rc_Im{wenozp(gf_Immm, gf_Imm, gf_Im, gf_Ip, gf_Ipp, dx, weno_eps)};
-  const auto rc_Ip{wenozp(gf_Imm, gf_Im, gf_Ip, gf_Ipp, gf_Ippp, dx, weno_eps)};
+  const auto rc_Im{wenozp(gf_Immm, gf_Imm, gf_Im, gf_Ip, gf_Ipp, dx, weno_eps, mp)};
+  const auto rc_Ip{wenozp(gf_Imm, gf_Im, gf_Ip, gf_Ipp, gf_Ippp, dx, weno_eps, mp)};
 
   return {rc_Im[1], rc_Ip[0]};
 }

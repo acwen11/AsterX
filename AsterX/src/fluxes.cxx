@@ -174,6 +174,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
   reconstruct_params.enhanced_ppm_C2 = enhanced_ppm_C2;
   // wenoz parameters
   reconstruct_params.weno_eps = weno_eps;
+  reconstruct_params.weno_mp = weno_mp;
   // mp5 parameters
   reconstruct_params.mp5_alpha = mp5_alpha;
 
