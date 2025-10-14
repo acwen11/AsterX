@@ -103,8 +103,9 @@ wenozp(T gf_Imm, T gf_Im, T gf_I, T gf_Ip, T gf_Ipp, const CCTK_REAL dx, T weno_
 
 		// Right side (Left face)
   	const vec<T, 4> mp_p{4.0 * dj(1) - dj(2), 4.0 * dj(2) - dj(1), dj(1), dj(2)};
-		const T dM4_p = (1.0/4.0) * (sgn(mp_p(0)) + sgn(mp_p(1)) + sgn(mp_p(2)) + sgn(mp_p(3)))
-				* min({fabs(mp_p(0)), fabs(mp_p(1)), fabs(mp_p(2)), fabs(mp_p(3))});
+  	const T s_p = 0.5 * (sgn(mp_p(0)) + sgn(mp_p(1))) * fabs(0.5 * (sgn(mp_p(0)) + sgn(mp_p(2)))
+				* 0.5 * (sgn(mp_p(0)) + sgn(mp_p(3))));
+		const T dM4_p = s_p * min({fabs(mp_p(0)), fabs(mp_p(1)), fabs(mp_p(2)), fabs(mp_p(3))});
 				
 		const T uUL_p = gf_I + mpw_alp * (gf_I - gf_Im);
 		const T uMD_p = 0.5 * (gf_I + gf_Ip - dM4_p);
@@ -117,8 +118,9 @@ wenozp(T gf_Imm, T gf_Im, T gf_I, T gf_Ip, T gf_Ipp, const CCTK_REAL dx, T weno_
 
 		// Left side (Right face)
   	const vec<T, 4> mp_m{4.0 * dj(0) - dj(1), 4.0 * dj(1) - dj(0), dj(0), dj(1)};
-		const T dM4_m = (1.0/4.0) * (sgn(mp_m(0)) + sgn(mp_m(1)) + sgn(mp_m(2)) + sgn(mp_m(3)))
-				* min({fabs(mp_m(0)), fabs(mp_m(1)), fabs(mp_m(2)), fabs(mp_m(3))});
+  	const T s_m = 0.5 * (sgn(mp_m(0)) + sgn(mp_m(1))) * fabs(0.5 * (sgn(mp_m(0)) + sgn(mp_m(2)))
+				* 0.5 * (sgn(mp_m(0)) + sgn(mp_m(3))));
+		const T dM4_m = s_m * min({fabs(mp_m(0)), fabs(mp_m(1)), fabs(mp_m(2)), fabs(mp_m(3))});
 				
 		const T uUL_m = gf_I + mpw_alp * (gf_I - gf_Ip);
 		const T uMD_m = 0.5 * (gf_I + gf_Im - dM4_m);
