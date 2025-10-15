@@ -80,12 +80,12 @@ extern "C" void AsterX_RestrictAndApplyOuterBCOnFluxes(CCTK_ARGUMENTS) {
   groups.push_back(CCTK_GroupIndex("AsterX::flux_y"));
   groups.push_back(CCTK_GroupIndex("AsterX::flux_z"));
 
-  groups.push_back(CCTK_GroupIndex("AsterX::vbar_xface"));
-  groups.push_back(CCTK_GroupIndex("AsterX::vbar_yface"));
-  groups.push_back(CCTK_GroupIndex("AsterX::vbar_zface"));
-  groups.push_back(CCTK_GroupIndex("AsterX::a_xface"));
-  groups.push_back(CCTK_GroupIndex("AsterX::a_yface"));
-  groups.push_back(CCTK_GroupIndex("AsterX::a_zface"));
+  // groups.push_back(CCTK_GroupIndex("AsterX::vbar_xface"));
+  // groups.push_back(CCTK_GroupIndex("AsterX::vbar_yface"));
+  // groups.push_back(CCTK_GroupIndex("AsterX::vbar_zface"));
+  // groups.push_back(CCTK_GroupIndex("AsterX::a_xface"));
+  // groups.push_back(CCTK_GroupIndex("AsterX::a_yface"));
+  // groups.push_back(CCTK_GroupIndex("AsterX::a_zface"));
 
   active_levels->loop_fine_to_coarse([&](const auto &leveldata) {
     if (leveldata.level < ghext->num_levels() - 1)
@@ -104,9 +104,9 @@ extern "C" void AsterX_RestrictAuxTermsForAvecPsiRHS(CCTK_ARGUMENTS) {
   groups.push_back(CCTK_GroupIndex("AsterX::Ex"));
   groups.push_back(CCTK_GroupIndex("AsterX::Ey"));
   groups.push_back(CCTK_GroupIndex("AsterX::Ez"));
-  groups.push_back(CCTK_GroupIndex("AsterX::Fx_stag"));
-  groups.push_back(CCTK_GroupIndex("AsterX::Fy_stag"));
-  groups.push_back(CCTK_GroupIndex("AsterX::Fz_stag"));
+  // groups.push_back(CCTK_GroupIndex("AsterX::Fx_stag"));
+  // groups.push_back(CCTK_GroupIndex("AsterX::Fy_stag"));
+  // groups.push_back(CCTK_GroupIndex("AsterX::Fz_stag"));
 
   active_levels->loop_fine_to_coarse([&](const auto &leveldata) {
     if (leveldata.level < ghext->num_levels() - 1)
