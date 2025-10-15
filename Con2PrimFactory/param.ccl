@@ -6,6 +6,7 @@ no
 restricted :
 
 KEYWORD c2p_prime "Name of the main con2prim scheme" STEERABLE=ALWAYS {
+  "RePrimAnd" :: "RePrimAnd"
   "Noble" ::"Noble"
   "Palenzuela" ::"Palenzuela"
   "Entropy" ::"Entropy"
@@ -14,6 +15,7 @@ KEYWORD c2p_prime "Name of the main con2prim scheme" STEERABLE=ALWAYS {
 "Noble"
 
 KEYWORD c2p_second "Name of the backup con2prim scheme" STEERABLE=ALWAYS {
+  "RePrimAnd" :: "RePrimAnd"
   "Noble" ::"Noble"
   "Palenzuela" ::"Palenzuela"
   "Entropy" ::"Entropy"
