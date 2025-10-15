@@ -4,18 +4,6 @@
 #include <cctk_Arguments.h>
 #include <cctk_Parameters.h>
 
-/*
-#include <mat.hxx>
-#include <simd.hxx>
-#include <sum.hxx>
-#include <vec.hxx>
-
-#include <algorithm>
-#include <array>
-#include <cassert>
-#include <cmath>
-*/
-
 #include "setup_eos.hxx"
 #include "aster_utils.hxx"
 
@@ -72,11 +60,11 @@ void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p, const bool havetemp) {
         grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
   
-    if (forceHO) {
+    if (!use_deriv_shock_detector) {
       LOflag(p.I) = 1.0;
       return;
     }
-    if (forceLO || rho(p.I) < LO_rhothresh) {
+    if (rho(p.I) < LO_rhothresh) {
       LOflag(p.I) = 0.0;
       return;
     }
