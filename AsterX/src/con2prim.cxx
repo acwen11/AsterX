@@ -8,6 +8,7 @@
 #include "c2p.hxx"
 #include "c2p_1DEntropy.hxx"
 #include "c2p_1DPalenzuela.hxx"
+#include "c2p_1DRePrimAnd.hxx"
 #include "c2p_2DNoble.hxx"
 
 #include "aster_utils.hxx"
@@ -21,8 +22,8 @@ using namespace Con2PrimFactory;
 using namespace AsterUtils;
 
 enum class eos_3param { IdealGas, Hybrid, Tabulated };
-enum class c2p_first_t { None, Noble, Palenzuela, Entropy };
-enum class c2p_second_t { None, Noble, Palenzuela, Entropy };
+enum class c2p_first_t { None, Noble, RePrimAnd, Palenzuela, Entropy };
+enum class c2p_second_t { None, Noble, RePrimAnd, Palenzuela, Entropy };
 
 enum C2PFlag : CCTK_INT {
   C2P_INIT = 0,    // initial value
@@ -45,6 +46,8 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
 
   if (CCTK_EQUALS(c2p_prime, "Noble")) {
     c2p_fir = c2p_first_t::Noble;
+  } else if (CCTK_EQUALS(c2p_prime, "RePrimAnd")) {
+    c2p_fir = c2p_first_t::RePrimAnd;  
   } else if (CCTK_EQUALS(c2p_prime, "Palenzuela")) {
     c2p_fir = c2p_first_t::Palenzuela;
   } else if (CCTK_EQUALS(c2p_prime, "Entropy")) {
@@ -57,6 +60,8 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
 
   if (CCTK_EQUALS(c2p_second, "Noble")) {
     c2p_sec = c2p_second_t::Noble;
+  } else if (CCTK_EQUALS(c2p_second, "RePrimAnd")) {
+    c2p_sec = c2p_second_t::RePrimAnd; 
   } else if (CCTK_EQUALS(c2p_second, "Palenzuela")) {
     c2p_sec = c2p_second_t::Palenzuela;
   } else if (CCTK_EQUALS(c2p_second, "Entropy")) {
@@ -145,6 +150,12 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
                           cons_error_limit, vw_lim, B_lim, rho_BH, eps_BH,
                           vwlim_BH, Ye_lenient, use_z, use_temperature,
                           use_press_atmo);
+
+    // Construct RePrimAnd c2p object:
+    c2p_1DRePrimAnd c2p_RPA(eos_3p, atmo, max_iter, c2p_tol, alp_thresh,
+                             cons_error_limit, vw_lim, B_lim, rho_BH, eps_BH,
+                             vwlim_BH, Ye_lenient, use_z, use_temperature,
+                             use_press_atmo);
 
     // Construct Palenzuela c2p object:
     c2p_1DPalenzuela c2p_Pal(eos_3p, atmo, max_iter, c2p_tol, alp_thresh,
@@ -268,6 +279,10 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
         c2p_Noble.solve(eos_3p, pv, pv_seeds, cv, glo, rep_first);
         break;
       }
+      case c2p_first_t::RePrimAnd: {
+        c2p_RPA.solve(eos_3p, pv, cv, glo, rep_first);
+        break;
+      }			       
       case c2p_first_t::Palenzuela: {
         c2p_Pal.solve(eos_3p, pv, cv, glo, rep_first);
         break;
@@ -299,6 +314,10 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
           c2p_Noble.solve(eos_3p, pv, pv_seeds, cv, glo, rep_second);
           break;
         }
+	case c2p_second_t::RePrimAnd: {
+          c2p_RPA.solve(eos_3p, pv, cv, glo, rep_second);
+          break;
+        }			  
         case c2p_second_t::Palenzuela: {
           c2p_Pal.solve(eos_3p, pv, cv, glo, rep_second);
           break;
