@@ -45,6 +45,7 @@ SCHEDULE AsterX_ComputedBstagFromA IN AsterX_InitialGroup
   LANG: C
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
   WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
+  SYNC: dBx_stag dBy_stag dBz_stag
 } "Calculate dBstag from curl of A"
 
 SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_InitialGroup AFTER AsterX_ComputedBstagFromA
@@ -52,6 +53,7 @@ SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_InitialGroup AFTER AsterX_Computed
   LANG: C
   READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
   WRITES: dB(everywhere)
+  SYNC: dB
 } "Calculate centered dB from dBstag"
 
 SCHEDULE AsterX_ComputeBFromdB IN AsterX_InitialGroup AFTER AsterX_ComputedBFromdBstag
