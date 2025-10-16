@@ -112,6 +112,8 @@ extern "C" void AsterX_RestrictAuxTermsForAvecPsiRHS(CCTK_ARGUMENTS) {
     if (leveldata.level < ghext->num_levels() - 1)
       RestrictNoPoison(cctkGH, leveldata.level, groups);
   });
+
+  ApplyOuterBC(CCTK_PASS_CTOC, groups);
 }
 
 } // namespace AsterX
