@@ -15,7 +15,7 @@ extern "C" void AsterX_Sync(CCTK_ARGUMENTS) {
   // do nothing
 }
 
-void ApplyOuterBC(CCTK_ARGUMENTS, std::vector<int> &groups) {
+void ApplyOuterBC(CCTK_ARGUMENTS, const std::vector<int> &groups) {
   task_manager tasks1;
   task_manager tasks2;
 
@@ -50,23 +50,20 @@ void ApplyOuterBC(CCTK_ARGUMENTS, std::vector<int> &groups) {
 extern "C" void AsterX_ApplyOuterBCOnPrim(CCTK_ARGUMENTS) {
   DECLARE_CCTK_PARAMETERS;
 
-  std::vector<int> groups;
-
-  groups.push_back(CCTK_GroupIndex("HydroBaseX::rho"));
-  groups.push_back(CCTK_GroupIndex("HydroBaseX::vel"));
-  groups.push_back(CCTK_GroupIndex("HydroBaseX::eps"));
-  groups.push_back(CCTK_GroupIndex("HydroBaseX::press"));
-  groups.push_back(CCTK_GroupIndex("HydroBaseX::Bvec"));
-  groups.push_back(CCTK_GroupIndex("HydroBaseX::temperature"));
-  groups.push_back(CCTK_GroupIndex("HydroBaseX::entropy"));
-  groups.push_back(CCTK_GroupIndex("HydroBaseX::Ye"));
-
-  groups.push_back(CCTK_GroupIndex("AsterX::zvec"));
-  groups.push_back(CCTK_GroupIndex("AsterX::svec"));
-
-  groups.push_back(CCTK_GroupIndex("AsterX::dBx_stag"));
-  groups.push_back(CCTK_GroupIndex("AsterX::dBy_stag"));
-  groups.push_back(CCTK_GroupIndex("AsterX::dBz_stag"));
+  static const std::vector<int> groups = {
+      CCTK_GroupIndex("HydroBaseX::rho"),
+      CCTK_GroupIndex("HydroBaseX::vel"),
+      CCTK_GroupIndex("HydroBaseX::eps"),
+      CCTK_GroupIndex("HydroBaseX::press"),
+      CCTK_GroupIndex("HydroBaseX::Bvec"),
+      CCTK_GroupIndex("HydroBaseX::temperature"),
+      CCTK_GroupIndex("HydroBaseX::entropy"),
+      CCTK_GroupIndex("HydroBaseX::Ye"),
+      CCTK_GroupIndex("AsterX::zvec"),
+      CCTK_GroupIndex("AsterX::svec"),
+      CCTK_GroupIndex("AsterX::dBx_stag"),
+      CCTK_GroupIndex("AsterX::dBy_stag"),
+      CCTK_GroupIndex("AsterX::dBz_stag")};
 
   ApplyOuterBC(CCTK_PASS_CTOC, groups);
 }
@@ -74,46 +71,41 @@ extern "C" void AsterX_ApplyOuterBCOnPrim(CCTK_ARGUMENTS) {
 extern "C" void AsterX_RestrictAndApplyOuterBCOnFluxes(CCTK_ARGUMENTS) {
   DECLARE_CCTK_PARAMETERS;
 
-  std::vector<int> groups;
+  static const std::vector<int> rt_groups = {CCTK_GroupIndex("AsterX::flux_x"),
+                                             CCTK_GroupIndex("AsterX::flux_y"),
+                                             CCTK_GroupIndex("AsterX::flux_z")};
 
-  groups.push_back(CCTK_GroupIndex("AsterX::flux_x"));
-  groups.push_back(CCTK_GroupIndex("AsterX::flux_y"));
-  groups.push_back(CCTK_GroupIndex("AsterX::flux_z"));
-
-  // groups.push_back(CCTK_GroupIndex("AsterX::vbar_xface"));
-  // groups.push_back(CCTK_GroupIndex("AsterX::vbar_yface"));
-  // groups.push_back(CCTK_GroupIndex("AsterX::vbar_zface"));
-  // groups.push_back(CCTK_GroupIndex("AsterX::a_xface"));
-  // groups.push_back(CCTK_GroupIndex("AsterX::a_yface"));
-  // groups.push_back(CCTK_GroupIndex("AsterX::a_zface"));
+  static const std::vector<int> bc_groups = {
+      CCTK_GroupIndex("AsterX::vbar_xface"),
+      CCTK_GroupIndex("AsterX::vbar_yface"),
+      CCTK_GroupIndex("AsterX::vbar_zface"),
+      CCTK_GroupIndex("AsterX::a_xface"),
+      CCTK_GroupIndex("AsterX::a_yface"),
+      CCTK_GroupIndex("AsterX::a_zface")};
 
   active_levels->loop_fine_to_coarse([&](const auto &leveldata) {
     if (leveldata.level < ghext->num_levels() - 1)
-      RestrictNoPoison(cctkGH, leveldata.level, groups);
+      RestrictNoPoison(cctkGH, leveldata.level, rt_groups);
   });
 
-  ApplyOuterBC(CCTK_PASS_CTOC, groups);
+  ApplyOuterBC(CCTK_PASS_CTOC, bc_groups);
 }
 
 extern "C" void AsterX_RestrictAuxTermsForAvecPsiRHS(CCTK_ARGUMENTS) {
   DECLARE_CCTK_PARAMETERS;
 
-  std::vector<int> groups;
+  static const std::vector<int> rt_groups = {
+      CCTK_GroupIndex("AsterX::G"), CCTK_GroupIndex("AsterX::Ex"),
+      CCTK_GroupIndex("AsterX::Ey"), CCTK_GroupIndex("AsterX::Ez")};
 
-  groups.push_back(CCTK_GroupIndex("AsterX::G"));
-  groups.push_back(CCTK_GroupIndex("AsterX::Ex"));
-  groups.push_back(CCTK_GroupIndex("AsterX::Ey"));
-  groups.push_back(CCTK_GroupIndex("AsterX::Ez"));
-  // groups.push_back(CCTK_GroupIndex("AsterX::Fx_stag"));
-  // groups.push_back(CCTK_GroupIndex("AsterX::Fy_stag"));
-  // groups.push_back(CCTK_GroupIndex("AsterX::Fz_stag"));
+  static const std::vector<int> bc_groups = {CCTK_GroupIndex("AsterX::G")};
 
   active_levels->loop_fine_to_coarse([&](const auto &leveldata) {
     if (leveldata.level < ghext->num_levels() - 1)
-      RestrictNoPoison(cctkGH, leveldata.level, groups);
+      RestrictNoPoison(cctkGH, leveldata.level, rt_groups);
   });
 
-  ApplyOuterBC(CCTK_PASS_CTOC, groups);
+  ApplyOuterBC(CCTK_PASS_CTOC, bc_groups);
 }
 
 } // namespace AsterX
