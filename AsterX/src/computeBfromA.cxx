@@ -29,30 +29,62 @@ template <int dir> void ComputeStaggeredB(CCTK_ARGUMENTS) {
 
   constexpr array<int, dim> face_centred = {!(dir == 0), !(dir == 1),
                                             !(dir == 2)};
-  grid.loop_all_device<face_centred[0], face_centred[1], face_centred[2]>(
+  grid.loop_allm1_device<face_centred[0], face_centred[1], face_centred[2]>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         // Neighbouring "plus" and "minus" cell indices
-        const auto ipjk = p.I + p.DI[0];
-        const auto ijpk = p.I + p.DI[1];
-        const auto ijkp = p.I + p.DI[2];
+        // const auto ipjk = p.I + p.DI[0];
+        // const auto ijpk = p.I + p.DI[1];
+        // const auto ijkp = p.I + p.DI[2];
 
         if (dir == 0) {
           /* dBx is curl(A) at (i-1/2,j,k) */
-          dBx_stag(p.I) = idx[1] * (Avec_z(ijpk) - Avec_z(p.I)) -
-                          idx[2] * (Avec_y(ijkp) - Avec_y(p.I));
+					dBx_stag(p.I) = calc_fd_v2e(Avec_z, p, 1, mag_order) -
+													calc_fd_v2e(Avec_y, p, 2, mag_order);
+          // dBx_stag(p.I) = idx[1] * (Avec_z(ijpk) - Avec_z(p.I)) -
+          //                 idx[2] * (Avec_y(ijkp) - Avec_y(p.I));
         } else if (dir == 1) {
           /* dBy is curl(A) at (i,j-1/2,k) */
-          dBy_stag(p.I) = idx[2] * (Avec_x(ijkp) - Avec_x(p.I)) -
-                          idx[0] * (Avec_z(ipjk) - Avec_z(p.I));
+					dBy_stag(p.I) = calc_fd_v2e(Avec_x, p, 2, mag_order) -
+													calc_fd_v2e(Avec_z, p, 0, mag_order);
+          // dBy_stag(p.I) = idx[2] * (Avec_x(ijkp) - Avec_x(p.I)) -
+          //                 idx[0] * (Avec_z(ipjk) - Avec_z(p.I));
         } else if (dir == 2) {
           /* dBz is curl(A) at (i,j,z-1/2) */
-          dBz_stag(p.I) = idx[0] * (Avec_y(ipjk) - Avec_y(p.I)) -
-                          idx[1] * (Avec_x(ijpk) - Avec_x(p.I));
+					dBz_stag(p.I) = calc_fd_v2e(Avec_y, p, 0, mag_order) -
+													calc_fd_v2e(Avec_x, p, 1, mag_order);
+          // dBz_stag(p.I) = idx[0] * (Avec_y(ipjk) - Avec_y(p.I)) -
+          //                 idx[1] * (Avec_x(ijpk) - Avec_x(p.I));
         }
 
         // TODO: need to implement copy conditions?
       });
+
+  // grid.loop_bnd_device<face_centred[0], face_centred[1], face_centred[2]>(
+  //     grid.nghostzones,
+  //     [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+  //       // Neighbouring "plus" and "minus" cell indices
+  //       // const auto ipjk = p.I + p.DI[0];
+  //       // const auto ijpk = p.I + p.DI[1];
+  //       // const auto ijkp = p.I + p.DI[2];
+
+  //       if (dir == 0) {
+  //         /* dBx is curl(A) at (i-1/2,j,k) */
+	// 				dBx_stag(p.I) = calc_fd_v2e(Avec_z, p, 1, 2) -
+	// 												calc_fd_v2e(Avec_y, p, 2, 2);
+  //       } else if (dir == 1) {
+  //         /* dBy is curl(A) at (i,j-1/2,k) */
+	// 				dBy_stag(p.I) = calc_fd_v2e(Avec_x, p, 2, 2) -
+	// 												calc_fd_v2e(Avec_z, p, 0, 2);
+  //       } else if (dir == 2) {
+  //         /* dBz is curl(A) at (i,j,z-1/2) */
+	// 				dBz_stag(p.I) = calc_fd_v2e(Avec_y, p, 0, 2) -
+	// 												calc_fd_v2e(Avec_x, p, 1, 2);
+  //       }
+
+  //       // TODO: need to implement copy conditions?
+  //     });
+	//
 }
 
 extern "C" void AsterX_ComputedBstagFromA(CCTK_ARGUMENTS) {
@@ -68,20 +100,31 @@ extern "C" void AsterX_ComputedBFromdBstag(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_ComputedBFromdBstag;
   DECLARE_CCTK_PARAMETERS;
 
-  grid.loop_all_device<1, 1, 1>(
+  grid.loop_allm1_device<1, 1, 1>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         // Neighbouring "plus" and "minus" cell indices
-        const auto ipjk = p.I + p.DI[0];
-        const auto ijpk = p.I + p.DI[1];
-        const auto ijkp = p.I + p.DI[2];
+        // const auto ipjk = p.I + p.DI[0];
+        // const auto ijpk = p.I + p.DI[1];
+        // const auto ijkp = p.I + p.DI[2];
 
-        /* Second order interpolation of staggered B components to cell center
+        /* Interpolation of staggered B components to cell center
          */
-        dBx(p.I) = 0.5 * (dBx_stag(p.I) + dBx_stag(ipjk));
-        dBy(p.I) = 0.5 * (dBy_stag(p.I) + dBy_stag(ijpk));
-        dBz(p.I) = 0.5 * (dBz_stag(p.I) + dBz_stag(ijkp));
+				dBx(p.I) = calc_avg_f2c(dBx_stag, p, 0, mag_order);
+				dBy(p.I) = calc_avg_f2c(dBy_stag, p, 1, mag_order);
+				dBz(p.I) = calc_avg_f2c(dBz_stag, p, 2, mag_order);
       });
+
+  // grid.loop_bnd_device<1, 1, 1>(
+  //     grid.nghostzones,
+  //     [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+
+  //       /* Interpolation of staggered B components to cell center
+  //        */
+	// 			dBx(p.I) = calc_avg_f2c(dBx_stag, p, 0, 2);
+	// 			dBy(p.I) = calc_avg_f2c(dBy_stag, p, 1, 2);
+	// 			dBz(p.I) = calc_avg_f2c(dBz_stag, p, 2, 2);
+  //     });
 }
 
 extern "C" void AsterX_ComputeBFromdB(CCTK_ARGUMENTS) {

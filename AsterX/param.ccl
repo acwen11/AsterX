@@ -32,6 +32,13 @@ CCTK_INT correction_order "Order of accuracy to check if higher order correction
   # 6 :: "Sixth order accurate"
 } 2
 
+CCTK_INT mag_order "Separate mag and hydro DER order for now" STEERABLE=never
+{
+  2 :: "Second order accurate"
+  4 :: "Fourth order accurate"
+  # 6 :: "Sixth order accurate"
+} 2
+
 BOOLEAN use_deriv_shock_detector "Use shock detection measure (see Berta+ 2025, Kiuchi 2025)?" STEERABLE=always
 {
 } "no"

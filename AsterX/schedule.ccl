@@ -204,7 +204,7 @@ SCHEDULE AsterX_SetLOFlag IN CCTK_PRESTEP
   READS: ADMBaseX::metric(interior)
   READS: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::temperature(interior) HydroBaseX::Ye(interior) HydroBaseX::Bvec(interior)
   #READS: lo_auxgf(interior)
-  WRITES: etac(interior) LOflag(interior)
+  WRITES: etac(interior) LOflag(interior) shockflag(interior)
   SYNC: etac LOflag
 } "Detect shocks, flag for low-order recon/flux fallback"
 

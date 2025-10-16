@@ -181,7 +181,7 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
       break;
     }
     case vector_potential_gauge_t::generalized_lorentz: {
-      return -E - calc_fd2_v2e(G, p, i);
+      return -E - calc_fd_v2e(G, p, i, mag_order);
       break;
     }
     default:

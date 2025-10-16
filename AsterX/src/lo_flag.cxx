@@ -15,6 +15,14 @@ using namespace AsterUtils;
 using namespace EOSX;
 
 enum class eos_3param { IdealGas, Hybrid, Tabulated };
+enum shockflag : CCTK_INT {
+  SD_INIT = 0,       // initial value
+  SD_RHO = 1,      
+  SD_PRESS = 2,    
+  SD_CSX = 3,    
+  SD_CSY = 4,   
+  SD_CSZ = 5,  
+};
 
 CCTK_DEVICE CCTK_HOST inline CCTK_REAL 
 LOFlagVar(const GF3D2<const CCTK_REAL> &gf, const CCTK_REAL ref, const PointDesc &p) {
@@ -60,6 +68,8 @@ void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p, const bool havetemp) {
         grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
   
+		shockflag(p.I) = SD_INIT;
+
     if (!use_deriv_shock_detector) {
       LOflag(p.I) = 1.0;
       return;
@@ -80,6 +90,7 @@ void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p, const bool havetemp) {
     if (etacL > eta_thresh){
       etac(p.I) = etac_tot;
       LOflag(p.I) = 0.0;
+			shockflag(p.I) = SD_RHO;
       return;
     }
 
@@ -90,6 +101,7 @@ void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p, const bool havetemp) {
     if (etacL > eta_thresh){
       etac(p.I) = etac_tot;
       LOflag(p.I) = 0.0;
+			shockflag(p.I) = SD_PRESS;
       return;
     }
 
@@ -111,6 +123,7 @@ void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p, const bool havetemp) {
       if (etacL > eta_thresh){
         etac(p.I) = etac_tot;
         LOflag(p.I) = 0.0;
+				shockflag(p.I) = SD_CSX + dir;
         return;
       }
     }
