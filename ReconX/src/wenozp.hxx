@@ -16,7 +16,7 @@ using std::array;
  * WENO-Z+  
  */
 template <typename T = CCTK_REAL>
-inline CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_DEVICE CCTK_HOST array<T, 2>
+inline CCTK_DEVICE CCTK_HOST array<T, 2>
 wenozp(T gf_Imm, T gf_Im, T gf_I, T gf_Ip, T gf_Ipp, const CCTK_REAL dx, T weno_eps, bool mp) {
 
   using Arith::vec;
@@ -136,7 +136,7 @@ wenozp(T gf_Imm, T gf_Im, T gf_I, T gf_Ip, T gf_Ipp, const CCTK_REAL dx, T weno_
 }
 
 template <typename T = CCTK_REAL>
-inline CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_DEVICE CCTK_HOST array<T, 2>
+inline CCTK_DEVICE CCTK_HOST array<T, 2>
 wenozp_reconstruct(T gf_Immm, T gf_Imm, T gf_Im, T gf_Ip, T gf_Ipp, T gf_Ippp,
                   const CCTK_REAL dx, T weno_eps, bool mp) {
 

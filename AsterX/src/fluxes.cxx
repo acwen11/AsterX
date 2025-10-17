@@ -212,7 +212,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
     vec<CCTK_REAL, 2> temp_atm;
 
     const auto coord_i = p.X;
-    const auto coord_im = p.X - p.DX[dir];
+    const auto coord_im = p.X - p.DX[dir_i];
     r_atm(0) = sqrt(coord_im[0] * coord_im[0] + coord_im[1] * coord_im[1] + coord_im[2] * coord_im[2]);
     r_atm(1) = sqrt(coord_i[0] * coord_i[0] + coord_i[1] * coord_i[1] + coord_i[2] * coord_i[2]);
 
@@ -265,7 +265,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
     // End atmosphere
 
     // Check shock detection flag
-    if (LOflag(p.I) == 0.0 || LOflag(p.I - p.DI[dir]) == 0.0)
+    if (LOflag(p.I) == 0.0 || LOflag(p.I - p.DI[dir_i]) == 0.0)
       useLO = true;
 
     if (reconstruct_with_temperature) {
