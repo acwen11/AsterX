@@ -11,7 +11,7 @@ namespace ReconX {
 
 // Compute the median of three numbers
 template <typename T = CCTK_REAL>
-inline CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_DEVICE CCTK_HOST T median(T &x, T &y,
+inline CCTK_DEVICE CCTK_HOST T median(T &x, T &y,
                                                                    T &z) {
   return x + minmod(y - x, z - x);
 }
@@ -22,7 +22,7 @@ inline CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_DEVICE CCTK_HOST T median(T &x, T &y,
  * stepping, J. Comput. Phys. 136 (1997) 83–99."
  */
 template <typename T = CCTK_REAL>
-inline CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_DEVICE CCTK_HOST CCTK_REAL
+inline CCTK_DEVICE CCTK_HOST CCTK_REAL
 mp5(T gf_Imm, T gf_Im, T gf_I, T gf_Ip, T gf_Ipp, T mp5_alpha) {
 
   using std::max;
@@ -77,7 +77,7 @@ mp5(T gf_Imm, T gf_Im, T gf_I, T gf_Ip, T gf_Ipp, T mp5_alpha) {
 }
 
 template <typename T = CCTK_REAL>
-inline CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_DEVICE CCTK_HOST array<T, 2>
+inline CCTK_DEVICE CCTK_HOST array<T, 2>
 mp5_reconstruct(T gf_Immm, T gf_Imm, T gf_Im, T gf_Ip, T gf_Ipp, T gf_Ippp,
                 T mp5_alpha) {
   // for the left cell, the plus side has sequence: Immm, Imm, Im, Ip, Ipp

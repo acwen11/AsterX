@@ -5,8 +5,8 @@
 #include <cctk_Arguments.h>
 #include <cctk_Parameters.h>
 
-extern "C" void AsterMasks_One(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_AsterMasks_One;
+extern "C" void AsterMasks_SetToOne(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterMasks_SetToOne;
   DECLARE_CCTK_PARAMETERS;
 
   grid.loop_all_device<0, 0, 0>(
@@ -26,12 +26,12 @@ extern "C" void AsterMasks_One(CCTK_ARGUMENTS) {
   });
 }
 
-extern "C" void AsterMasks_OnePostStep(CCTK_ARGUMENTS)
+extern "C" void AsterMasks_SetToOnePostStep(CCTK_ARGUMENTS)
 {
-  DECLARE_CCTK_ARGUMENTSX_AsterMasks_OnePostStep;
+  DECLARE_CCTK_ARGUMENTSX_AsterMasks_SetToOnePostStep;
   DECLARE_CCTK_PARAMETERS;
 
-  if (*actually_set == 1.0) {
+  if (*MaskBool == 1.0) {
 
     grid.loop_all_device<0, 0, 0>(
           grid.nghostzones,
@@ -52,11 +52,11 @@ extern "C" void AsterMasks_OnePostStep(CCTK_ARGUMENTS)
   }
 }
 
-extern "C" void AsterMasks_ActuallySetZero(CCTK_ARGUMENTS)
+extern "C" void AsterMasks_SetMaskBoolZero(CCTK_ARGUMENTS)
 {
-  DECLARE_CCTK_ARGUMENTSX_AsterMasks_ActuallySetZero;
+  DECLARE_CCTK_ARGUMENTSX_AsterMasks_SetMaskBoolZero;
   DECLARE_CCTK_PARAMETERS;
 
-  *actually_set = 0.0;
+  *MaskBool = 0.0;
 
 }

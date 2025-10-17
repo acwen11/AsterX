@@ -86,10 +86,6 @@ CCTK_REAL Avec_x_rhs TYPE=gf CENTERING={cvv} TAGS='parities={-1 +1 +1} checkpoin
 CCTK_REAL Avec_y_rhs TYPE=gf CENTERING={vcv} TAGS='parities={+1 -1 +1} checkpoint="no"' "y-component of vector potential RHS"
 CCTK_REAL Avec_z_rhs TYPE=gf CENTERING={vvc} TAGS='parities={+1 +1 -1} checkpoint="no"' "z-component of vector potential RHS"
 
-CCTK_REAL Bx_stag TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"' "x-component of staggered magnetic field"
-CCTK_REAL By_stag TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"' "y-component of staggered magnetic field"
-CCTK_REAL Bz_stag TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"' "z-component of staggered magnetic field"
-
 CCTK_REAL dB TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
 {
   dBx, dBy, dBz
@@ -103,10 +99,10 @@ CCTK_REAL Psi TYPE=gf CENTERING={vvv} TAGS='rhs="Psi_rhs"' "t-component of vecto
 
 CCTK_REAL Psi_rhs TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"' "t-component of vector potential RHS"
 
-CCTK_REAL Aux_in_RHSof_A_Psi TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"'
+CCTK_REAL Fbeta TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"'
 {
-  Fx, Fy, Fz, Fbetax, Fbetay, Fbetaz, G
-} "Auxiliary vertices variables which appears in the rhs of Avec and Psi"
+  Fbetax, Fbetay, Fbetaz
+} "Auxiliary variables which appear in the rhs of Psi"
 
 CCTK_REAL LOflag TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Shock detector switch"
 CCTK_REAL etac TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Shock detector measure"
@@ -117,6 +113,11 @@ CCTK_REAL w_lorentz TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Fluid Lorent
 #CCTK_REAL Ex TYPE=gf CENTERING={cvv} TAGS='checkpoint="no"' "x-component of electric field"
 #CCTK_REAL Ey TYPE=gf CENTERING={vcv} TAGS='checkpoint="no"' "y-component of electric field"
 #CCTK_REAL Ez TYPE=gf CENTERING={vvc} TAGS='checkpoint="no"' "z-component of electric field"
+CCTK_REAL G TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"' "Auxiliary variable which appears in the rhs of Avec"
+
+CCTK_REAL Fx_stag TYPE=gf CENTERING={cvv} TAGS='checkpoint="no"' "x-component of F"
+CCTK_REAL Fy_stag TYPE=gf CENTERING={vcv} TAGS='checkpoint="no"' "y-component of F"
+CCTK_REAL Fz_stag TYPE=gf CENTERING={vvc} TAGS='checkpoint="no"' "z-component of F"
 
 CCTK_REAL con2prim_flag TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Flag indicating failure of con2prim"
 
@@ -142,32 +143,32 @@ CCTK_REAL svec TYPE=gf CENTERING={ccc} TAGS='parities={-1 +1 +1    +1 -1 +1    +
 
 #grid functions required for upwindCT computation of electric field
 
-CCTK_REAL vtilde_xface TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'
+CCTK_REAL vbar_xface TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'
 {
-  vtilde_y_xface, vtilde_z_xface
-} "staggered vtilde components on x-face where vtilde^i = \alpha*v^i-\Beta^i"
+  vbar_y_xface, vbar_z_xface
+} "upwind transverse velocities on x-face"
 
-CCTK_REAL vtilde_yface TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"'
+CCTK_REAL vbar_yface TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"'
 {
-  vtilde_x_yface, vtilde_z_yface
-} "staggered vtilde components on y-face where vtilde^i = \alpha*v^i-\Beta^i"
+  vbar_x_yface, vbar_z_yface
+} "upwind transverse velocities on y-face"
 
-CCTK_REAL vtilde_zface TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
+CCTK_REAL vbar_zface TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
 {
-  vtilde_x_zface, vtilde_y_zface
-} "staggered vtilde components on z-face where vtilde^i = \alpha*v^i-\Beta^i"
+  vbar_x_zface, vbar_y_zface
+} "upwind transverse velocities on z-face"
 
 CCTK_REAL a_xface TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'
 {
   amax_xface, amin_xface
-} "staggered vtilde components on x-face where vtilde^i = \alpha*v^i-\Beta^i"
+} "max and min characteristic speeds on x-face"
 
 CCTK_REAL a_yface TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"'
 {
   amax_yface, amin_yface
-} "staggered vtilde components on y-face where vtilde^i = \alpha*v^i-\Beta^i"
+} "max and min characteristic speeds on y-face"
 
 CCTK_REAL a_zface TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
 {
   amax_zface, amin_zface
-} "staggered vtilde components on z-face where vtilde^i = \alpha*v^i-\Beta^i"
+} "max and min characteristic speeds on z-face"

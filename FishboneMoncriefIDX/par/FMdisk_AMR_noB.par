@@ -134,7 +134,7 @@ AsterSeeds::test_type = "None"
 
 AsterX::debug_mode = "yes"
 AsterX::flux_type = "HLLE"
-AsterX::vector_potential_gauge = "generalized Lorentz" #"algebraic"
+AsterX::vector_potential_gauge = "generalized Lorenz" #"algebraic"
 AsterX::lorenz_damp_fac = 7.5 # 1.5/largest dt
 AsterX::local_spatial_order = 4
 AsterX::local_estimate_error = "no"

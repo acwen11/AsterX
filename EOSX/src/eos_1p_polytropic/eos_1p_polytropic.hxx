@@ -51,6 +51,8 @@ public:
   hm1_from_valid_gm1(const CCTK_REAL gm1) const;
   CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   csnd2_from_valid_gm1(const CCTK_REAL gm1) const;
+  CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
+  temp_from_valid_gm1(const CCTK_REAL gm1) const;
 };
 
 CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
@@ -133,6 +135,22 @@ CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
 eos_1p_polytropic::csnd2_from_valid_gm1(const CCTK_REAL gm1) const {
   return gm1 / (n * (gm1 + 1));
 }
+
+// ───────────────────────────────────────────────────────────────────────
+// Temperature for a 1‑parameter polytrope, assuming an ideal‑gas closure
+//
+//  • gm1  … already known “g‑1 = h‑1” (passed in)
+//  • mu   … mean molecular weight in units of m_p (default = 1)
+// ----------------------------------------------------------------------
+
+CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
+eos_1p_polytropic::temp_from_valid_gm1(const CCTK_REAL gm1) const
+{
+  // For a pure polytrope P/ρ = (g‑1)/(n+1)  ⇒  theta = μ·P/ρ = μ·(g‑1)/(n+1)
+  CCTK_REAL mu = 1.0; // considering mean molecular wt = 1
+  return mu * gm1 / np1;          // geometric‑units T
+}
+
 
 } // namespace EOSX
 

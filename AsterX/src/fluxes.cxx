@@ -35,10 +35,37 @@ enum class rec_var_t { v_vec, z_vec, s_vec };
 // Calculate the fluxes in direction `dir`. This function is more
 // complex because it has to handle any direction, but as reward,
 // there is only one function, not three.
-template <int dir, typename EOSType>
-void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
+template <int dir_i, typename EOSType>
+void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
+              const reconstruction_t reconstruction,
+              const reconstruction_t reconstruction_LO,
+              const reconstruct_params_t reconstruct_params,
+              const flux_t fluxtype) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_Fluxes;
   DECLARE_CCTK_PARAMETERS;
+
+  switch (reconstruction) {
+  case reconstruction_t::Godunov:
+    assert(cctk_nghostzones[dir_i] >= 1);
+    break;
+  case reconstruction_t::minmod:
+    assert(cctk_nghostzones[dir_i] >= 2);
+    break;
+  case reconstruction_t::monocentral:
+    assert(cctk_nghostzones[dir_i] >= 2);
+    break;
+  case reconstruction_t::ppm:
+    assert(cctk_nghostzones[dir_i] >= 3);
+    break;
+  case reconstruction_t::eppm:
+    assert(cctk_nghostzones[dir_i] >= 3);
+    break;
+  case reconstruction_t::wenoz:
+    assert(cctk_nghostzones[dir_i] >= 3);
+  case reconstruction_t::mp5:
+    assert(cctk_nghostzones[dir_i] >= 3);
+    break;
+  }
 
   /* grid functions for fluxes */
   const vec<GF3D2<CCTK_REAL>, dim> fluxdenss{fxdens, fydens, fzdens};
@@ -51,6 +78,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
   const vec<GF3D2<CCTK_REAL>, dim> fluxBxs{fxBx, fyBx, fzBx};
   const vec<GF3D2<CCTK_REAL>, dim> fluxBys{fxBy, fyBy, fzBy};
   const vec<GF3D2<CCTK_REAL>, dim> fluxBzs{fxBz, fyBz, fzBz};
+
   /* grid functions */
   const vec<GF3D2<const CCTK_REAL>, dim> gf_vels{velx, vely, velz};
   const vec<GF3D2<const CCTK_REAL>, dim> gf_zvec{zvec_x, zvec_y, zvec_z};
@@ -60,140 +88,33 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
                                                     dBz_stag};
   const vec<GF3D2<const CCTK_REAL>, dim> gf_beta{betax, betay, betaz};
   const smat<GF3D2<const CCTK_REAL>, dim> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
+
   /* grid functions for Upwind CT */
-  const vec<GF3D2<CCTK_REAL>, dim> vtildes_one{vtilde_y_xface, vtilde_z_yface,
-                                               vtilde_x_zface};
-  const vec<GF3D2<CCTK_REAL>, dim> vtildes_two{vtilde_z_xface, vtilde_x_yface,
-                                               vtilde_y_zface};
-  const vec<GF3D2<CCTK_REAL>, dim> amax{amax_xface, amax_yface, amax_zface};
-  const vec<GF3D2<CCTK_REAL>, dim> amin{amin_xface, amin_yface, amin_zface};
+  const vec<GF3D2<CCTK_REAL>, dim> vbar_j{vbar_y_xface, vbar_z_yface,
+                                          vbar_x_zface};
+  const vec<GF3D2<CCTK_REAL>, dim> vbar_k{vbar_z_xface, vbar_x_yface,
+                                          vbar_y_zface};
+  const vec<GF3D2<CCTK_REAL>, dim> ap_face{amax_xface, amax_yface, amax_zface};
+  const vec<GF3D2<CCTK_REAL>, dim> am_face{amin_xface, amin_yface, amin_zface};
 
-  static_assert(dir >= 0 && dir < 3, "");
-
-  rec_var_t rec_var;
-  if (CCTK_EQUALS(recon_type, "v_vec")) {
-    rec_var = rec_var_t::v_vec;
-  } else if (CCTK_EQUALS(recon_type, "z_vec")) {
-    rec_var = rec_var_t::z_vec;
-  } else if (CCTK_EQUALS(recon_type, "s_vec")) {
-    rec_var = rec_var_t::s_vec;
-  } else {
-    CCTK_ERROR("Unknown value for parameter \"recon_type\"");
-  }
-
-  // Primary reconstruction method
-  reconstruction_t reconstruction;
-  if (CCTK_EQUALS(reconstruction_method, "Godunov"))
-    reconstruction = reconstruction_t::Godunov;
-  else if (CCTK_EQUALS(reconstruction_method, "minmod"))
-    reconstruction = reconstruction_t::minmod;
-  else if (CCTK_EQUALS(reconstruction_method, "monocentral"))
-    reconstruction = reconstruction_t::monocentral;
-  else if (CCTK_EQUALS(reconstruction_method, "ppm"))
-    reconstruction = reconstruction_t::ppm;
-  else if (CCTK_EQUALS(reconstruction_method, "eppm"))
-    reconstruction = reconstruction_t::eppm;
-  else if (CCTK_EQUALS(reconstruction_method, "weno5"))
-    reconstruction = reconstruction_t::weno5;
-  else if (CCTK_EQUALS(reconstruction_method, "wenoz"))
-    reconstruction = reconstruction_t::wenoz;
-  else if (CCTK_EQUALS(reconstruction_method, "wenozp"))
-    reconstruction = reconstruction_t::wenozp;
-  else if (CCTK_EQUALS(reconstruction_method, "mp5"))
-    reconstruction = reconstruction_t::mp5;
-  else
-    CCTK_ERROR("Unknown value for parameter \"reconstruction_method\"");
-
-  // Lower-order fallback for negative values
-  reconstruction_t reconstruction_LO;
-  if (CCTK_EQUALS(loworder_method, "Godunov"))
-    reconstruction_LO = reconstruction_t::Godunov;
-  else if (CCTK_EQUALS(loworder_method, "minmod"))
-    reconstruction_LO = reconstruction_t::minmod;
-  else if (CCTK_EQUALS(loworder_method, "monocentral"))
-    reconstruction_LO = reconstruction_t::monocentral;
-  else if (CCTK_EQUALS(loworder_method, "ppm"))
-    reconstruction_LO = reconstruction_t::ppm;
-  else
-    CCTK_ERROR("Unknown value for parameter \"loworder_method\"");
-
-  flux_t fluxtype;
-  if (CCTK_EQUALS(flux_type, "LxF")) {
-    fluxtype = flux_t::LxF;
-  } else if (CCTK_EQUALS(flux_type, "HLLE")) {
-    fluxtype = flux_t::HLLE;
-  } else {
-    CCTK_ERROR("Unknown value for parameter \"flux_type\"");
-  }
-
-  switch (reconstruction) {
-  case reconstruction_t::Godunov:
-    assert(cctk_nghostzones[dir] >= 1);
-    break;
-  case reconstruction_t::minmod:
-    assert(cctk_nghostzones[dir] >= 2);
-    break;
-  case reconstruction_t::monocentral:
-    assert(cctk_nghostzones[dir] >= 2);
-    break;
-  case reconstruction_t::ppm:
-    assert(cctk_nghostzones[dir] >= 3);
-    break;
-  case reconstruction_t::eppm:
-    assert(cctk_nghostzones[dir] >= 3);
-    break;
-  case reconstruction_t::weno5:
-    assert(cctk_nghostzones[dir] >= 3);
-    break;
-  case reconstruction_t::wenoz:
-    assert(cctk_nghostzones[dir] >= 3);
-    break;
-  case reconstruction_t::wenozp:
-    assert(cctk_nghostzones[dir] >= 3);
-    break;
-  case reconstruction_t::mp5:
-    assert(cctk_nghostzones[dir] >= 3);
-    break;
-  }
-
-  // reconstruction parameters struct
-  reconstruct_params_t reconstruct_params;
-
-  // ppm parameters
-  reconstruct_params.ppm_shock_detection = ppm_shock_detection;
-  reconstruct_params.ppm_zone_flattening = ppm_zone_flattening;
-  reconstruct_params.poly_k = poly_k;
-  reconstruct_params.poly_gamma = poly_gamma;
-  reconstruct_params.ppm_eta1 = ppm_eta1;
-  reconstruct_params.ppm_eta2 = ppm_eta2;
-  reconstruct_params.ppm_eps = ppm_eps;
-  reconstruct_params.ppm_eps_shock = ppm_eps_shock;
-  reconstruct_params.ppm_small = ppm_small;
-  reconstruct_params.ppm_omega1 = ppm_omega1;
-  reconstruct_params.ppm_omega2 = ppm_omega2;
-  reconstruct_params.enhanced_ppm_C2 = enhanced_ppm_C2;
-  // wenoz parameters
-  reconstruct_params.weno_eps = weno_eps;
-  reconstruct_params.weno_mp = weno_mp;
-  // mp5 parameters
-  reconstruct_params.mp5_alpha = mp5_alpha;
+  static_assert(dir_i >= 0 && dir_i < 3, "");
 
   // Prebind the velocity slice for this direction once
-  const auto gf_vel_dir = gf_vels(dir);
+  const auto gf_vel_dir_i = gf_vels(dir_i);
 
   const auto reconstruct_pt =
       [=] CCTK_DEVICE(const GF3D2<const CCTK_REAL> &var, const PointDesc &p,
-                      bool gf_is_rho,
-                      bool gf_is_press) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        return reconstruct<vec<CCTK_REAL, 2>>(var, p, reconstruction, dir, gf_is_rho, gf_is_press,
-                           press, gf_vel_dir, reconstruct_params);
+                      bool gf_is_rho, bool gf_is_press) {
+        return reconstruct<vec<CCTK_REAL, 2>>(var, p, reconstruction, dir_i,
+                                              gf_is_rho, gf_is_press, press,
+                                              gf_vel_dir_i, reconstruct_params);
       };
   const auto reconstruct_loworder =
       [=] CCTK_DEVICE(const GF3D2<const CCTK_REAL> &var, const PointDesc &p,
-                      bool gf_is_rho,
-                      bool gf_is_press) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        return reconstruct<vec<CCTK_REAL, 2>>(var, p, reconstruction_LO, dir, gf_is_rho, gf_is_press,
-                           press, gf_vel_dir, reconstruct_params);
+                      bool gf_is_rho, bool gf_is_press) {
+        return reconstruct<vec<CCTK_REAL, 2>>(var, p, reconstruction_LO, dir_i,
+                                              gf_is_rho, gf_is_press, press,
+                                              gf_vel_dir_i, reconstruct_params);
       };
 
   const auto calcflux =
@@ -201,52 +122,62 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
                       vec<CCTK_REAL, 2> flux) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         CCTK_REAL flx;
         switch (fluxtype) {
-
         case flux_t::LxF: {
           flx = laxf(lam, var, flux);
           break;
         }
-
         case flux_t::HLLE: {
           flx = hlle(lam, var, flux);
           break;
         }
-
         default:
           assert(0);
         }
-
         return flx;
       };
 
-  // Face-centred grid functions (in direction `dir`)
-  constexpr array<int, dim> face_centred = {!(dir == 0), !(dir == 1),
-                                            !(dir == 2)};
+  // Face-centred grid functions (in direction `dir_i`)
+  constexpr array<int, dim> face_centred = {!(dir_i == 0), !(dir_i == 1),
+                                            !(dir_i == 2)};
 
-  // Precompute mapping table once for clarity and efficiency
-  constexpr array<array<int, 3>, 3> dir_arr_table = {{
-      {0, 1, 2}, // dir == 0: x, y, z
-      {1, 2, 0}, // dir == 1: y, z, x
-      {2, 0, 1}  // dir == 2: z, x, y
-  }};
-  constexpr auto dir_arr = dir_arr_table[dir];
+  constexpr int dir_j = (dir_i == 0) ? 1 : ((dir_i == 1) ? 2 : 0);
+  constexpr int dir_k = (dir_i == 0) ? 2 : ((dir_i == 1) ? 0 : 1);
 
-  grid.loop_int_device<
-      face_centred[0], face_centred[1],
-      face_centred
-          [2]>(grid.nghostzones, [=] CCTK_DEVICE(
-                                     const PointDesc
-                                         &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+  // initialize to zero
+  grid.loop_all_device<face_centred[0], face_centred[1], face_centred[2]>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        fluxdenss(dir_i)(p.I) = 0;
+        fluxDEnts(dir_i)(p.I) = 0;
+        fluxmomxs(dir_i)(p.I) = 0;
+        fluxmomys(dir_i)(p.I) = 0;
+        fluxmomzs(dir_i)(p.I) = 0;
+        fluxtaus(dir_i)(p.I) = 0;
+        fluxDYes(dir_i)(p.I) = 0;
+        fluxBxs(dir_i)(p.I) = 0;
+        fluxBys(dir_i)(p.I) = 0;
+        fluxBzs(dir_i)(p.I) = 0;
+
+        ap_face(dir_i)(p.I) = 0;
+        am_face(dir_i)(p.I) = 0;
+        vbar_j(dir_i)(p.I) = 0;
+        vbar_k(dir_i)(p.I) = 0;
+      });
+
+  grid.loop_mix_device<face_centred[0], face_centred[1],
+                       face_centred[2]>(grid.nghostzones, [=] CCTK_DEVICE(
+                                                              const PointDesc
+                                                                  &p) {
     /* Reconstruct primitives from the cells on left (indice 0) and right
      * (indice 1) side of this face rc = reconstructed variables or
      * computed from reconstructed variables */
 
     /* Interpolate metric components from vertices to faces */
-    const CCTK_REAL alp_avg = calc_avg_v2f(alp, p, dir);
+    const CCTK_REAL alp_avg = calc_avg_v2f<dir_i>(alp, p);
     const vec<CCTK_REAL, 3> betas_avg(
-        [&](int i) ARITH_INLINE { return calc_avg_v2f(gf_beta(i), p, dir); });
+        [&](int i) ARITH_INLINE { return calc_avg_v2f<dir_i>(gf_beta(i), p); });
     const smat<CCTK_REAL, 3> g_avg([&](int i, int j) ARITH_INLINE {
-      return calc_avg_v2f(gf_g(i, j), p, dir);
+      return calc_avg_v2f<dir_i>(gf_g(i, j), p);
     });
 
     /* determinant of spatial metric */
@@ -347,7 +278,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
           (rho_rc(1) <= rho_cut(1)) || (entropy_rc(1) <= 0.0) || (Ye_rc(1) <= 0.0) || (temp_rc(1) <= 0.0) ||
           useLO) {
 
-      	useLO = true;
+        useLO = true;
 
         rho_rc = reconstruct_loworder(rho, p, true, true);
         entropy_rc = reconstruct_loworder(entropy, p, false, false);
@@ -392,7 +323,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
           (rho_rc(1) <= rho_cut(1)) || (entropy_rc(1) <= 0.0) || (Ye_rc(1) <= 0.0) || (press_rc(1) <= 0.0) ||
            useLO) {
 
-      	useLO = true;
+        useLO = true;
 
         rho_rc = reconstruct_loworder(rho, p, true, true);
         entropy_rc = reconstruct_loworder(entropy, p, false, false);
@@ -427,7 +358,6 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
         temp_rc(f) =
             eos_3p->temp_from_valid_rho_eps_ye(rho_rc(f), eps_rc(f), Ye_rc(f));
       }
-
     }
 
     const vec<CCTK_REAL, 2> rhoh_rc([&](int f) ARITH_INLINE {
@@ -435,28 +365,25 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
     });
 
     // Introduce reconstructed Bs
-    // Use staggered dB for i == dir
+    // Use staggered dB for i == dir_i
     vec<vec<CCTK_REAL, 2>, 3> Bs_rc;
 
     // Assign the value for the primary direction
-    const CCTK_REAL val = gf_dBstags(dir)(p.I) / sqrtg;
-    Bs_rc(dir)(0) = val;
-    Bs_rc(dir)(1) = val;
+    const CCTK_REAL val = gf_dBstags(dir_i)(p.I) / sqrtg;
+    Bs_rc(dir_i)(0) = val;
+    Bs_rc(dir_i)(1) = val;
 
     // Lambda to assign the reconstructed values
     auto assign_reconstructed = [&](int d) {
-      Bs_rc(d) = reconstruct_pt(gf_Bvecs(d), p, false, false);
-
-      // Lower-order
-      if (useLO) {
-        Bs_rc(d) = reconstruct_loworder(gf_Bvecs(d), p, false, false);
-      }
-      // End lower-order
+      auto tmp = useLO ? reconstruct_loworder(gf_Bvecs(d), p, false, false)
+                       : reconstruct_pt(gf_Bvecs(d), p, false, false);
+      Bs_rc(d)(0) = tmp(0);
+      Bs_rc(d)(1) = tmp(1);
     };
 
     // Assign reconstructed values for the two perpendicular directions
-    assign_reconstructed(dir_arr[1]);
-    assign_reconstructed(dir_arr[2]);
+    assign_reconstructed(dir_j);
+    assign_reconstructed(dir_k);
     // End of setting Bs
 
     vec<vec<CCTK_REAL, 2>, 3> vels_rc;
@@ -466,15 +393,15 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
     case rec_var_t::v_vec: {
 
       if (useLO) {
-	      
+
         for (int i = 0; i <= 2; ++i) { // loop over components
-            vels_rc(i) = reconstruct_loworder(gf_vels(i), p, false, false);
-	}
+          vels_rc(i) = reconstruct_loworder(gf_vels(i), p, false, false);
+        }
       } else {
 
-      	for (int i = 0; i <= 2; ++i) { // loop over components
-            vels_rc(i) = reconstruct_pt(gf_vels(i), p, false, false);
-	}
+        for (int i = 0; i <= 2; ++i) { // loop over components
+          vels_rc(i) = reconstruct_pt(gf_vels(i), p, false, false);
+        }
       }
 
       /* co-velocity measured by Eulerian observer: v_j */
@@ -494,9 +421,10 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
 
       // Lower-order
       if (useLO) {
-      	for (int i = 0; i <= 2; ++i) { // loop over components
-            zvec_rc(i) = reconstruct_loworder(gf_zvec(i), p, false, false);
-	}
+
+        for (int i = 0; i <= 2; ++i) { // loop over components
+          zvec_rc(i) = reconstruct_loworder(gf_zvec(i), p, false, false);
+        }
       }
       // End lower-order
 
@@ -523,9 +451,10 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
 
       // Lower-order
       if (useLO) {
-      	for (int i = 0; i <= 2; ++i) { // loop over components
-            svec_rc(i) = reconstruct_loworder(gf_svec(i), p, false, false);
-	}
+
+        for (int i = 0; i <= 2; ++i) { // loop over components
+          svec_rc(i) = reconstruct_loworder(gf_svec(i), p, false, false);
+        }
       }
       // End lower-order
 
@@ -534,11 +463,9 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
       const auto s2_rc = calc_contraction(sveclow_rc, svec_rc);
 
       w_lorentz_rc(0) =
-          sqrt(0.5 + sqrt(0.25 + s2_rc(0) /
-                                     rhoh_rc(0) / rhoh_rc(0)));
+          sqrt(0.5 + sqrt(0.25 + s2_rc(0) / rhoh_rc(0) / rhoh_rc(0)));
       w_lorentz_rc(1) =
-          sqrt(0.5 + sqrt(0.25 + s2_rc(1) /
-                                     rhoh_rc(1) / rhoh_rc(1)));
+          sqrt(0.5 + sqrt(0.25 + s2_rc(1) / rhoh_rc(1) / rhoh_rc(1)));
 
       for (int i = 0; i <= 2; ++i) {   // loop over components
         for (int j = 0; j <= 1; ++j) { // loop over left and right state
@@ -597,11 +524,11 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
       return (B2_rc(f) + pow2(alp_b0_rc(f))) / pow2(w_lorentz_rc(f));
     });
 
-    /* componets correspond to the dir we are considering */
-    const CCTK_REAL beta_avg = betas_avg(dir);
-    const vec<CCTK_REAL, 2> vel_rc{vels_rc(dir)};
-    const vec<CCTK_REAL, 2> B_rc{Bs_rc(dir)};
-    const vec<CCTK_REAL, 2> vtilde_rc{vtildes_rc(dir)};
+    /* componets correspond to the dir_i we are considering */
+    const CCTK_REAL beta_avg = betas_avg(dir_i);
+    const vec<CCTK_REAL, 2> vel_rc{vels_rc(dir_i)};
+    const vec<CCTK_REAL, 2> B_rc{Bs_rc(dir_i)};
+    const vec<CCTK_REAL, 2> vtilde_rc{vtildes_rc(dir_i)};
 
     // TODO: Compute pressure based on user-specified EOS.
     // Currently, computing press for classical ideal gas from reconstructed
@@ -659,8 +586,8 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
 
     /* Computing fluxes of conserved variables: */
 
-    /* auxiliary: unit in 'dir' */
-    const vec<CCTK_REAL, 3> unit_dir{vec<int, 3>::unit(dir)};
+    /* auxiliary: unit in 'dir_i' */
+    const vec<CCTK_REAL, 3> unit_dir_i{vec<int, 3>::unit(dir_i)};
     /* auxiliary: alpha * sqrt(g) */
     const CCTK_REAL alp_sqrtg = alp_avg * sqrtg;
     /* auxiliary: B^i / W */
@@ -681,7 +608,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
     const vec<vec<CCTK_REAL, 2>, 3> flux_moms([&](int j) ARITH_INLINE {
       return vec<CCTK_REAL, 2>([&](int f) ARITH_INLINE {
         return moms_rc(j)(f) * vtilde_rc(f) +
-               alp_sqrtg * (press_plus_pmag_rc(f) * unit_dir(j) -
+               alp_sqrtg * (press_plus_pmag_rc(f) * unit_dir_i(j) -
                             blows_rc(j)(f) * B_over_w_lorentz_rc(f));
       });
     });
@@ -705,12 +632,12 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
         calc_cross_product(Btildes_rc, vtildes_rc);
     /* flux(Btildes) = {{0, -Ez, Ey}, {Ez, 0, -Ex}, {-Ey, Ex, 0}} */
     const vec<vec<CCTK_REAL, 2>, 3> flux_Btildes =
-        calc_cross_product(unit_dir, Es_rc);
+        calc_cross_product(unit_dir_i, Es_rc);
 
     /* Calculate eigenvalues: */
 
     /* variable for either g^xx, g^yy or g^zz depending on the direction */
-    const CCTK_REAL u_avg = calc_inv(g_avg, detg_avg)(dir, dir);
+    const CCTK_REAL u_avg = calc_inv(g_avg, detg_avg)(dir_i, dir_i);
     /* eigenvalues */
     vec<vec<CCTK_REAL, 4>, 2> lambda =
         eigenvalues(alp_avg, beta_avg, u_avg, vel_rc, rho_rc, cs2_rc,
@@ -718,36 +645,37 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
 
     /* Calculate numerical fluxes */
 		if (!useLO || !loworder_flux) {
-			fluxdenss(dir)(p.I) = calcflux(lambda, dens_rc, flux_dens);
-			fluxDEnts(dir)(p.I) = calcflux(lambda, DEnt_rc, flux_DEnt);
-			fluxmomxs(dir)(p.I) = calcflux(lambda, moms_rc(0), flux_moms(0));
-			fluxmomys(dir)(p.I) = calcflux(lambda, moms_rc(1), flux_moms(1));
-			fluxmomzs(dir)(p.I) = calcflux(lambda, moms_rc(2), flux_moms(2));
-			fluxtaus(dir)(p.I) = calcflux(lambda, tau_rc, flux_tau);
-			fluxDYes(dir)(p.I) = calcflux(lambda, DYe_rc, flux_DYe);
-			fluxBxs(dir)(p.I) =
-					(dir != 0) * calcflux(lambda, Btildes_rc(0), flux_Btildes(0));
-			fluxBys(dir)(p.I) =
-					(dir != 1) * calcflux(lambda, Btildes_rc(1), flux_Btildes(1));
-			fluxBzs(dir)(p.I) =
-					(dir != 2) * calcflux(lambda, Btildes_rc(2), flux_Btildes(2));
+			fluxdenss(dir_i)(p.I) = calcflux(lambda, dens_rc, flux_dens);
+			fluxDEnts(dir_i)(p.I) = calcflux(lambda, DEnt_rc, flux_DEnt);
+			fluxmomxs(dir_i)(p.I) = calcflux(lambda, moms_rc(0), flux_moms(0));
+			fluxmomys(dir_i)(p.I) = calcflux(lambda, moms_rc(1), flux_moms(1));
+			fluxmomzs(dir_i)(p.I) = calcflux(lambda, moms_rc(2), flux_moms(2));
+			fluxtaus(dir_i)(p.I) = calcflux(lambda, tau_rc, flux_tau);
+			fluxDYes(dir_i)(p.I) = calcflux(lambda, DYe_rc, flux_DYe);
+			fluxBxs(dir_i)(p.I) =
+					(dir_i != 0) * calcflux(lambda, Btildes_rc(0), flux_Btildes(0));
+			fluxBys(dir_i)(p.I) =
+					(dir_i != 1) * calcflux(lambda, Btildes_rc(1), flux_Btildes(1));
+			fluxBzs(dir_i)(p.I) =
+					(dir_i != 2) * calcflux(lambda, Btildes_rc(2), flux_Btildes(2));
 		}
 		else {
-			fluxdenss(dir)(p.I) = laxf(lambda, dens_rc, flux_dens);
-			fluxDEnts(dir)(p.I) = laxf(lambda, DEnt_rc, flux_DEnt);
-			fluxmomxs(dir)(p.I) = laxf(lambda, moms_rc(0), flux_moms(0));
-			fluxmomys(dir)(p.I) = laxf(lambda, moms_rc(1), flux_moms(1));
-			fluxmomzs(dir)(p.I) = laxf(lambda, moms_rc(2), flux_moms(2));
-			fluxtaus(dir)(p.I) = laxf(lambda, tau_rc, flux_tau);
-			fluxDYes(dir)(p.I) = laxf(lambda, DYe_rc, flux_DYe);
-			fluxBxs(dir)(p.I) =
-					(dir != 0) * laxf(lambda, Btildes_rc(0), flux_Btildes(0));
-			fluxBys(dir)(p.I) =
-					(dir != 1) * laxf(lambda, Btildes_rc(1), flux_Btildes(1));
-			fluxBzs(dir)(p.I) =
-					(dir != 2) * laxf(lambda, Btildes_rc(2), flux_Btildes(2));
+			fluxdenss(dir_i)(p.I) = laxf(lambda, dens_rc, flux_dens);
+			fluxDEnts(dir_i)(p.I) = laxf(lambda, DEnt_rc, flux_DEnt);
+			fluxmomxs(dir_i)(p.I) = laxf(lambda, moms_rc(0), flux_moms(0));
+			fluxmomys(dir_i)(p.I) = laxf(lambda, moms_rc(1), flux_moms(1));
+			fluxmomzs(dir_i)(p.I) = laxf(lambda, moms_rc(2), flux_moms(2));
+			fluxtaus(dir_i)(p.I) = laxf(lambda, tau_rc, flux_tau);
+			fluxDYes(dir_i)(p.I) = laxf(lambda, DYe_rc, flux_DYe);
+			fluxBxs(dir_i)(p.I) =
+					(dir_i != 0) * laxf(lambda, Btildes_rc(0), flux_Btildes(0));
+			fluxBys(dir_i)(p.I) =
+					(dir_i != 1) * laxf(lambda, Btildes_rc(1), flux_Btildes(1));
+			fluxBzs(dir_i)(p.I) =
+					(dir_i != 2) * laxf(lambda, Btildes_rc(2), flux_Btildes(2));
 		}
 
+#ifdef CCTK_DEBUG
     if (isnan(dens_rc(0)) || isnan(dens_rc(1)) || isnan(moms_rc(0)(0)) ||
         isnan(moms_rc(0)(1)) || isnan(moms_rc(1)(0)) || isnan(moms_rc(1)(1)) ||
         isnan(moms_rc(2)(0)) || isnan(moms_rc(2)(1)) || isnan(tau_rc(0)) ||
@@ -762,21 +690,21 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
         isnan(flux_tau(0)) || isnan(flux_tau(1)) || isnan(flux_Btildes(0)(0)) ||
         isnan(flux_Btildes(0)(1)) || isnan(flux_Btildes(1)(0)) ||
         isnan(flux_Btildes(1)(1)) || isnan(flux_Btildes(2)(0)) ||
-        isnan(flux_Btildes(2)(1)) || isnan(fluxdenss(dir)(p.I)) ||
-        isnan(fluxmomxs(dir)(p.I)) || isnan(fluxmomys(dir)(p.I)) ||
-        isnan(fluxmomzs(dir)(p.I)) || isnan(fluxtaus(dir)(p.I)) ||
-        isnan(fluxBxs(dir)(p.I)) || isnan(fluxBys(dir)(p.I)) ||
-        isnan(fluxBzs(dir)(p.I)) || rho_rc(0) < 0.0 || rho_rc(1) < 0.0 ||
+        isnan(flux_Btildes(2)(1)) || isnan(fluxdenss(dir_i)(p.I)) ||
+        isnan(fluxmomxs(dir_i)(p.I)) || isnan(fluxmomys(dir_i)(p.I)) ||
+        isnan(fluxmomzs(dir_i)(p.I)) || isnan(fluxtaus(dir_i)(p.I)) ||
+        isnan(fluxBxs(dir_i)(p.I)) || isnan(fluxBys(dir_i)(p.I)) ||
+        isnan(fluxBzs(dir_i)(p.I)) || rho_rc(0) < 0.0 || rho_rc(1) < 0.0 ||
         press_rc(0) < 0.0 || press_rc(1) < 0.0) {
-      printf("cctk_iteration = %i,  dir = %i,  ijk = %i, %i, %i, "
+      printf("cctk_iteration = %i,  dir_i = %i,  ijk = %i, %i, %i, "
              "x, y, z = %16.8e, %16.8e, %16.8e.\n",
-             cctk_iteration, dir, p.i, p.j, p.k, p.x, p.y, p.z);
-      printf("  fluxdenss = %16.8e,\n", fluxdenss(dir)(p.I));
-      printf("  fluxmoms  = %16.8e, %16.8e, %16.8e,\n", fluxmomxs(dir)(p.I),
-             fluxmomys(dir)(p.I), fluxmomzs(dir)(p.I));
-      printf("  fluxtaus  = %16.8e,\n", fluxtaus(dir)(p.I));
-      printf("  fluxBs    = %16.8e, %16.8e, %16.8e\n", fluxBxs(dir)(p.I),
-             fluxBys(dir)(p.I), fluxBzs(dir)(p.I));
+             cctk_iteration, dir_i, p.i, p.j, p.k, p.x, p.y, p.z);
+      printf("  fluxdenss = %16.8e,\n", fluxdenss(dir_i)(p.I));
+      printf("  fluxmoms  = %16.8e, %16.8e, %16.8e,\n", fluxmomxs(dir_i)(p.I),
+             fluxmomys(dir_i)(p.I), fluxmomzs(dir_i)(p.I));
+      printf("  fluxtaus  = %16.8e,\n", fluxtaus(dir_i)(p.I));
+      printf("  fluxBs    = %16.8e, %16.8e, %16.8e\n", fluxBxs(dir_i)(p.I),
+             fluxBys(dir_i)(p.I), fluxBzs(dir_i)(p.I));
       printf("  flux_denss = %16.8e, %16.8e,\n", flux_dens(0), flux_dens(1));
       printf("  flux_moms  = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e,\n",
              flux_moms(0)(0), flux_moms(0)(1), flux_moms(1)(0), flux_moms(1)(1),
@@ -813,17 +741,17 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
       printf("  press_rc = %16.8e, %16.8e \n", press_rc(0), press_rc(1));
       printf("  eps_rc   = %16.8e, %16.8e \n", eps_rc(0), eps_rc(1));
       printf("  rho = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e;\n",
-             rho(p.I - p.DI[dir] * 3), rho(p.I - p.DI[dir] * 2),
-             rho(p.I - p.DI[dir]), rho(p.I), rho(p.I + p.DI[dir]),
-             rho(p.I + p.DI[dir] * 2));
+             rho(p.I - p.DI[dir_i] * 3), rho(p.I - p.DI[dir_i] * 2),
+             rho(p.I - p.DI[dir_i]), rho(p.I), rho(p.I + p.DI[dir_i]),
+             rho(p.I + p.DI[dir_i] * 2));
       printf("  press = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e;\n",
-             press(p.I - p.DI[dir] * 3), press(p.I - p.DI[dir] * 2),
-             press(p.I - p.DI[dir]), press(p.I), press(p.I + p.DI[dir]),
-             press(p.I + p.DI[dir] * 2));
+             press(p.I - p.DI[dir_i] * 3), press(p.I - p.DI[dir_i] * 2),
+             press(p.I - p.DI[dir_i]), press(p.I), press(p.I + p.DI[dir_i]),
+             press(p.I + p.DI[dir_i] * 2));
       printf("  eps   = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e;\n",
-             eps(p.I - p.DI[dir] * 3), eps(p.I - p.DI[dir] * 2),
-             eps(p.I - p.DI[dir]), eps(p.I), eps(p.I + p.DI[dir]),
-             eps(p.I + p.DI[dir] * 2));
+             eps(p.I - p.DI[dir_i] * 3), eps(p.I - p.DI[dir_i] * 2),
+             eps(p.I - p.DI[dir_i]), eps(p.I), eps(p.I + p.DI[dir_i]),
+             eps(p.I + p.DI[dir_i] * 2));
       printf("  alp_avg, beta_avg = %16.8e, %16.8e, %16.8e, %16.8e,\n", alp_avg,
              betas_avg(0), betas_avg(1), betas_avg(2));
       printf("  g_avg = %16.8e, %16.8e, %16.8e, %16.8e, %16.8e, %16.8e.\n",
@@ -839,28 +767,25 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
       printf("  vtilde_rc = %16.8e, %16.8e.\n", vtilde_rc(0), vtilde_rc(1));
       assert(0);
     }
+#endif
 
     /* Begin code for upwindCT */
-    // if dir==0: dir1=1, dir2=2 | dir==1: dir1=2, dir2=0 | dir==2; dir1=0,
-    // dir2=1
 
-    const int dir1 = (dir == 0) ? 1 : ((dir == 1) ? 2 : 0);
-    const int dir2 = (dir == 0) ? 2 : ((dir == 1) ? 0 : 1);
+    CCTK_REAL ap, am;
+    maxspeeds_from_lambdas(lambda, ap, am);
 
-    amax(dir)(p.I) = max({CCTK_REAL(0), lambda(0)(0), lambda(0)(1),
-                          lambda(0)(2), lambda(0)(3), lambda(1)(0),
-                          lambda(1)(1), lambda(1)(2), lambda(1)(3)});
+    ap_face(dir_i)(p.I) = ap;
+    am_face(dir_i)(p.I) = am;
 
-    amin(dir)(p.I) = -1 * (min({CCTK_REAL(0), lambda(0)(0), lambda(0)(1),
-                                lambda(0)(2), lambda(0)(3), lambda(1)(0),
-                                lambda(1)(1), lambda(1)(2), lambda(1)(3)}));
+    const CCTK_REAL vjL = vtildes_rc(dir_j)(0);
+    const CCTK_REAL vjR = vtildes_rc(dir_j)(1);
+    const CCTK_REAL vkL = vtildes_rc(dir_k)(0);
+    const CCTK_REAL vkR = vtildes_rc(dir_k)(1);
+    const CCTK_REAL vj_face = avg_upwind(vjL, vjR, ap, am);
+    const CCTK_REAL vk_face = avg_upwind(vkL, vkR, ap, am);
 
-    vtildes_one(dir)(p.I) = (amax(dir)(p.I) * vtildes_rc(dir1)(0) +
-                             amin(dir)(p.I) * vtildes_rc(dir1)(1)) /
-                            (amax(dir)(p.I) + amin(dir)(p.I));
-    vtildes_two(dir)(p.I) = (amax(dir)(p.I) * vtildes_rc(dir2)(0) +
-                             amin(dir)(p.I) * vtildes_rc(dir2)(1)) /
-                            (amax(dir)(p.I) + amin(dir)(p.I));
+    vbar_j(dir_i)(p.I) = vj_face;
+    vbar_k(dir_i)(p.I) = vk_face;
 
     /* End code for upwindCT */
   });
@@ -882,32 +807,112 @@ extern "C" void AsterX_Fluxes(CCTK_ARGUMENTS) {
     CCTK_ERROR("Unknown value for parameter \"evolution_eos\"");
   }
 
+  rec_var_t rec_var;
+  if (CCTK_EQUALS(recon_type, "v_vec")) {
+    rec_var = rec_var_t::v_vec;
+  } else if (CCTK_EQUALS(recon_type, "z_vec")) {
+    rec_var = rec_var_t::z_vec;
+  } else if (CCTK_EQUALS(recon_type, "s_vec")) {
+    rec_var = rec_var_t::s_vec;
+  } else {
+    CCTK_ERROR("Unknown value for parameter \"recon_type\"");
+  }
+
+  // Primary reconstruction method
+  reconstruction_t reconstruction;
+  if (CCTK_EQUALS(reconstruction_method, "Godunov"))
+    reconstruction = reconstruction_t::Godunov;
+  else if (CCTK_EQUALS(reconstruction_method, "minmod"))
+    reconstruction = reconstruction_t::minmod;
+  else if (CCTK_EQUALS(reconstruction_method, "monocentral"))
+    reconstruction = reconstruction_t::monocentral;
+  else if (CCTK_EQUALS(reconstruction_method, "ppm"))
+    reconstruction = reconstruction_t::ppm;
+  else if (CCTK_EQUALS(reconstruction_method, "eppm"))
+    reconstruction = reconstruction_t::eppm;
+  else if (CCTK_EQUALS(reconstruction_method, "wenoz"))
+    reconstruction = reconstruction_t::wenoz;
+  else if (CCTK_EQUALS(reconstruction_method, "mp5"))
+    reconstruction = reconstruction_t::mp5;
+  else
+    CCTK_ERROR("Unknown value for parameter \"reconstruction_method\"");
+
+  // Lower-order fallback for negative values
+  reconstruction_t reconstruction_LO;
+  if (CCTK_EQUALS(loworder_method, "Godunov"))
+    reconstruction_LO = reconstruction_t::Godunov;
+  else if (CCTK_EQUALS(loworder_method, "minmod"))
+    reconstruction_LO = reconstruction_t::minmod;
+  else if (CCTK_EQUALS(loworder_method, "monocentral"))
+    reconstruction_LO = reconstruction_t::monocentral;
+  else
+    CCTK_ERROR("Unknown value for parameter \"loworder_method\"");
+
+  // reconstruction parameters struct
+  reconstruct_params_t reconstruct_params;
+
+  // ppm parameters
+  reconstruct_params.ppm_shock_detection = ppm_shock_detection;
+  reconstruct_params.ppm_zone_flattening = ppm_zone_flattening;
+  reconstruct_params.poly_k = poly_k;
+  reconstruct_params.poly_gamma = poly_gamma;
+  reconstruct_params.ppm_eta1 = ppm_eta1;
+  reconstruct_params.ppm_eta2 = ppm_eta2;
+  reconstruct_params.ppm_eps = ppm_eps;
+  reconstruct_params.ppm_eps_shock = ppm_eps_shock;
+  reconstruct_params.ppm_small = ppm_small;
+  reconstruct_params.ppm_omega1 = ppm_omega1;
+  reconstruct_params.ppm_omega2 = ppm_omega2;
+  reconstruct_params.enhanced_ppm_C2 = enhanced_ppm_C2;
+  // wenoz parameters
+  reconstruct_params.weno_eps = weno_eps;
+  // mp5 parameters
+  reconstruct_params.mp5_alpha = mp5_alpha;
+
+  flux_t fluxtype;
+  if (CCTK_EQUALS(flux_type, "LxF")) {
+    fluxtype = flux_t::LxF;
+  } else if (CCTK_EQUALS(flux_type, "HLLE")) {
+    fluxtype = flux_t::HLLE;
+  } else {
+    CCTK_ERROR("Unknown value for parameter \"flux_type\"");
+  }
+
   switch (eos_3p_type) {
   case eos_3param::IdealGas: {
     // Get local eos object
     auto eos_3p_ig = global_eos_3p_ig;
 
-    CalcFlux<0>(cctkGH, eos_3p_ig);
-    CalcFlux<1>(cctkGH, eos_3p_ig);
-    CalcFlux<2>(cctkGH, eos_3p_ig);
+    CalcFlux<0>(cctkGH, eos_3p_ig, rec_var, reconstruction, reconstruction_LO,
+                reconstruct_params, fluxtype);
+    CalcFlux<1>(cctkGH, eos_3p_ig, rec_var, reconstruction, reconstruction_LO,
+                reconstruct_params, fluxtype);
+    CalcFlux<2>(cctkGH, eos_3p_ig, rec_var, reconstruction, reconstruction_LO,
+                reconstruct_params, fluxtype);
     break;
   }
   case eos_3param::Hybrid: {
     // Get local eos object
     auto eos_3p_hyb = global_eos_3p_hyb;
 
-    CalcFlux<0>(cctkGH, eos_3p_hyb);
-    CalcFlux<1>(cctkGH, eos_3p_hyb);
-    CalcFlux<2>(cctkGH, eos_3p_hyb);
+    CalcFlux<0>(cctkGH, eos_3p_hyb, rec_var, reconstruction, reconstruction_LO,
+                reconstruct_params, fluxtype);
+    CalcFlux<1>(cctkGH, eos_3p_hyb, rec_var, reconstruction, reconstruction_LO,
+                reconstruct_params, fluxtype);
+    CalcFlux<2>(cctkGH, eos_3p_hyb, rec_var, reconstruction, reconstruction_LO,
+                reconstruct_params, fluxtype);
     break;
   }
   case eos_3param::Tabulated: {
     // Get local eos object
     auto eos_3p_tab3d = global_eos_3p_tab3d;
 
-    CalcFlux<0>(cctkGH, eos_3p_tab3d);
-    CalcFlux<1>(cctkGH, eos_3p_tab3d);
-    CalcFlux<2>(cctkGH, eos_3p_tab3d);
+    CalcFlux<0>(cctkGH, eos_3p_tab3d, rec_var, reconstruction,
+                reconstruction_LO, reconstruct_params, fluxtype);
+    CalcFlux<1>(cctkGH, eos_3p_tab3d, rec_var, reconstruction,
+                reconstruction_LO, reconstruct_params, fluxtype);
+    CalcFlux<2>(cctkGH, eos_3p_tab3d, rec_var, reconstruction,
+                reconstruction_LO, reconstruct_params, fluxtype);
     break;
   }
   default:
@@ -915,29 +920,61 @@ extern "C" void AsterX_Fluxes(CCTK_ARGUMENTS) {
   }
 }
 
+template <int dir_i> void CalcFstag(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_CalcAuxTermsForAvecPsiRHS;
+  DECLARE_CCTK_PARAMETERS;
+
+  // the other two directions
+  constexpr int dir_j = (dir_i == 0) ? 1 : ((dir_i == 1) ? 2 : 0);
+  constexpr int dir_k = (dir_i == 0) ? 2 : ((dir_i == 1) ? 0 : 1);
+
+  const vec<GF3D2<CCTK_REAL>, dim> gf_Fstag{Fx_stag, Fy_stag, Fz_stag};
+  const vec<GF3D2<const CCTK_REAL>, dim> gf_Avecs{Avec_x, Avec_y, Avec_z};
+  const smat<GF3D2<const CCTK_REAL>, dim> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
+
+  grid.loop_mix_device<dir_i == 0, dir_i == 1, dir_i == 2>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        const CCTK_REAL alp_e = calc_avg_v2e<dir_i>(alp, p);
+        const smat<CCTK_REAL, 3> g_e([&](int i, int j) ARITH_INLINE {
+          return calc_avg_v2e<dir_i>(gf_g(i, j), p);
+        });
+        const CCTK_REAL detg_e = calc_det(g_e);
+        const CCTK_REAL sqrtg_e = sqrt(detg_e);
+        const smat<CCTK_REAL, 3> ug_e = calc_inv(g_e, detg_e);
+
+        vec<CCTK_REAL, 3> A_e;
+        A_e(dir_i) = gf_Avecs(dir_i)(p.I);
+        A_e(dir_j) = calc_avg_e2e<dir_i, dir_j>(gf_Avecs(dir_j), p);
+        A_e(dir_k) = calc_avg_e2e<dir_i, dir_k>(gf_Avecs(dir_k), p);
+
+        const vec<CCTK_REAL, 3> Aup_e = calc_contraction(ug_e, A_e);
+
+        gf_Fstag(dir_i)(p.I) = alp_e * sqrtg_e * Aup_e(dir_i);
+      });
+}
+
 extern "C" void AsterX_CalcAuxTermsForAvecPsiRHS(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_CalcAuxTermsForAvecPsiRHS;
   DECLARE_CCTK_PARAMETERS;
 
   const vec<GF3D2<const CCTK_REAL>, dim> gf_Avecs{Avec_x, Avec_y, Avec_z};
-  grid.loop_allm1_device<0, 0, 0>(
+  const smat<GF3D2<const CCTK_REAL>, dim> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
+  const vec<GF3D2<const CCTK_REAL>, dim> gf_beta{betax, betay, betaz};
+
+  grid.loop_int_device<0, 0, 0>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        /* interpolate A to vertices */
         const vec<CCTK_REAL, 3> A_vert([&](int i) ARITH_INLINE {
           return calc_avg_e2v(gf_Avecs(i), p, i);
         });
-        const smat<CCTK_REAL, 3> g{gxx(p.I), gxy(p.I), gxz(p.I),
-                                   gyy(p.I), gyz(p.I), gzz(p.I)};
-        const vec<CCTK_REAL, 3> betas{betax(p.I), betay(p.I), betaz(p.I)};
+        const smat<CCTK_REAL, 3> g(
+            [&](int i, int j) ARITH_INLINE { return gf_g(i, j)(p.I); });
+        const vec<CCTK_REAL, 3> betas(
+            [&](int i) ARITH_INLINE { return gf_beta(i)(p.I); });
         const CCTK_REAL detg = calc_det(g);
         const CCTK_REAL sqrtg = sqrt(detg);
-        const smat<CCTK_REAL, 3> ug = calc_inv(g, detg);
-        const vec<CCTK_REAL, 3> Aup = calc_contraction(ug, A_vert);
 
-        Fx(p.I) = alp(p.I) * sqrtg * Aup(0);
-        Fy(p.I) = alp(p.I) * sqrtg * Aup(1);
-        Fz(p.I) = alp(p.I) * sqrtg * Aup(2);
         G(p.I) = alp(p.I) * Psi(p.I) / sqrtg - calc_contraction(betas, A_vert);
       });
 
@@ -948,6 +985,10 @@ extern "C" void AsterX_CalcAuxTermsForAvecPsiRHS(CCTK_ARGUMENTS) {
                                       Fbetay(p.I) = betay(p.I) * Psi(p.I);
                                       Fbetaz(p.I) = betaz(p.I) * Psi(p.I);
                                     });
+
+  CalcFstag<0>(CCTK_PASS_CTOC);
+  CalcFstag<1>(CCTK_PASS_CTOC);
+  CalcFstag<2>(CCTK_PASS_CTOC);
 }
 
 } // namespace AsterX

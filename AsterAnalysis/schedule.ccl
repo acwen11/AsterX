@@ -1,0 +1,41 @@
+# Schedule definitions for thorn AsterAnalysis
+
+if (compute_MHD) {
+  SCHEDULE AsterAnalysis_MHD AT analysis
+  {
+    LANG: C
+    READS: ADMBaseX::metric(everywhere)
+    READS: ADMBaseX::lapse(everywhere)
+    READS: ADMBaseX::shift(everywhere)
+    READS: HydroBaseX::rho(everywhere)
+    READS: HydroBaseX::eps(everywhere)
+    READS: HydroBaseX::press(everywhere)
+    READS: HydroBaseX::vel(everywhere)
+    READS: HydroBaseX::Bvec(everywhere)
+    READS: AsterX::zvec(everywhere)
+    READS: AsterX::Avec_x(everywhere)
+    READS: AsterX::Avec_y(everywhere)
+    READS: AsterX::Avec_z(everywhere)
+    READS: AsterX::dBx_stag(everywhere)
+    READS: AsterX::dBy_stag(everywhere)
+    READS: AsterX::dBz_stag(everywhere)
+    WRITES: w_lorentz(interior)
+    WRITES: mhd_analysis(interior)
+    SYNC: w_lorentz
+  }
+  "Compute MHD analysis quantities"
+}
+
+if (compute_MHD_spherical) {
+  SCHEDULE AsterAnalysis_MHD_Spherical AT analysis AFTER AsterAnalysis_MHD
+  {
+    LANG: C
+    READS: w_lorentz(interior)
+    READS: ADMBaseX::metric(interior)
+    READS: HydroBaseX::Bvec(interior)
+    READS: HydroBaseX::rho(interior)
+    WRITES: mhd_spherical(interior)
+  }
+  "Compute MHD analysis quantities in spherical coordinates"
+}
+

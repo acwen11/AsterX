@@ -1,0 +1,21 @@
+# Interface definition for thorn AsterAnalysis
+
+IMPLEMENTS: AsterAnalysis
+INHERITS: HydroBaseX AsterX
+
+USES INCLUDE HEADER: loop_device.hxx
+USES INCLUDE HEADER: aster_fd.hxx aster_interp.hxx aster_utils.hxx
+
+CCTK_REAL mhd_analysis TYPE=gf CENTERING={ccc} tags='checkpoint="no"'
+{
+divA, A_norm, divB, B_norm, b2small, mean_B_numerator, mean_B_denominator, mhd_press_ratio, mhd_energy_ratio, magnetic_energy, kinetic_energy, poynting_flux_x, poynting_flux_y, poynting_flux_z, poynting_flux_norm, poynting_vector_x, poynting_vector_y, poynting_vector_z, poynting_scalar, lambda_MRI_x, lambda_MRI_y, lambda_MRI_z
+} "Variables used for analysis purposes when magnetic fields are active"
+
+CCTK_REAL mhd_spherical TYPE=gf CENTERING={ccc} tags='checkpoint="no"'
+{
+Brho, Btheta, Bphi, B_Poloidal_norm, B_Toroidal_norm, mean_B_Tor_numerator, mean_B_Tor_denominator, mean_B_Pol_numerator
+} "For decomposition of B field into toroidal (phi) and poloidal parts"
+
+public:
+
+CCTK_REAL w_lorentz TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Lorentz factor"

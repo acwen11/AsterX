@@ -11,7 +11,7 @@ CCTK_REAL aster_mask_cc CENTERING={ccc} TYPE=gf TAGS='checkpoint="no"' "Cell-cen
 
 # This scalar can be used by external thorns to indicate 
 # whether we reset the gridfunctions above as 
-# AsterMasks_Initialize is always scheduled. We set the 
-# gfs to one if: actually_set = 1 
-# actually_set = 0 by default most of the time
-CCTK_REAL actually_set TYPE=scalar "Whether we actually set the gridfunctions above to one"
+# AsterMasks_SetToOne/PostStep is always scheduled. 
+# We set the gfs to one if: MaskBool = 1 
+# MaskBool = 0 by default most of the time
+CCTK_REAL MaskBool TYPE=scalar "Whether we set the mask gridfunctions to one"

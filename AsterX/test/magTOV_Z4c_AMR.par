@@ -106,7 +106,7 @@ AsterSeeds::Avec_kappa = 2.0
 
 AsterX::debug_mode = "no"
 AsterX::flux_type = "HLLE"
-AsterX::vector_potential_gauge = "generalized Lorentz"
+AsterX::vector_potential_gauge = "generalized Lorenz"
 AsterX::lorenz_damp_fac = 12.8571428571429
 AsterX::local_spatial_order = 4
 AsterX::local_estimate_error = "no"
