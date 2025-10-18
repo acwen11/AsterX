@@ -48,8 +48,6 @@ void ApplyOuterBC(CCTK_ARGUMENTS, const std::vector<int> &groups) {
 }
 
 extern "C" void AsterX_ApplyOuterBCOnPrim(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_PARAMETERS;
-
   static const std::vector<int> groups = {
       CCTK_GroupIndex("HydroBaseX::rho"),
       CCTK_GroupIndex("HydroBaseX::vel"),
@@ -69,8 +67,6 @@ extern "C" void AsterX_ApplyOuterBCOnPrim(CCTK_ARGUMENTS) {
 }
 
 extern "C" void AsterX_RestrictFluxes(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_PARAMETERS;
-
   static const std::vector<int> restrict_groups = {
       CCTK_GroupIndex("AsterX::flux_x"), CCTK_GroupIndex("AsterX::flux_y"),
       CCTK_GroupIndex("AsterX::flux_z")};
@@ -82,8 +78,6 @@ extern "C" void AsterX_RestrictFluxes(CCTK_ARGUMENTS) {
 }
 
 extern "C" void AsterX_RestrictAuxTermsForAvecPsiRHS(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_PARAMETERS;
-
   static const std::vector<int> restrict_groups = {
       CCTK_GroupIndex("AsterX::G"), CCTK_GroupIndex("AsterX::Ex"),
       CCTK_GroupIndex("AsterX::Ey"), CCTK_GroupIndex("AsterX::Ez")};
@@ -92,6 +86,14 @@ extern "C" void AsterX_RestrictAuxTermsForAvecPsiRHS(CCTK_ARGUMENTS) {
     if (leveldata.level < ghext->num_levels() - 1)
       RestrictNoPoison(cctkGH, leveldata.level, restrict_groups);
   });
+}
+
+extern "C" void AsterX_ProlongatedBstag(CCTK_ARGUMENTS) {
+  static const std::vector<int> groups = {CCTK_GroupIndex("AsterX::dBx_stag"),
+                                          CCTK_GroupIndex("AsterX::dBy_stag"),
+                                          CCTK_GroupIndex("AsterX::dBz_stag")};
+
+  SyncGroupsByDirIProlongateOnly(cctkGH, groups.size(), groups.data(), nullptr);
 }
 
 } // namespace AsterX
