@@ -68,27 +68,17 @@ extern "C" void AsterX_ApplyOuterBCOnPrim(CCTK_ARGUMENTS) {
   ApplyOuterBC(CCTK_PASS_CTOC, groups);
 }
 
-extern "C" void AsterX_RestrictAndApplyOuterBCOnFluxes(CCTK_ARGUMENTS) {
+extern "C" void AsterX_RestrictFluxes(CCTK_ARGUMENTS) {
   DECLARE_CCTK_PARAMETERS;
 
   static const std::vector<int> restrict_groups = {
       CCTK_GroupIndex("AsterX::flux_x"), CCTK_GroupIndex("AsterX::flux_y"),
       CCTK_GroupIndex("AsterX::flux_z")};
 
-  static const std::vector<int> bc_groups = {
-      CCTK_GroupIndex("AsterX::vbar_xface"),
-      CCTK_GroupIndex("AsterX::vbar_yface"),
-      CCTK_GroupIndex("AsterX::vbar_zface"),
-      CCTK_GroupIndex("AsterX::a_xface"),
-      CCTK_GroupIndex("AsterX::a_yface"),
-      CCTK_GroupIndex("AsterX::a_zface")};
-
   active_levels->loop_fine_to_coarse([&](const auto &leveldata) {
     if (leveldata.level < ghext->num_levels() - 1)
       RestrictNoPoison(cctkGH, leveldata.level, restrict_groups);
   });
-
-  ApplyOuterBC(CCTK_PASS_CTOC, bc_groups);
 }
 
 extern "C" void AsterX_RestrictAuxTermsForAvecPsiRHS(CCTK_ARGUMENTS) {
@@ -98,14 +88,10 @@ extern "C" void AsterX_RestrictAuxTermsForAvecPsiRHS(CCTK_ARGUMENTS) {
       CCTK_GroupIndex("AsterX::G"), CCTK_GroupIndex("AsterX::Ex"),
       CCTK_GroupIndex("AsterX::Ey"), CCTK_GroupIndex("AsterX::Ez")};
 
-  static const std::vector<int> bc_groups = {CCTK_GroupIndex("AsterX::G")};
-
   active_levels->loop_fine_to_coarse([&](const auto &leveldata) {
     if (leveldata.level < ghext->num_levels() - 1)
       RestrictNoPoison(cctkGH, leveldata.level, restrict_groups);
   });
-
-  ApplyOuterBC(CCTK_PASS_CTOC, bc_groups);
 }
 
 } // namespace AsterX
