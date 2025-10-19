@@ -830,7 +830,11 @@ extern "C" void AsterX_Fluxes(CCTK_ARGUMENTS) {
     reconstruction = reconstruction_t::ppm;
   else if (CCTK_EQUALS(reconstruction_method, "eppm"))
     reconstruction = reconstruction_t::eppm;
+  else if (CCTK_EQUALS(reconstruction_method, "weno5"))
+    reconstruction = reconstruction_t::wenoz;
   else if (CCTK_EQUALS(reconstruction_method, "wenoz"))
+    reconstruction = reconstruction_t::wenoz;
+  else if (CCTK_EQUALS(reconstruction_method, "wenozp"))
     reconstruction = reconstruction_t::wenoz;
   else if (CCTK_EQUALS(reconstruction_method, "mp5"))
     reconstruction = reconstruction_t::mp5;
@@ -845,6 +849,8 @@ extern "C" void AsterX_Fluxes(CCTK_ARGUMENTS) {
     reconstruction_LO = reconstruction_t::minmod;
   else if (CCTK_EQUALS(loworder_method, "monocentral"))
     reconstruction_LO = reconstruction_t::monocentral;
+  else if (CCTK_EQUALS(loworder_method, "ppm"))
+    reconstruction_LO = reconstruction_t::ppm;
   else
     CCTK_ERROR("Unknown value for parameter \"loworder_method\"");
 
@@ -866,6 +872,7 @@ extern "C" void AsterX_Fluxes(CCTK_ARGUMENTS) {
   reconstruct_params.enhanced_ppm_C2 = enhanced_ppm_C2;
   // wenoz parameters
   reconstruct_params.weno_eps = weno_eps;
+  reconstruct_params.weno_mp = weno_mp;
   // mp5 parameters
   reconstruct_params.mp5_alpha = mp5_alpha;
 
