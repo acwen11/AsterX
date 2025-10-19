@@ -3,8 +3,8 @@
 KEYWORD vector_potential_gauge "Gauge choice of four-vector potential A" STEERABLE=always
 {
   "algebraic" :: ""
-  "generalized Lorentz" :: ""
-} "generalized Lorentz"
+  "generalized Lorenz" :: ""
+} "generalized Lorenz"
 
 CCTK_REAL lorenz_damp_fac "Damping factor used in the Lorenz Gauge (see Farris et al 2012)" STEERABLE=always
 {
@@ -62,13 +62,6 @@ CCTK_REAL recon_fthr "Threshold for resetting reconstructed values to atmo a la 
   0:* :: "Larger than zero"
 } 0.0
 
-KEYWORD recon_type "Vector field used in reconstruction" STEERABLE=always
-{
-  "v_vec" :: "Eulerian 3-velocity"
-  "z_vec" :: "Lorentz factor x Eulerian 3-velocity"
-  "s_vec" :: "Purely hydrodynamic part of conserved momentum without volume factor"
-} "v_vec"
-
 BOOLEAN local_estimate_error "Use error estimation criteria of this thorn" STEERABLE=always
 {
 } yes
@@ -105,6 +98,13 @@ CCTK_INT unit_test_repetitions "Number of times each unit test should be repeate
 } 1
 
 restricted:
+
+KEYWORD recon_type "Vector field used in reconstruction" STEERABLE=always
+{
+  "v_vec" :: "Eulerian 3-velocity"
+  "z_vec" :: "Lorentz factor x Eulerian 3-velocity"
+  "s_vec" :: "Purely hydrodynamic part of conserved momentum without volume factor"
+} "v_vec"
 
 BOOLEAN interpolate_failed_c2p "Interpolate those grid points where c2p failed." STEERABLE=always
 {
@@ -155,7 +155,7 @@ USES CCTK_REAL eps_atmo
 USES CCTK_REAL p_atmo
 USES CCTK_REAL t_atmo
 USES CCTK_REAL Ye_atmo
-USES CCTK_REAL tauFluid_atm
+USES CCTK_REAL tauFluid_atmo
 USES CCTK_REAL B_lim
 USES CCTK_REAL vw_lim
 USES BOOLEAN Ye_lenient

@@ -19,7 +19,7 @@ using std::array;
  */
 
 template <typename T = CCTK_REAL>
-inline CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_DEVICE CCTK_HOST array<T, 2>
+inline CCTK_DEVICE CCTK_HOST array<T, 2>
 ppm(T gf_Imm, T gf_Im, T gf_I, T gf_Ip, T gf_Ipp, T press_Imm, T press_Im,
     T press_Ip, T press_Ipp, T vel_dir_Im, T vel_dir_Ip, const bool &gf_is_rho,
     const reconstruct_params_t &reconstruct_params) {
@@ -161,7 +161,7 @@ ppm(T gf_Imm, T gf_Im, T gf_I, T gf_Ip, T gf_Ipp, T press_Imm, T press_Im,
 }
 
 template <typename T = CCTK_REAL>
-inline CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_DEVICE CCTK_HOST array<T, 2>
+inline CCTK_DEVICE CCTK_HOST array<T, 2>
 ppm_reconstruct(T gf_Immm, T gf_Imm, T gf_Im, T gf_Ip, T gf_Ipp, T gf_Ippp,
                 T press_Immm, T press_Imm, T press_Im, T press_Ip, T press_Ipp,
                 T press_Ippp, T vel_dir_Imm, T vel_dir_Im, T vel_dir_Ip,

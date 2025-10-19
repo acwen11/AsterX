@@ -1,0 +1,10 @@
+# Main make.code.defn file for thorn AsterAnalysis
+
+# Source files in this directory
+SRCS = \
+  analysis_mhd.cxx \
+  analysis_mhd_spherical.cxx 
+
+# No subdirectories for this thorn
+# SUBDIRS =
+
