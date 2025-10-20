@@ -29,36 +29,68 @@ template <int dir> void ComputeStaggeredB(CCTK_ARGUMENTS) {
 
   constexpr array<int, dim> face_centred = {!(dir == 0), !(dir == 1),
                                             !(dir == 2)};
-  grid.loop_int_device<face_centred[0], face_centred[1], face_centred[2]>(
-      grid.nghostzones,
+  const int nloop = (mag_order - 2) / 2;
+  grid.loop_allmn_device<face_centred[0], face_centred[1], face_centred[2]>(
+      grid.nghostzones, nloop,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        // Neighbouring "plus" and "minus" cell indices
-        // const auto ipjk = p.I + p.DI[0];
-        // const auto ijpk = p.I + p.DI[1];
-        // const auto ijkp = p.I + p.DI[2];
 
         if (dir == 0) {
           /* dBx is curl(A) at (i-1/2,j,k) */
 					dBx_stag(p.I) = calc_fd2_v2e<1>(Avec_z, p, mag_order) -
 													calc_fd2_v2e<2>(Avec_y, p, mag_order);
-          // dBx_stag(p.I) = idx[1] * (Avec_z(ijpk) - Avec_z(p.I)) -
-          //                 idx[2] * (Avec_y(ijkp) - Avec_y(p.I));
         } else if (dir == 1) {
           /* dBy is curl(A) at (i,j-1/2,k) */
 					dBy_stag(p.I) = calc_fd2_v2e<2>(Avec_x, p, mag_order) -
 													calc_fd2_v2e<0>(Avec_z, p, mag_order);
-          // dBy_stag(p.I) = idx[2] * (Avec_x(ijkp) - Avec_x(p.I)) -
-          //                 idx[0] * (Avec_z(ipjk) - Avec_z(p.I));
         } else if (dir == 2) {
           /* dBz is curl(A) at (i,j,z-1/2) */
 					dBz_stag(p.I) = calc_fd2_v2e<0>(Avec_y, p, mag_order) -
 													calc_fd2_v2e<1>(Avec_x, p, mag_order);
-          // dBz_stag(p.I) = idx[0] * (Avec_y(ipjk) - Avec_y(p.I)) -
-          //                 idx[1] * (Avec_x(ijpk) - Avec_x(p.I));
         }
 
         // TODO: need to implement copy conditions?
       });
+  
+  // Calculate Bstag in boundaries/ghosts with lower order
+  if (nloop != 0) {
+    // Lower bound 
+    grid.loop_lbnd_n_device<face_centred[0], face_centred[1], face_centred[2]>(
+        grid.nghostzones, nloop,
+        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+          if (dir == 0) {
+            /* dBx is curl(A) at (i-1/2,j,k) */
+            dBx_stag(p.I) = calc_fd2_v2e<1>(Avec_z, p, 2) -
+                            calc_fd2_v2e<2>(Avec_y, p, 2);
+          } else if (dir == 1) {
+            /* dBy is curl(A) at (i,j-1/2,k) */
+            dBy_stag(p.I) = calc_fd2_v2e<2>(Avec_x, p, 2) -
+                            calc_fd2_v2e<0>(Avec_z, p, 2);
+          } else if (dir == 2) {
+            /* dBz is curl(A) at (i,j,z-1/2) */
+            dBz_stag(p.I) = calc_fd2_v2e<0>(Avec_y, p, 2) -
+                            calc_fd2_v2e<1>(Avec_x, p, 2);
+          }
+        });
+    
+    // Upper bound 
+    grid.loop_ubnd_n_device<face_centred[0], face_centred[1], face_centred[2]>(
+        grid.nghostzones, nloop,
+        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+          if (dir == 0) {
+            /* dBx is curl(A) at (i-1/2,j,k) */
+            dBx_stag(p.I) = calc_fd2_v2e<1>(Avec_z, p, 2) -
+                            calc_fd2_v2e<2>(Avec_y, p, 2);
+          } else if (dir == 1) {
+            /* dBy is curl(A) at (i,j-1/2,k) */
+            dBy_stag(p.I) = calc_fd2_v2e<2>(Avec_x, p, 2) -
+                            calc_fd2_v2e<0>(Avec_z, p, 2);
+          } else if (dir == 2) {
+            /* dBz is curl(A) at (i,j,z-1/2) */
+            dBz_stag(p.I) = calc_fd2_v2e<0>(Avec_y, p, 2) -
+                            calc_fd2_v2e<1>(Avec_x, p, 2);
+          }
+        });
+  }
 }
 
 extern "C" void AsterX_ComputedBstagFromA(CCTK_ARGUMENTS) {
@@ -74,20 +106,41 @@ extern "C" void AsterX_ComputedBFromdBstag(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_ComputedBFromdBstag;
   DECLARE_CCTK_PARAMETERS;
 
-  grid.loop_int_device<1, 1, 1>(
-      grid.nghostzones,
+  const int nloop = (mag_order - 2) / 2;
+  grid.loop_allmn_device<1, 1, 1>(
+      grid.nghostzones, nloop,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        // Neighbouring "plus" and "minus" cell indices
-        // const auto ipjk = p.I + p.DI[0];
-        // const auto ijpk = p.I + p.DI[1];
-        // const auto ijkp = p.I + p.DI[2];
-
         /* Interpolation of staggered B components to cell center
          */
 				dBx(p.I) = calc_avg_f2c(dBx_stag, p, 0, mag_order);
 				dBy(p.I) = calc_avg_f2c(dBy_stag, p, 1, mag_order);
 				dBz(p.I) = calc_avg_f2c(dBz_stag, p, 2, mag_order);
       });
+
+  // Interpolate dB in boundaries/ghosts at lower order
+  if (nloop != 0) {
+    // Lower bound
+    grid.loop_lbnd_n_device<1, 1, 1>(
+        grid.nghostzones, nloop,
+        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+          /* Interpolation of staggered B components to cell center
+           */
+          dBx(p.I) = calc_avg_f2c(dBx_stag, p, 0, 2);
+          dBy(p.I) = calc_avg_f2c(dBy_stag, p, 1, 2);
+          dBz(p.I) = calc_avg_f2c(dBz_stag, p, 2, 2);
+        });
+
+    // Upper bound
+    grid.loop_ubnd_n_device<1, 1, 1>(
+        grid.nghostzones, nloop,
+        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+          /* Interpolation of staggered B components to cell center
+           */
+          dBx(p.I) = calc_avg_f2c(dBx_stag, p, 0, 2);
+          dBy(p.I) = calc_avg_f2c(dBy_stag, p, 1, 2);
+          dBz(p.I) = calc_avg_f2c(dBz_stag, p, 2, 2);
+        });
+  }
 }
 
 extern "C" void AsterX_ComputeBFromdB(CCTK_ARGUMENTS) {

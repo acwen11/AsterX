@@ -167,8 +167,9 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
         vbar_k(dir_i)(p.I) = 0;
       });
 
-  grid.loop_mix_device<face_centred[0], face_centred[1],
-                       face_centred[2]>(grid.nghostzones, [=] CCTK_DEVICE(
+  const int nloop = (correction_order - 2) / 2;
+  grid.loop_mixpn_device<face_centred[0], face_centred[1],
+                       face_centred[2]>(grid.nghostzones, nloop, [=] CCTK_DEVICE(
                                                               const PointDesc
                                                                   &p) {
     /* Reconstruct primitives from the cells on left (indice 0) and right
