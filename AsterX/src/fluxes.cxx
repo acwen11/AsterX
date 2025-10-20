@@ -97,6 +97,9 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
   const vec<GF3D2<CCTK_REAL>, dim> ap_face{amax_xface, amax_yface, amax_zface};
   const vec<GF3D2<CCTK_REAL>, dim> am_face{amin_xface, amin_yface, amin_zface};
 
+  /* grid functions for PP flux limiter */
+  const vec<GF3D2<CCTK_REAL>, dim> thetagf{theta_x, theta_y, theta_z};
+
   static_assert(dir_i >= 0 && dir_i < 3, "");
 
   // Prebind the velocity slice for this direction once
@@ -164,8 +167,9 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
         vbar_k(dir_i)(p.I) = 0;
       });
 
-  grid.loop_mix_device<face_centred[0], face_centred[1],
-                       face_centred[2]>(grid.nghostzones, [=] CCTK_DEVICE(
+  const int nloop = (correction_order - 2) / 2;
+  grid.loop_mixpn_device<face_centred[0], face_centred[1],
+                       face_centred[2]>(grid.nghostzones, nloop, [=] CCTK_DEVICE(
                                                               const PointDesc
                                                                   &p) {
     /* Reconstruct primitives from the cells on left (indice 0) and right
@@ -286,7 +290,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
         temp_rc = reconstruct_loworder(temperature, p, false, false);
       }
 
-      /*
+			/*
       // If reconstructed rho is still <= atmo, flag for reset
       if (rho_rc(0) <= rho_cut(0)) {
         resetL = true;
@@ -302,7 +306,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
         temp_rc(1) = temp_atm(1);
         Ye_rc(1) = Ye_atmo;
       }
-      */
+			*/
       // End lower-order
 
       // Compute eps_rc and press_rc using lambdas
@@ -347,7 +351,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
         press_rc(1) = press_atm(1);
         Ye_rc(1) = Ye_atmo;
       }
-      */
+			*/
 
       // End lower-order
 
@@ -479,7 +483,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
     };
     }
 
-    /*
+		/*
     if (resetL) {
       w_lorentz_rc(0) = 1.0;
       for (int i = 0; i <= 2; ++i) {   // loop over components
@@ -494,7 +498,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
         vlows_rc(i)(1) = 0.0;
       }
     }
-    */
+		*/
     /* END RECONSTRUCTION */
       
     /* vtilde^i = alpha * v^i - beta^i */
@@ -644,37 +648,297 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
                     w_lorentz_rc, h_rc, bsq_rc);
 
     /* Calculate numerical fluxes */
-		if (!useLO || !loworder_flux) {
-			fluxdenss(dir_i)(p.I) = calcflux(lambda, dens_rc, flux_dens);
-			fluxDEnts(dir_i)(p.I) = calcflux(lambda, DEnt_rc, flux_DEnt);
-			fluxmomxs(dir_i)(p.I) = calcflux(lambda, moms_rc(0), flux_moms(0));
-			fluxmomys(dir_i)(p.I) = calcflux(lambda, moms_rc(1), flux_moms(1));
-			fluxmomzs(dir_i)(p.I) = calcflux(lambda, moms_rc(2), flux_moms(2));
-			fluxtaus(dir_i)(p.I) = calcflux(lambda, tau_rc, flux_tau);
-			fluxDYes(dir_i)(p.I) = calcflux(lambda, DYe_rc, flux_DYe);
-			fluxBxs(dir_i)(p.I) =
-					(dir_i != 0) * calcflux(lambda, Btildes_rc(0), flux_Btildes(0));
-			fluxBys(dir_i)(p.I) =
-					(dir_i != 1) * calcflux(lambda, Btildes_rc(1), flux_Btildes(1));
-			fluxBzs(dir_i)(p.I) =
-					(dir_i != 2) * calcflux(lambda, Btildes_rc(2), flux_Btildes(2));
-		}
-		else {
-			fluxdenss(dir_i)(p.I) = laxf(lambda, dens_rc, flux_dens);
-			fluxDEnts(dir_i)(p.I) = laxf(lambda, DEnt_rc, flux_DEnt);
-			fluxmomxs(dir_i)(p.I) = laxf(lambda, moms_rc(0), flux_moms(0));
-			fluxmomys(dir_i)(p.I) = laxf(lambda, moms_rc(1), flux_moms(1));
-			fluxmomzs(dir_i)(p.I) = laxf(lambda, moms_rc(2), flux_moms(2));
-			fluxtaus(dir_i)(p.I) = laxf(lambda, tau_rc, flux_tau);
-			fluxDYes(dir_i)(p.I) = laxf(lambda, DYe_rc, flux_DYe);
-			fluxBxs(dir_i)(p.I) =
-					(dir_i != 0) * laxf(lambda, Btildes_rc(0), flux_Btildes(0));
-			fluxBys(dir_i)(p.I) =
-					(dir_i != 1) * laxf(lambda, Btildes_rc(1), flux_Btildes(1));
-			fluxBzs(dir_i)(p.I) =
-					(dir_i != 2) * laxf(lambda, Btildes_rc(2), flux_Btildes(2));
-		}
+    fluxdenss(dir_i)(p.I) = calcflux(lambda, dens_rc, flux_dens);
+    fluxDEnts(dir_i)(p.I) = calcflux(lambda, DEnt_rc, flux_DEnt);
+    fluxmomxs(dir_i)(p.I) = calcflux(lambda, moms_rc(0), flux_moms(0));
+    fluxmomys(dir_i)(p.I) = calcflux(lambda, moms_rc(1), flux_moms(1));
+    fluxmomzs(dir_i)(p.I) = calcflux(lambda, moms_rc(2), flux_moms(2));
+    fluxtaus(dir_i)(p.I) = calcflux(lambda, tau_rc, flux_tau);
+    fluxDYes(dir_i)(p.I) = calcflux(lambda, DYe_rc, flux_DYe);
+    fluxBxs(dir_i)(p.I) =
+        (dir_i != 0) * calcflux(lambda, Btildes_rc(0), flux_Btildes(0));
+    fluxBys(dir_i)(p.I) =
+        (dir_i != 1) * calcflux(lambda, Btildes_rc(1), flux_Btildes(1));
+    fluxBzs(dir_i)(p.I) =
+        (dir_i != 2) * calcflux(lambda, Btildes_rc(2), flux_Btildes(2));
 
+    if (use_pplim) {
+
+      // At face Ip, Ip refers to the right cell and Im refers to the left
+      const auto Ip = p.I;
+      const auto Im = p.I - p.DI[dir_i];
+
+      /* BEGIN REPEATED RECONSTRUCTION CODE */
+      // Reconstruct density
+      vec<CCTK_REAL, 2> rho_ppl = {rho(Im), rho(Ip)};
+
+      // Reconstruct entropy
+      vec<CCTK_REAL, 2> entropy_ppl = {entropy(Im), entropy(Ip)}; 
+
+      // Reconstruct Ye
+      vec<CCTK_REAL, 2> Ye_ppl = {Ye(Im), Ye(Ip)};
+
+      // Initialize variables for eps, pressure, and temperature
+      vec<CCTK_REAL, 2> eps_ppl;
+      vec<CCTK_REAL, 2> press_ppl;
+      vec<CCTK_REAL, 2> temp_ppl;
+
+      if (reconstruct_with_temperature) {
+
+        // Reconstruct temperature
+        temp_ppl = {temperature(Im), temperature(Ip)};
+
+        // Compute eps_ppl and press_ppl using lambdas
+        for (int f = 0; f < 2; ++f) {
+          eps_ppl(f) =
+              eos_3p->eps_from_valid_rho_temp_ye(rho_ppl(f), temp_ppl(f), Ye_ppl(f));
+          press_ppl(f) = eos_3p->press_from_valid_rho_temp_ye(
+              rho_ppl(f), temp_ppl(f), Ye_ppl(f));
+        }
+
+      } else {
+
+        // Reconstruct pressure
+        press_ppl = {press(Im), press(Ip)};
+
+        // Compute eps_ppl and temp_ppl using lambdas
+        for (int f = 0; f < 2; ++f) {
+          eps_ppl(f) = eos_3p->eps_from_valid_rho_press_ye(rho_ppl(f), press_ppl(f),
+                                                          Ye_ppl(f));
+          temp_ppl(f) =
+              eos_3p->temp_from_valid_rho_eps_ye(rho_ppl(f), eps_ppl(f), Ye_ppl(f));
+        }
+      }
+
+      const vec<CCTK_REAL, 2> rhoh_ppl([&](int f) ARITH_INLINE {
+        return rho_ppl(f) + rho_ppl(f) * eps_ppl(f) + press_ppl(f);
+      });
+
+      // Introduce reconstructed Bs
+      // Use staggered dB for i == dir_i
+      vec<vec<CCTK_REAL, 2>, 3> Bs_ppl;
+
+      // Assign the value for the primary direction
+      const CCTK_REAL val = gf_dBstags(dir_i)(p.I) / sqrtg;
+      Bs_ppl(dir_i)(0) = val;
+      Bs_ppl(dir_i)(1) = val;
+
+      // Lambda to assign the reconstructed values
+      auto assign_reconstructed = [&](int d) {
+        vec<CCTK_REAL, 2> tmp = {gf_Bvecs(d)(Im), gf_Bvecs(d)(Ip)};
+        Bs_ppl(d)(0) = tmp(0);
+        Bs_ppl(d)(1) = tmp(1);
+      };
+
+      // Assign reconstructed values for the two perpendicular directions
+      assign_reconstructed(dir_j);
+      assign_reconstructed(dir_k);
+      // End of setting Bs
+
+      // Reconstruct zvec
+      vec<vec<CCTK_REAL, 2>, 3> vels_ppl;
+      vec<vec<CCTK_REAL, 2>, 3> vlows_ppl;
+      vec<CCTK_REAL, 2> w_lorentz_ppl;
+
+      vec<vec<CCTK_REAL, 2>, 3> zvec_ppl([&](int i) ARITH_INLINE {
+        vec<CCTK_REAL, 2> tmp = {gf_zvec(i)(Im), gf_zvec(i)(Ip)};
+        return tmp;
+      });
+
+      const vec<vec<CCTK_REAL, 2>, 3> zveclow_ppl =
+          calc_contraction(g_avg, zvec_ppl);
+      const auto z2_ppl = calc_contraction(zveclow_ppl, zvec_ppl);
+
+      w_lorentz_ppl(0) = sqrt(1 + z2_ppl(0));
+      w_lorentz_ppl(1) = sqrt(1 + z2_ppl(1));
+
+      for (int i = 0; i <= 2; ++i) {   // loop over components
+        for (int j = 0; j <= 1; ++j) { // loop over left and right state
+          vels_ppl(i)(j) = zvec_ppl(i)(j) / w_lorentz_ppl(j);
+          vlows_ppl(i)(j) = zveclow_ppl(i)(j) / w_lorentz_ppl(j);
+        }
+      }
+        
+      /* vtilde^i = alpha * v^i - beta^i */
+      const vec<vec<CCTK_REAL, 2>, 3> vtildes_ppl([&](int i) ARITH_INLINE {
+        return vec<CCTK_REAL, 2>([&](int f) ARITH_INLINE {
+          return alp_avg * vels_ppl(i)(f) - betas_avg(i);
+        });
+      });
+
+      /* alpha * b0 = W * B^i * v_i */
+      const vec<CCTK_REAL, 2> alp_b0_ppl([&](int f) ARITH_INLINE {
+        return w_lorentz_ppl(f) * calc_contraction(Bs_ppl, vlows_ppl)(f);
+      });
+      /* covariant magnetic field measured by the Eulerian observer */
+      const vec<vec<CCTK_REAL, 2>, 3> Blows_ppl = calc_contraction(g_avg, Bs_ppl);
+      /* B^2 = B^i * B_i */
+      const vec<CCTK_REAL, 2> B2_ppl = calc_contraction(Bs_ppl, Blows_ppl);
+      /* covariant magnetic field measured by the comoving observer:
+       *  b_i = B_i/W + alpha*b^0*v_i */
+      const vec<vec<CCTK_REAL, 2>, 3> blows_ppl([&](int i) ARITH_INLINE {
+        return vec<CCTK_REAL, 2>([&](int f) ARITH_INLINE {
+          return Blows_ppl(i)(f) / w_lorentz_ppl(f) + alp_b0_ppl(f) * vlows_ppl(i)(f);
+        });
+      });
+      /* b^2 = b^{\mu} * b_{\mu} */
+      const vec<CCTK_REAL, 2> bsq_ppl([&](int f) ARITH_INLINE {
+        return (B2_ppl(f) + pow2(alp_b0_ppl(f))) / pow2(w_lorentz_ppl(f));
+      });
+
+      /* componets correspond to the dir_i we are considering */
+      const vec<CCTK_REAL, 2> vel_ppl{vels_ppl(dir_i)};
+      const vec<CCTK_REAL, 2> B_ppl{Bs_ppl(dir_i)};
+      const vec<CCTK_REAL, 2> vtilde_ppl{vtildes_ppl(dir_i)};
+
+      const vec<CCTK_REAL, 2> h_ppl([&](int f) ARITH_INLINE {
+        return 1 + eps_ppl(f) + press_ppl(f) / rho_ppl(f);
+      });
+
+      /* Computing conservatives from primitives: */
+
+      /* dens = sqrt(g) * D = sqrt(g) * (rho * W) */
+      const vec<CCTK_REAL, 2> dens_ppl([&](int f) ARITH_INLINE {
+        return sqrtg * rho_ppl(f) * w_lorentz_ppl(f);
+      });
+
+      /* DEnt = sqrt(g) * D * s  = sqrt(g) * (rho * W) * s */
+      /*    s = entropy */
+      const vec<CCTK_REAL, 2> DEnt_ppl([&](int f) ARITH_INLINE {
+        return sqrtg * rho_ppl(f) * w_lorentz_ppl(f) * entropy_ppl(f);
+      });
+
+      /* auxiliary: dens * h * W = sqrt(g) * rho * h * W^2 */
+      const vec<CCTK_REAL, 2> dens_h_W_ppl([&](int f) ARITH_INLINE {
+        return dens_ppl(f) * h_ppl(f) * w_lorentz_ppl(f);
+      });
+      /* auxiliary: sqrt(g) * (rho*h + b^2)*W^2 */
+      const vec<CCTK_REAL, 2> dens_h_W_plus_sqrtg_W2b2_ppl =
+          dens_h_W_ppl + sqrtg * (pow2(alp_b0_ppl) + B2_ppl);
+      /* auxiliary: (pgas + pmag) */
+      const vec<CCTK_REAL, 2> press_plus_pmag_ppl = press_ppl + 0.5 * bsq_ppl;
+
+      /* mom_i = sqrt(g)*S_i = sqrt(g)((rho*h+b^2)*W^2*v_i - alpha*b^0*b_i) */
+      const vec<vec<CCTK_REAL, 2>, 3> moms_ppl([&](int i) ARITH_INLINE {
+        return vec<CCTK_REAL, 2>([&](int f) ARITH_INLINE {
+          return dens_h_W_plus_sqrtg_W2b2_ppl(f) * vlows_ppl(i)(f) -
+                 sqrtg * alp_b0_ppl(f) * blows_ppl(i)(f);
+        });
+      });
+
+      /* tau = sqrt(g)*t =
+       *  sqrt(g)((rho*h + b^2)*W^2 - (pgas+pmag) - (alpha*b^0)^2 - D) */
+      const vec<CCTK_REAL, 2> tau_ppl =
+          dens_h_W_ppl - dens_ppl + sqrtg * (B2_ppl - press_plus_pmag_ppl);
+
+      /* Btildes^i = sqrt(g) * B^i */
+      const vec<vec<CCTK_REAL, 2>, 3> Btildes_ppl(
+          [&](int i) ARITH_INLINE { return sqrtg * Bs_ppl(i); });
+
+      /* Computing fluxes of conserved variables: */
+
+      /* auxiliary: B^i / W */
+      const vec<CCTK_REAL, 2> B_over_w_lorentz_ppl(
+          [&](int f) ARITH_INLINE { return B_ppl(f) / w_lorentz_ppl(f); });
+
+      /* flux(dens) = sqrt(g) * D * vtilde^i = sqrt(g) * rho * W * vtilde^i */
+      const vec<CCTK_REAL, 2> flux_dens_ppl(
+          [&](int f) ARITH_INLINE { return dens_ppl(f) * vtilde_ppl(f); });
+
+      /* flux(DEnt) = sqrt(g) * D * s * vtilde^i = sqrt(g) * rho * W * s *
+       * vtilde^i */
+      const vec<CCTK_REAL, 2> flux_DEnt_ppl(
+          [&](int f) ARITH_INLINE { return DEnt_ppl(f) * vtilde_ppl(f); });
+
+      /* flux(mom_j)^i = sqrt(g)*(
+       *  S_j*vtilde^i + alpha*((pgas+pmag)*delta^i_j - b_jB^i/W) ) */
+      const vec<vec<CCTK_REAL, 2>, 3> flux_moms_ppl([&](int j) ARITH_INLINE {
+        return vec<CCTK_REAL, 2>([&](int f) ARITH_INLINE {
+          return moms_ppl(j)(f) * vtilde_ppl(f) +
+                 alp_sqrtg * (press_plus_pmag_ppl(f) * unit_dir_i(j) -
+                              blows_ppl(j)(f) * B_over_w_lorentz_ppl(f));
+        });
+      });
+
+      /* flux(tau) = sqrt(g)*(
+       *  t*vtilde^i + alpha*((pgas+pmag)*v^i-alpha*b0*B^i/W) ) */
+      const vec<CCTK_REAL, 2> flux_tau_ppl([&](int f) ARITH_INLINE {
+        return tau_ppl(f) * vtilde_ppl(f) +
+               alp_sqrtg * (press_plus_pmag_ppl(f) * vel_ppl(f) -
+                            alp_b0_ppl(f) * B_over_w_lorentz_ppl(f));
+      });
+
+      /* flux(DYe) = sqrt(g) * (D * Ye * vtilde^i) */
+      const vec<CCTK_REAL, 2> DYe_ppl(
+          [&](int f) ARITH_INLINE { return dens_ppl(f) * Ye_ppl(f); });
+      const vec<CCTK_REAL, 2> flux_DYe_ppl(
+          [&](int f) ARITH_INLINE { return DYe_ppl(f) * vtilde_ppl(f); });
+
+      /* END REPEATED RECONSTRUCTION CODE */
+
+      // Calc LO flux
+      const CCTK_REAL fluxLOdenss = laxf_simple(dens_ppl,    flux_dens_ppl);
+      const CCTK_REAL fluxLODEnts = laxf_simple(DEnt_ppl,    flux_DEnt_ppl);
+      const CCTK_REAL fluxLODYes  = laxf_simple(DYe_ppl,     flux_DYe_ppl);
+      const CCTK_REAL fluxLOmomxs = laxf_simple(moms_ppl(0), flux_moms_ppl(0));
+      const CCTK_REAL fluxLOmomys = laxf_simple(moms_ppl(1), flux_moms_ppl(1));
+      const CCTK_REAL fluxLOmomzs = laxf_simple(moms_ppl(2), flux_moms_ppl(2));
+      const CCTK_REAL fluxLOtaus  = laxf_simple(tau_ppl,     flux_tau_ppl);
+
+      // Get 2 * \alpha * CFL with \alpha = 3
+      const CCTK_REAL a2cfl = 6 * CCTK_DELTA_TIME / p.DX[dir_i];
+
+      // Calc dens floor
+      //// At Ip
+      const smat<CCTK_REAL, 3> g_avg_p([&](int i, int j) ARITH_INLINE {
+        return calc_avg_v2c(gf_g(i, j), p);
+      });
+      const CCTK_REAL sqrtg_p = sqrt(calc_det(g_avg_p));
+      const CCTK_REAL densmin_p = sqrtg_p * w_lorentz_ppl(1) * rho_atm(1);
+
+      //// At Im
+      const smat<CCTK_REAL, 3> g_avg_m([&](int i, int j) ARITH_INLINE {
+        return calc_avg_v2c(gf_g(i, j), p, Im);
+      });
+      const CCTK_REAL sqrtg_m = sqrt(calc_det(g_avg_m));
+      const CCTK_REAL densmin_m = sqrtg_m * w_lorentz_ppl(0) * rho_atm(0);
+
+      // Calc theta
+      const CCTK_REAL newdens_p = dens(Ip) + a2cfl * fluxdenss(dir_i)(Ip);
+      const CCTK_REAL newdens_m = dens(Im) - a2cfl * fluxdenss(dir_i)(Ip);
+
+      const CCTK_REAL newdensLO_p = dens(Ip) + a2cfl * fluxLOdenss;
+      const CCTK_REAL newdensLO_m = dens(Im) - a2cfl * fluxLOdenss;
+
+      CCTK_REAL theta = 1.0;
+      CCTK_REAL theta_m = 1.0;
+      CCTK_REAL theta_p = 1.0;
+
+      if (newdens_p < densmin_p)
+        theta_p = min(
+          theta, max(0.0, (newdensLO_p - densmin_p) /
+            (a2cfl * (fluxLOdenss - fluxdenss(dir_i)(Ip)))));
+
+      if (newdens_m < densmin_m)
+        theta_m = min(
+          theta, max(0.0, (newdensLO_m - densmin_m) /
+            (a2cfl * (fluxdenss(dir_i)(Ip) - fluxLOdenss))));
+
+      theta = min(theta_m, theta_p);
+
+      // Update flux GF
+      fluxdenss(dir_i)(Ip) = (1 - theta) * fluxLOdenss + theta * fluxdenss(dir_i)(Ip);
+      fluxDEnts(dir_i)(Ip) = (1 - theta) * fluxLODEnts + theta * fluxDEnts(dir_i)(Ip);
+      fluxDYes(dir_i)(Ip) = (1 - theta) * fluxLODYes + theta * fluxDYes(dir_i)(Ip);
+      fluxmomxs(dir_i)(Ip) = (1 - theta) * fluxLOmomxs + theta * fluxmomxs(dir_i)(Ip);
+      fluxmomys(dir_i)(Ip) = (1 - theta) * fluxLOmomys + theta * fluxmomys(dir_i)(Ip);
+      fluxmomzs(dir_i)(Ip) = (1 - theta) * fluxLOmomzs + theta * fluxmomzs(dir_i)(Ip);
+      fluxtaus(dir_i)(Ip) = (1 - theta) * fluxLOtaus + theta * fluxtaus(dir_i)(Ip);
+      thetagf(dir_i)(Ip) = theta;
+    } else {
+      thetagf(dir_i)(p.I) = 1.0;
+    }
+          
 #ifdef CCTK_DEBUG
     if (isnan(dens_rc(0)) || isnan(dens_rc(1)) || isnan(moms_rc(0)(0)) ||
         isnan(moms_rc(0)(1)) || isnan(moms_rc(1)(0)) || isnan(moms_rc(1)(1)) ||

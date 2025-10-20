@@ -205,8 +205,7 @@ SCHEDULE AsterX_SetLOFlag IN CCTK_PRESTEP
   READS: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::temperature(interior) HydroBaseX::Ye(interior) HydroBaseX::Bvec(interior)
   WRITES: etac(interior) LOflag(interior)
   SYNC: LOflag
-} "Detect shocks, flag for low-order recon/flux fallback"
-
+} "Detect shocks, flag for low-order recon fallback"
 
 SCHEDULE GROUP AsterX_RHSGroup IN ODESolvers_RHS
 {
@@ -226,11 +225,12 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   READS: zvec_x(everywhere) zvec_y(everywhere) zvec_z(everywhere)
   READS: svec_x(everywhere) svec_y(everywhere) svec_z(everywhere)
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere) Psi(everywhere)
+  READS: dens(everywhere)
   READS: LOflag(everywhere)
   WRITES: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
+  WRITES: theta_x(everywhere) theta_y(everywhere) theta_z(everywhere)
   WRITES: vbar_xface(everywhere) vbar_yface(everywhere) vbar_zface(everywhere)
   WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
-  SYNC: flux_x flux_y flux_z
 } "Calculate the hydro fluxes"
 
 SCHEDULE AsterX_ApplyOuterBCOnFluxes IN AsterX_RHSGroup AFTER AsterX_Fluxes BEFORE AsterX_RHS
@@ -281,8 +281,10 @@ SCHEDULE AsterX_RHS IN AsterX_RHSGroup AFTER AsterX_SourceTerms
   READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
   READS: vbar_xface(everywhere) vbar_yface(everywhere) vbar_zface(everywhere)
   READS: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
+  READS: theta_x(everywhere) theta_y(everywhere) theta_z(everywhere)
   READS: LOflag(everywhere) 
   WRITES: densrhs(interior) taurhs(interior) momrhs(interior) DEntrhs(interior) DYe_rhs(interior)
+  WRITES: theta_tot(interior)
   WRITES: Avec_x_rhs(interior) Avec_y_rhs(interior) Avec_z_rhs(interior) Psi_rhs(interior)
 } "Update the RHS of the hydro equations with the flux contributions"
 
