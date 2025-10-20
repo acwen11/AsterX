@@ -39,6 +39,10 @@ CCTK_INT mag_order "Separate mag and hydro DER order for now" STEERABLE=never
   # 6 :: "Sixth order accurate"
 } 2
 
+BOOLEAN use_pplim "Use positivity preserving limiter?" STEERABLE=always
+{
+} "no"
+
 BOOLEAN use_deriv_shock_detector "Use shock detection measure (see Berta+ 2025, Kiuchi 2025)?" STEERABLE=always
 {
 } "no"

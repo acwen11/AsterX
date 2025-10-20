@@ -39,20 +39,20 @@ template <int dir> void ComputeStaggeredB(CCTK_ARGUMENTS) {
 
         if (dir == 0) {
           /* dBx is curl(A) at (i-1/2,j,k) */
-					dBx_stag(p.I) = calc_fd_v2e(Avec_z, p, 1, mag_order) -
-													calc_fd_v2e(Avec_y, p, 2, mag_order);
+					dBx_stag(p.I) = calc_fd2_v2e<1>(Avec_z, p, mag_order) -
+													calc_fd2_v2e<2>(Avec_y, p, mag_order);
           // dBx_stag(p.I) = idx[1] * (Avec_z(ijpk) - Avec_z(p.I)) -
           //                 idx[2] * (Avec_y(ijkp) - Avec_y(p.I));
         } else if (dir == 1) {
           /* dBy is curl(A) at (i,j-1/2,k) */
-					dBy_stag(p.I) = calc_fd_v2e(Avec_x, p, 2, mag_order) -
-													calc_fd_v2e(Avec_z, p, 0, mag_order);
+					dBy_stag(p.I) = calc_fd2_v2e<2>(Avec_x, p, mag_order) -
+													calc_fd2_v2e<0>(Avec_z, p, mag_order);
           // dBy_stag(p.I) = idx[2] * (Avec_x(ijkp) - Avec_x(p.I)) -
           //                 idx[0] * (Avec_z(ipjk) - Avec_z(p.I));
         } else if (dir == 2) {
           /* dBz is curl(A) at (i,j,z-1/2) */
-					dBz_stag(p.I) = calc_fd_v2e(Avec_y, p, 0, mag_order) -
-													calc_fd_v2e(Avec_x, p, 1, mag_order);
+					dBz_stag(p.I) = calc_fd2_v2e<0>(Avec_y, p, mag_order) -
+													calc_fd2_v2e<1>(Avec_x, p, mag_order);
           // dBz_stag(p.I) = idx[0] * (Avec_y(ipjk) - Avec_y(p.I)) -
           //                 idx[1] * (Avec_x(ijpk) - Avec_x(p.I));
         }

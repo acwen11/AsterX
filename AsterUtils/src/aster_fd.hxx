@@ -43,7 +43,7 @@ calc_fd2_v2v_oneside(const GF3D2<const T> &gf, const PointDesc &p,
 // FD2: vertex centered input, edge centered output, or edge to face
 template <int dir, typename T>
 CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
-calc_fd_v2e(const GF3D2<const T> &gf, const PointDesc &p, const int order) {
+calc_fd2_v2e(const GF3D2<const T> &gf, const PointDesc &p, const int order) {
   return  (1.0 / p.DX[dir]) * ( 
 		(order==2) * (gf(p.I + p.DI[dir]) - gf(p.I)) +
 		(order==4) * ((9.0/8.0) * (gf(p.I + p.DI[dir]) - gf(p.I)) - (1.0/24.0) * (gf(p.I + 2*p.DI[dir]) - gf(p.I - p.DI[dir]))));
