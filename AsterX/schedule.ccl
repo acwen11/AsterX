@@ -198,14 +198,17 @@ SCHEDULE AsterX_ApplyOuterBCOnPrim IN AsterX_Con2PrimGroup AFTER AsterX_Con2Prim
   OPTIONS: global
 } "Apply CarpetX boundary conditions on primitive variables"
 
-SCHEDULE AsterX_SetLOFlag IN CCTK_PRESTEP 
+if (use_deriv_shock_detector)
 {
-  LANG: C
-  READS: ADMBaseX::metric(interior)
-  READS: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::temperature(interior) HydroBaseX::Ye(interior) HydroBaseX::Bvec(interior)
-  WRITES: etac(interior) LOflag(interior)
-  SYNC: LOflag
-} "Detect shocks, flag for low-order recon fallback"
+  SCHEDULE AsterX_SetLOFlag IN CCTK_PRESTEP 
+  {
+    LANG: C
+    READS: ADMBaseX::metric(interior)
+    READS: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::temperature(interior) HydroBaseX::Ye(interior) HydroBaseX::Bvec(interior)
+    WRITES: etac(interior) LOflag(interior)
+    SYNC: LOflag
+  } "Detect shocks, flag for low-order recon fallback"
+}
 
 SCHEDULE GROUP AsterX_RHSGroup IN ODESolvers_RHS
 {

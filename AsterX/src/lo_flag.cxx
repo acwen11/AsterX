@@ -60,12 +60,8 @@ void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p, const bool havetemp) {
         grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
   
-    if (!use_deriv_shock_detector) {
-      LOflag(p.I) = 1.0;
-      return;
-    }
     if (rho(p.I) < LO_rhothresh) {
-      LOflag(p.I) = 0.0;
+      LOflag(p.I) = 1.0;
       return;
     }
 
@@ -79,7 +75,7 @@ void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p, const bool havetemp) {
       etac_tot = etacL;
     if (etacL > eta_thresh){
       etac(p.I) = etac_tot;
-      LOflag(p.I) = 0.0;
+      LOflag(p.I) = 1.0;
       return;
     }
 
@@ -89,7 +85,7 @@ void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p, const bool havetemp) {
       etac_tot = etacL;
     if (etacL > eta_thresh){
       etac(p.I) = etac_tot;
-      LOflag(p.I) = 0.0;
+      LOflag(p.I) = 1.0;
       return;
     }
 
@@ -110,7 +106,7 @@ void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p, const bool havetemp) {
         etac_tot = etacL;
       if (etacL > eta_thresh){
         etac(p.I) = etac_tot;
-        LOflag(p.I) = 0.0;
+        LOflag(p.I) = 1.0;
         return;
       }
     }
@@ -138,7 +134,7 @@ void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p, const bool havetemp) {
 
     // All checks pass
     etac(p.I) = etac_tot;
-    LOflag(p.I) = 1.0;
+    LOflag(p.I) = 0.0;
 
   });
 }
