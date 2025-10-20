@@ -230,6 +230,7 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   WRITES: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
   WRITES: vbar_xface(everywhere) vbar_yface(everywhere) vbar_zface(everywhere)
   WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
+  SYNC: flux_x flux_y flux_z
 } "Calculate the hydro fluxes"
 
 SCHEDULE AsterX_ApplyOuterBCOnFluxes IN AsterX_RHSGroup AFTER AsterX_Fluxes BEFORE AsterX_RHS
