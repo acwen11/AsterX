@@ -234,7 +234,7 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   READS: zvec_x(everywhere) zvec_y(everywhere) zvec_z(everywhere)
   READS: svec_x(everywhere) svec_y(everywhere) svec_z(everywhere)
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere) Psi(everywhere)
-  READS: dens(everywhere)
+  READS: dens(everywhere) DYe(everywhere)
   READS: LOflag(everywhere)
   WRITES: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
   WRITES: theta_x(everywhere) theta_y(everywhere) theta_z(everywhere)
