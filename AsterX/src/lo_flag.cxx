@@ -177,4 +177,16 @@ extern "C" void AsterX_SetLOFlag(CCTK_ARGUMENTS) {
   }
 }
 
+extern "C" void AsterX_InitLOFlag(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_InitLOFlag;
+  DECLARE_CCTK_PARAMETERS;
+
+  // Loop over the grid
+  grid.loop_all_device<1, 1, 1>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+		LOflag(p.I) = 0.0;
+	});
+}
+
 } // namespace AsterX

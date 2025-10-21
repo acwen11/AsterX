@@ -198,9 +198,15 @@ SCHEDULE AsterX_ApplyOuterBCOnPrim IN AsterX_Con2PrimGroup AFTER AsterX_Con2Prim
   OPTIONS: global
 } "Apply CarpetX boundary conditions on primitive variables"
 
+SCHEDULE AsterX_InitLOFlag IN CCTK_PRESTEP 
+{
+	LANG: C
+	WRITES: LOflag(everywhere)
+} "Init this flag to 0"
+
 if (use_deriv_shock_detector)
 {
-  SCHEDULE AsterX_SetLOFlag IN CCTK_PRESTEP 
+  SCHEDULE AsterX_SetLOFlag IN CCTK_PRESTEP AFTER AsterX_InitLOFlag 
   {
     LANG: C
     READS: ADMBaseX::metric(interior)
