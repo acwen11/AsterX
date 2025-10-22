@@ -15,14 +15,6 @@ using namespace AsterUtils;
 using namespace EOSX;
 
 enum class eos_3param { IdealGas, Hybrid, Tabulated };
-enum shockflag : CCTK_INT {
-  SD_INIT = 0,       // initial value
-  SD_RHO = 1,      
-  SD_PRESS = 2,    
-  SD_CSX = 3,    
-  SD_CSY = 4,   
-  SD_CSZ = 5,  
-};
 
 CCTK_DEVICE CCTK_HOST inline CCTK_REAL 
 LOFlagVar(const GF3D2<const CCTK_REAL> &gf, const CCTK_REAL ref, const PointDesc &p) {
@@ -68,14 +60,8 @@ void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p, const bool havetemp) {
         grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
   
-		shockflag(p.I) = SD_INIT;
-
-    if (!use_deriv_shock_detector) {
-      LOflag(p.I) = 1.0;
-      return;
-    }
     if (rho(p.I) < LO_rhothresh) {
-      LOflag(p.I) = 0.0;
+      LOflag(p.I) = 1.0;
       return;
     }
 
@@ -89,8 +75,7 @@ void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p, const bool havetemp) {
       etac_tot = etacL;
     if (etacL > eta_thresh){
       etac(p.I) = etac_tot;
-      LOflag(p.I) = 0.0;
-			shockflag(p.I) = SD_RHO;
+      LOflag(p.I) = 1.0;
       return;
     }
 
@@ -100,8 +85,7 @@ void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p, const bool havetemp) {
       etac_tot = etacL;
     if (etacL > eta_thresh){
       etac(p.I) = etac_tot;
-      LOflag(p.I) = 0.0;
-			shockflag(p.I) = SD_PRESS;
+      LOflag(p.I) = 1.0;
       return;
     }
 
@@ -122,8 +106,7 @@ void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p, const bool havetemp) {
         etac_tot = etacL;
       if (etacL > eta_thresh){
         etac(p.I) = etac_tot;
-        LOflag(p.I) = 0.0;
-				shockflag(p.I) = SD_CSX + dir;
+        LOflag(p.I) = 1.0;
         return;
       }
     }
@@ -151,7 +134,7 @@ void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p, const bool havetemp) {
 
     // All checks pass
     etac(p.I) = etac_tot;
-    LOflag(p.I) = 1.0;
+    LOflag(p.I) = 0.0;
 
   });
 }
@@ -192,6 +175,18 @@ extern "C" void AsterX_SetLOFlag(CCTK_ARGUMENTS) {
   default:
     assert(0);
   }
+}
+
+extern "C" void AsterX_InitLOFlag(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_InitLOFlag;
+  DECLARE_CCTK_PARAMETERS;
+
+  // Loop over the grid
+  grid.loop_all_device<1, 1, 1>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+		LOflag(p.I) = 0.0;
+	});
 }
 
 } // namespace AsterX
