@@ -113,9 +113,10 @@ CCTK_REAL Fbeta TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"'
 CCTK_REAL LOflag TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Shock detector switch"
 CCTK_REAL etac TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Shock detector measure"
 
-#CCTK_REAL Ex TYPE=gf CENTERING={cvv} TAGS='checkpoint="no"' "x-component of electric field"
-#CCTK_REAL Ey TYPE=gf CENTERING={vcv} TAGS='checkpoint="no"' "y-component of electric field"
-#CCTK_REAL Ez TYPE=gf CENTERING={vvc} TAGS='checkpoint="no"' "z-component of electric field"
+CCTK_REAL Ex TYPE=gf CENTERING={cvv} TAGS='checkpoint="no"' "x-component of E"
+CCTK_REAL Ey TYPE=gf CENTERING={vcv} TAGS='checkpoint="no"' "y-component of E"
+CCTK_REAL Ez TYPE=gf CENTERING={vvc} TAGS='checkpoint="no"' "z-component of E"
+
 CCTK_REAL G TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"' "Auxiliary variable which appears in the rhs of Avec"
 
 CCTK_REAL Fx_stag TYPE=gf CENTERING={cvv} TAGS='checkpoint="no"' "x-component of F"

@@ -5,103 +5,36 @@
 #include <loop_device.hxx>
 
 #include "aster_utils.hxx"
-#include "reconstruct.hxx"
 
 namespace AsterX {
 using namespace Loop;
 using namespace Arith;
-using namespace ReconX;
 using namespace AsterUtils;
 
 enum class vector_potential_gauge_t { algebraic, generalized_lorenz };
 
-template <int i, vector_potential_gauge_t gauge, bool use_uct>
-void CalcRHSofAvec_impl(CCTK_ARGUMENTS, const int order, const reconstruction_t reconstruction,
-                        const reconstruct_params_t reconstruct_params) {
+template <int i, vector_potential_gauge_t gauge>
+void CalcRHSofAvec_impl(CCTK_ARGUMENTS, const int order) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_RHS;
 
-  // the other two directions
-  constexpr int j = (i == 0) ? 1 : ((i == 1) ? 2 : 0);
-  constexpr int k = (i == 0) ? 2 : ((i == 1) ? 0 : 1);
-
-  // flux-CT
-  const vec<vec<GF3D2<const CCTK_REAL>, dim>, dim> gf_fBs{
-      {fxBx, fyBx, fzBx}, {fxBy, fyBy, fzBy}, {fxBz, fyBz, fzBz}};
-
-  // upwind-CT
-  const vec<GF3D2<const CCTK_REAL>, dim> gf_vels{velx, vely, velz};
-  const vec<GF3D2<const CCTK_REAL>, dim> dB_stag{dBx_stag, dBy_stag, dBz_stag};
-  const vec<GF3D2<const CCTK_REAL>, dim> ap_face{amax_xface, amax_yface,
-                                                 amax_zface};
-  const vec<GF3D2<const CCTK_REAL>, dim> am_face{amin_xface, amin_yface,
-                                                 amin_zface};
-  const vec<vec<GF3D2<const CCTK_REAL>, 2>, dim> vbars{
-      {vbar_x_yface, vbar_x_zface},
-      {vbar_y_zface, vbar_y_xface},
-      {vbar_z_xface, vbar_z_yface}};
-  // mapping from 3d to 2d, since we don't need iface
-  constexpr int jface = 1;
-  constexpr int kface = 0;
-
+  const vec<GF3D2<const CCTK_REAL>, dim> gf_E{Ex, Ey, Ez};
   const vec<GF3D2<CCTK_REAL>, dim> gf_Avec_rhs{Avec_x_rhs, Avec_y_rhs,
                                                Avec_z_rhs};
 
-  constexpr CCTK_REAL is_glorenz =
-      (gauge == vector_potential_gauge_t::generalized_lorenz) ? CCTK_REAL(1)
-                                                              : CCTK_REAL(0);
+  if constexpr (gauge == vector_potential_gauge_t::algebraic) {
 
-  // edge centered loop
-  if constexpr (use_uct) { // upwind-CT
     grid.loop_int_device<i == 0, i == 1, i == 2>(
         grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-          // reconstruct in k-dir
-          const vec<CCTK_REAL, 2> dBstag_jface_krc{
-              reconstruct(dB_stag(j), p, reconstruction, k, false, false, press,
-                          gf_vels(k), reconstruct_params)};
-          const vec<CCTK_REAL, 2> vbar_k_jface_krc{
-              reconstruct(vbars(k)(jface), p, reconstruction, k, false, false,
-                          press, gf_vels(k), reconstruct_params)};
-          // reconstruct in j-dir
-          const vec<CCTK_REAL, 2> dBstag_kface_jrc{
-              reconstruct(dB_stag(k), p, reconstruction, j, false, false, press,
-                          gf_vels(j), reconstruct_params)};
-          const vec<CCTK_REAL, 2> vbar_j_kface_jrc{
-              reconstruct(vbars(j)(kface), p, reconstruction, j, false, false,
-                          press, gf_vels(j), reconstruct_params)};
-
-          const CCTK_REAL BjL = dBstag_jface_krc(0);
-          const CCTK_REAL BjR = dBstag_jface_krc(1);
-          const CCTK_REAL vkL = vbar_k_jface_krc(0);
-          const CCTK_REAL vkR = vbar_k_jface_krc(1);
-
-          const CCTK_REAL BkL = dBstag_kface_jrc(0);
-          const CCTK_REAL BkR = dBstag_kface_jrc(1);
-          const CCTK_REAL vjL = vbar_j_kface_jrc(0);
-          const CCTK_REAL vjR = vbar_j_kface_jrc(1);
-
-          const CCTK_REAL ap_k = ap_face(k)(p.I);
-          const CCTK_REAL am_k = am_face(k)(p.I);
-          const CCTK_REAL ap_j = ap_face(j)(p.I);
-          const CCTK_REAL am_j = am_face(j)(p.I);
-
-          const CCTK_REAL E =
-              hll_upwind(BjL, BjR, vkL * BjL, vkR * BjR, ap_k, am_k) -
-              hll_upwind(BkL, BkR, vjL * BkL, vjR * BkR, ap_j, am_j);
-
-          gf_Avec_rhs(i)(p.I) = -E - is_glorenz * calc_fd2_v2e<i>(G, p, order);
+          gf_Avec_rhs(i)(p.I) = -gf_E(i)(p.I);
         });
-  } else { // flux-CT
+
+  } else if constexpr (gauge == vector_potential_gauge_t::generalized_lorenz) {
+
     grid.loop_int_device<i == 0, i == 1, i == 2>(
         grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-          const CCTK_REAL Fjk = gf_fBs(j)(k)(p.I);
-          const CCTK_REAL Fjk_m = gf_fBs(j)(k)(p.I - p.DI[j]);
-          const CCTK_REAL Fkj = gf_fBs(k)(j)(p.I);
-          const CCTK_REAL Fkj_m = gf_fBs(k)(j)(p.I - p.DI[k]);
-          const CCTK_REAL E = CCTK_REAL(0.25) * ((Fjk + Fjk_m) - (Fkj + Fkj_m));
-
-          gf_Avec_rhs(i)(p.I) = -E - is_glorenz * calc_fd2_v2e<i>(G, p, order);
+          gf_Avec_rhs(i)(p.I) = -gf_E(i)(p.I) - calc_fd2_v2e<i>(G, p, order);
         });
   }
 }
@@ -136,29 +69,15 @@ void CalcRHSofPsi_impl(CCTK_ARGUMENTS, const CCTK_REAL damp_fac) {
 }
 
 template <int i>
-void CalcRHSofAvec(CCTK_ARGUMENTS, const vector_potential_gauge_t gauge,
-                   const bool use_uct, const int order, const reconstruction_t reconstruction,
-                   const reconstruct_params_t reconstruct_params) {
+void CalcRHSofAvec(CCTK_ARGUMENTS, const vector_potential_gauge_t gauge, const int order) {
   switch (gauge) {
   case vector_potential_gauge_t::algebraic: {
-    if (use_uct) {
-      CalcRHSofAvec_impl<i, vector_potential_gauge_t::algebraic, true>(
-          CCTK_PASS_CTOC, order, reconstruction, reconstruct_params);
-    } else {
-      CalcRHSofAvec_impl<i, vector_potential_gauge_t::algebraic, false>(
-          CCTK_PASS_CTOC, order, reconstruction, reconstruct_params);
-    }
+    CalcRHSofAvec_impl<i, vector_potential_gauge_t::algebraic>(CCTK_PASS_CTOC);
     break;
   }
   case vector_potential_gauge_t::generalized_lorenz: {
-    if (use_uct) {
-      CalcRHSofAvec_impl<i, vector_potential_gauge_t::generalized_lorenz, true>(
-          CCTK_PASS_CTOC, order, reconstruction, reconstruct_params);
-    } else {
-      CalcRHSofAvec_impl<i, vector_potential_gauge_t::generalized_lorenz,
-                         false>(CCTK_PASS_CTOC, order, reconstruction,
-                                reconstruct_params);
-    }
+    CalcRHSofAvec_impl<i, vector_potential_gauge_t::generalized_lorenz>(
+        CCTK_PASS_CTOC, order);
     break;
   }
   default:
@@ -194,47 +113,6 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
     gauge = vector_potential_gauge_t::generalized_lorenz;
   else
     CCTK_ERROR("Unknown value for parameter \"vector_potential_gauge\"");
-
-  reconstruction_t reconstruction;
-  if (CCTK_EQUALS(reconstruction_method, "Godunov"))
-    reconstruction = reconstruction_t::Godunov;
-  else if (CCTK_EQUALS(reconstruction_method, "minmod"))
-    reconstruction = reconstruction_t::minmod;
-  else if (CCTK_EQUALS(reconstruction_method, "monocentral"))
-    reconstruction = reconstruction_t::monocentral;
-  else if (CCTK_EQUALS(reconstruction_method, "ppm"))
-    reconstruction = reconstruction_t::ppm;
-  else if (CCTK_EQUALS(reconstruction_method, "eppm"))
-    reconstruction = reconstruction_t::eppm;
-  else if (CCTK_EQUALS(reconstruction_method, "wenoz"))
-    reconstruction = reconstruction_t::wenoz;
-  else if (CCTK_EQUALS(reconstruction_method, "wenozp"))
-    reconstruction = reconstruction_t::wenozp;
-  else if (CCTK_EQUALS(reconstruction_method, "mp5"))
-    reconstruction = reconstruction_t::mp5;
-  else
-    CCTK_ERROR("Unknown value for parameter \"reconstruction_method\"");
-
-  // reconstruction parameters struct
-  reconstruct_params_t reconstruct_params;
-
-  // ppm parameters
-  reconstruct_params.ppm_shock_detection = ppm_shock_detection;
-  reconstruct_params.ppm_zone_flattening = ppm_zone_flattening;
-  reconstruct_params.poly_k = poly_k;
-  reconstruct_params.poly_gamma = poly_gamma;
-  reconstruct_params.ppm_eta1 = ppm_eta1;
-  reconstruct_params.ppm_eta2 = ppm_eta2;
-  reconstruct_params.ppm_eps = ppm_eps;
-  reconstruct_params.ppm_eps_shock = ppm_eps_shock;
-  reconstruct_params.ppm_small = ppm_small;
-  reconstruct_params.ppm_omega1 = ppm_omega1;
-  reconstruct_params.ppm_omega2 = ppm_omega2;
-  reconstruct_params.enhanced_ppm_C2 = enhanced_ppm_C2;
-  // wenoz parameters
-  reconstruct_params.weno_eps = weno_eps;
-  // mp5 parameters
-  reconstruct_params.mp5_alpha = mp5_alpha;
 
   const vec<CCTK_REAL, dim> idx{1 / CCTK_DELTA_SPACE(0),
                                 1 / CCTK_DELTA_SPACE(1),
@@ -287,12 +165,9 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
 #endif
       });
 
-  CalcRHSofAvec<0>(CCTK_PASS_CTOC, gauge, use_uct, mag_order, reconstruction,
-                   reconstruct_params);
-  CalcRHSofAvec<1>(CCTK_PASS_CTOC, gauge, use_uct, mag_order, reconstruction,
-                   reconstruct_params);
-  CalcRHSofAvec<2>(CCTK_PASS_CTOC, gauge, use_uct, mag_order, reconstruction,
-                   reconstruct_params);
+  CalcRHSofAvec<0>(CCTK_PASS_CTOC, gauge);
+  CalcRHSofAvec<1>(CCTK_PASS_CTOC, gauge);
+  CalcRHSofAvec<2>(CCTK_PASS_CTOC, gauge);
 
   CalcRHSofPsi(CCTK_PASS_CTOC, gauge, lorenz_damp_fac);
 }

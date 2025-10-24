@@ -1216,37 +1216,130 @@ extern "C" void AsterX_Fluxes(CCTK_ARGUMENTS) {
   }
 }
 
-template <int dir_i> void CalcFstag(CCTK_ARGUMENTS) {
+template <int i, bool use_uct>
+void CalcE_impl(CCTK_ARGUMENTS, const reconstruction_t reconstruction,
+                const reconstruct_params_t reconstruct_params) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_CalcAuxTermsForAvecPsiRHS;
+
+  // the other two directions
+  constexpr int j = (i == 0) ? 1 : ((i == 1) ? 2 : 0);
+  constexpr int k = (i == 0) ? 2 : ((i == 1) ? 0 : 1);
+
+  // flux-CT
+  const vec<vec<GF3D2<const CCTK_REAL>, dim>, dim> gf_fBs{
+      {fxBx, fyBx, fzBx}, {fxBy, fyBy, fzBy}, {fxBz, fyBz, fzBz}};
+
+  // upwind-CT
+  const vec<GF3D2<const CCTK_REAL>, dim> gf_vels{velx, vely, velz};
+  const vec<GF3D2<const CCTK_REAL>, dim> dB_stag{dBx_stag, dBy_stag, dBz_stag};
+  const vec<GF3D2<const CCTK_REAL>, dim> ap_face{amax_xface, amax_yface,
+                                                 amax_zface};
+  const vec<GF3D2<const CCTK_REAL>, dim> am_face{amin_xface, amin_yface,
+                                                 amin_zface};
+  const vec<vec<GF3D2<const CCTK_REAL>, 2>, dim> vbars{
+      {vbar_x_yface, vbar_x_zface},
+      {vbar_y_zface, vbar_y_xface},
+      {vbar_z_xface, vbar_z_yface}};
+  // mapping from 3d to 2d, since we don't need iface
+  constexpr int jface = 1;
+  constexpr int kface = 0;
+
+  const vec<GF3D2<CCTK_REAL>, dim> gf_E{Ex, Ey, Ez};
+
+  // edge centered loop
+  if constexpr (use_uct) { // upwind-CT
+    grid.loop_int_device<i == 0, i == 1, i == 2>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+          // reconstruct in k-dir
+          const vec<CCTK_REAL, 2> dBstag_jface_krc{
+              reconstruct(dB_stag(j), p, reconstruction, k, false, false, press,
+                          gf_vels(k), reconstruct_params)};
+          const vec<CCTK_REAL, 2> vbar_k_jface_krc{
+              reconstruct(vbars(k)(jface), p, reconstruction, k, false, false,
+                          press, gf_vels(k), reconstruct_params)};
+          // reconstruct in j-dir
+          const vec<CCTK_REAL, 2> dBstag_kface_jrc{
+              reconstruct(dB_stag(k), p, reconstruction, j, false, false, press,
+                          gf_vels(j), reconstruct_params)};
+          const vec<CCTK_REAL, 2> vbar_j_kface_jrc{
+              reconstruct(vbars(j)(kface), p, reconstruction, j, false, false,
+                          press, gf_vels(j), reconstruct_params)};
+
+          const CCTK_REAL BjL = dBstag_jface_krc(0);
+          const CCTK_REAL BjR = dBstag_jface_krc(1);
+          const CCTK_REAL vkL = vbar_k_jface_krc(0);
+          const CCTK_REAL vkR = vbar_k_jface_krc(1);
+
+          const CCTK_REAL BkL = dBstag_kface_jrc(0);
+          const CCTK_REAL BkR = dBstag_kface_jrc(1);
+          const CCTK_REAL vjL = vbar_j_kface_jrc(0);
+          const CCTK_REAL vjR = vbar_j_kface_jrc(1);
+
+          const CCTK_REAL ap_k = ap_face(k)(p.I);
+          const CCTK_REAL am_k = am_face(k)(p.I);
+          const CCTK_REAL ap_j = ap_face(j)(p.I);
+          const CCTK_REAL am_j = am_face(j)(p.I);
+
+          gf_E(i)(p.I) =
+              hll_upwind(BjL, BjR, vkL * BjL, vkR * BjR, ap_k, am_k) -
+              hll_upwind(BkL, BkR, vjL * BkL, vjR * BkR, ap_j, am_j);
+        });
+  } else { // flux-CT
+    grid.loop_int_device<i == 0, i == 1, i == 2>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+          const CCTK_REAL Fjk = gf_fBs(j)(k)(p.I);
+          const CCTK_REAL Fjk_m = gf_fBs(j)(k)(p.I - p.DI[j]);
+          const CCTK_REAL Fkj = gf_fBs(k)(j)(p.I);
+          const CCTK_REAL Fkj_m = gf_fBs(k)(j)(p.I - p.DI[k]);
+          gf_E(i)(p.I) = CCTK_REAL(0.25) * ((Fjk + Fjk_m) - (Fkj + Fkj_m));
+        });
+  }
+}
+
+template <int i>
+void CalcE(CCTK_ARGUMENTS, const bool use_uct,
+           const reconstruction_t reconstruction,
+           const reconstruct_params_t reconstruct_params) {
+  if (use_uct) {
+    CalcE_impl<i, true>(CCTK_PASS_CTOC, reconstruction, reconstruct_params);
+  } else {
+    CalcE_impl<i, false>(CCTK_PASS_CTOC, reconstruction, reconstruct_params);
+  }
+}
+
+template <int i> void CalcFstag(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_CalcAuxTermsForAvecPsiRHS;
   DECLARE_CCTK_PARAMETERS;
 
   // the other two directions
-  constexpr int dir_j = (dir_i == 0) ? 1 : ((dir_i == 1) ? 2 : 0);
-  constexpr int dir_k = (dir_i == 0) ? 2 : ((dir_i == 1) ? 0 : 1);
+  constexpr int j = (i == 0) ? 1 : ((i == 1) ? 2 : 0);
+  constexpr int k = (i == 0) ? 2 : ((i == 1) ? 0 : 1);
 
   const vec<GF3D2<CCTK_REAL>, dim> gf_Fstag{Fx_stag, Fy_stag, Fz_stag};
   const vec<GF3D2<const CCTK_REAL>, dim> gf_Avecs{Avec_x, Avec_y, Avec_z};
   const smat<GF3D2<const CCTK_REAL>, dim> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
 
-  grid.loop_mix_device<dir_i == 0, dir_i == 1, dir_i == 2>(
+  grid.loop_mix_device<i == 0, i == 1, i == 2>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        const CCTK_REAL alp_e = calc_avg_v2e<dir_i>(alp, p);
-        const smat<CCTK_REAL, 3> g_e([&](int i, int j) ARITH_INLINE {
-          return calc_avg_v2e<dir_i>(gf_g(i, j), p);
+        const CCTK_REAL alp_e = calc_avg_v2e<i>(alp, p);
+        const smat<CCTK_REAL, 3> g_e([&](int m, int n) ARITH_INLINE {
+          return calc_avg_v2e<i>(gf_g(m, n), p);
         });
         const CCTK_REAL detg_e = calc_det(g_e);
         const CCTK_REAL sqrtg_e = sqrt(detg_e);
         const smat<CCTK_REAL, 3> ug_e = calc_inv(g_e, detg_e);
 
         vec<CCTK_REAL, 3> A_e;
-        A_e(dir_i) = gf_Avecs(dir_i)(p.I);
-        A_e(dir_j) = calc_avg_e2e<dir_i, dir_j>(gf_Avecs(dir_j), p);
-        A_e(dir_k) = calc_avg_e2e<dir_i, dir_k>(gf_Avecs(dir_k), p);
+        A_e(i) = gf_Avecs(i)(p.I);
+        A_e(j) = calc_avg_e2e<i, j>(gf_Avecs(j), p);
+        A_e(k) = calc_avg_e2e<i, k>(gf_Avecs(k), p);
 
         const vec<CCTK_REAL, 3> Aup_e = calc_contraction(ug_e, A_e);
 
-        gf_Fstag(dir_i)(p.I) = alp_e * sqrtg_e * Aup_e(dir_i);
+        gf_Fstag(i)(p.I) = alp_e * sqrtg_e * Aup_e(i);
       });
 }
 
@@ -1254,9 +1347,52 @@ extern "C" void AsterX_CalcAuxTermsForAvecPsiRHS(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_CalcAuxTermsForAvecPsiRHS;
   DECLARE_CCTK_PARAMETERS;
 
+  reconstruction_t reconstruction;
+  if (CCTK_EQUALS(reconstruction_method, "Godunov"))
+    reconstruction = reconstruction_t::Godunov;
+  else if (CCTK_EQUALS(reconstruction_method, "minmod"))
+    reconstruction = reconstruction_t::minmod;
+  else if (CCTK_EQUALS(reconstruction_method, "monocentral"))
+    reconstruction = reconstruction_t::monocentral;
+  else if (CCTK_EQUALS(reconstruction_method, "ppm"))
+    reconstruction = reconstruction_t::ppm;
+  else if (CCTK_EQUALS(reconstruction_method, "eppm"))
+    reconstruction = reconstruction_t::eppm;
+  else if (CCTK_EQUALS(reconstruction_method, "wenoz"))
+    reconstruction = reconstruction_t::wenoz;
+  else if (CCTK_EQUALS(reconstruction_method, "mp5"))
+    reconstruction = reconstruction_t::mp5;
+  else
+    CCTK_ERROR("Unknown value for parameter \"reconstruction_method\"");
+
+  // reconstruction parameters struct
+  reconstruct_params_t reconstruct_params;
+
+  // ppm parameters
+  reconstruct_params.ppm_shock_detection = ppm_shock_detection;
+  reconstruct_params.ppm_zone_flattening = ppm_zone_flattening;
+  reconstruct_params.poly_k = poly_k;
+  reconstruct_params.poly_gamma = poly_gamma;
+  reconstruct_params.ppm_eta1 = ppm_eta1;
+  reconstruct_params.ppm_eta2 = ppm_eta2;
+  reconstruct_params.ppm_eps = ppm_eps;
+  reconstruct_params.ppm_eps_shock = ppm_eps_shock;
+  reconstruct_params.ppm_small = ppm_small;
+  reconstruct_params.ppm_omega1 = ppm_omega1;
+  reconstruct_params.ppm_omega2 = ppm_omega2;
+  reconstruct_params.enhanced_ppm_C2 = enhanced_ppm_C2;
+  // wenoz parameters
+  reconstruct_params.weno_eps = weno_eps;
+  // mp5 parameters
+  reconstruct_params.mp5_alpha = mp5_alpha;
+
   const vec<GF3D2<const CCTK_REAL>, dim> gf_Avecs{Avec_x, Avec_y, Avec_z};
   const smat<GF3D2<const CCTK_REAL>, dim> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
   const vec<GF3D2<const CCTK_REAL>, dim> gf_beta{betax, betay, betaz};
+
+  CalcE<0>(CCTK_PASS_CTOC, use_uct, reconstruction, reconstruct_params);
+  CalcE<1>(CCTK_PASS_CTOC, use_uct, reconstruction, reconstruct_params);
+  CalcE<2>(CCTK_PASS_CTOC, use_uct, reconstruction, reconstruct_params);
 
   grid.loop_int_device<0, 0, 0>(
       grid.nghostzones,
