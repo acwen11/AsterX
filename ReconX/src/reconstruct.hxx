@@ -11,9 +11,12 @@
 #include "minmod.hxx"
 #include "ppm.hxx"
 #include "eppm.hxx"
+#include "weno5.hxx"
 #include "wenoz.hxx"
+#include "wenozp.hxx"
 #include "mp5.hxx"
 
+#include <type_traits>
 #include <array>
 
 namespace ReconX {
@@ -29,17 +32,21 @@ enum class reconstruction_t {
   monocentral,
   ppm,
   eppm,
+  weno5,
   wenoz,
+  wenozp,
   mp5
 };
 
-inline CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_HOST CCTK_DEVICE array<CCTK_REAL, 2>
+template <typename Container = std::array<CCTK_REAL, 2>>
+inline CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_HOST CCTK_DEVICE Container
 reconstruct(const GF3D2<const CCTK_REAL> &gf_var, const PointDesc &p,
-            const reconstruction_t &reconstruction, const int &dir,
-            const bool &gf_is_rho, const bool &gf_is_press,
+            reconstruction_t reconstruction, int dir,
+            bool gf_is_rho, bool gf_is_press,
             const GF3D2<const CCTK_REAL> &gf_press,
             const GF3D2<const CCTK_REAL> &gf_vel_dir,
             const reconstruct_params_t &reconstruct_params) {
+
   // Neighbouring "plus" and "minus" cell indices
   const auto Immm = p.I - 3 * p.DI[dir];
   const auto Imm = p.I - 2 * p.DI[dir];
@@ -48,39 +55,64 @@ reconstruct(const GF3D2<const CCTK_REAL> &gf_var, const PointDesc &p,
   const auto Ipp = p.I + p.DI[dir];
   const auto Ippp = p.I + 2 * p.DI[dir];
 
+  // canonical compute buffer
+  std::array<CCTK_REAL,2> tmp{};
+
   switch (reconstruction) {
 
   case reconstruction_t::Godunov: {
-    return {gf_var(Im), gf_var(Ip)};
+    tmp = {gf_var(Im), gf_var(Ip)};
+    break;
   }
 
   case reconstruction_t::minmod: {
-    return minmod_reconstruct(gf_var(Imm), gf_var(Im), gf_var(Ip), gf_var(Ipp));
+    tmp = minmod_reconstruct(gf_var(Imm), gf_var(Im), gf_var(Ip), gf_var(Ipp));
+    break;
   }
 
   case reconstruction_t::monocentral: {
-    return monocentral_reconstruct(gf_var(Imm), gf_var(Im), gf_var(Ip),
+    tmp = monocentral_reconstruct(gf_var(Imm), gf_var(Im), gf_var(Ip),
                                    gf_var(Ipp));
+    break;
   }
 
   case reconstruction_t::ppm: {
-    return ppm_reconstruct(
+    tmp = ppm_reconstruct(
         gf_var(Immm), gf_var(Imm), gf_var(Im), gf_var(Ip), gf_var(Ipp),
         gf_var(Ippp), gf_press(Immm), gf_press(Imm), gf_press(Im), gf_press(Ip),
         gf_press(Ipp), gf_press(Ippp), gf_vel_dir(Imm), gf_vel_dir(Im),
         gf_vel_dir(Ip), gf_vel_dir(Ipp), gf_is_rho, reconstruct_params);
+    break;
+  }
+
+  case reconstruction_t::weno5: {
+    tmp = weno5_reconstruct(gf_var(Immm), gf_var(Imm), gf_var(Im), gf_var(Ip),
+                             gf_var(Ipp), gf_var(Ippp),
+                             reconstruct_params.weno_eps);
+    break;
   }
 
   case reconstruction_t::wenoz: {
-    return wenoz_reconstruct(gf_var(Immm), gf_var(Imm), gf_var(Im), gf_var(Ip),
+    tmp = wenoz_reconstruct(gf_var(Immm), gf_var(Imm), gf_var(Im), gf_var(Ip),
                              gf_var(Ipp), gf_var(Ippp),
                              reconstruct_params.weno_eps);
+    break;
+  }
+
+  case reconstruction_t::wenozp: {
+		// const CCTK_REAL dx = p.DX[dir];
+		const CCTK_REAL dx = 0.0;
+    tmp = wenozp_reconstruct(gf_var(Immm), gf_var(Imm), gf_var(Im), gf_var(Ip),
+                             gf_var(Ipp), gf_var(Ippp), dx,
+                             reconstruct_params.weno_eps, reconstruct_params.weno_mp);
+    break;
   }
 
   case reconstruction_t::mp5: {
-    return mp5_reconstruct(gf_var(Immm), gf_var(Imm), gf_var(Im), gf_var(Ip),
+    tmp = mp5_reconstruct(gf_var(Immm), gf_var(Imm), gf_var(Im), gf_var(Ip),
                            gf_var(Ipp), gf_var(Ippp),
                            reconstruct_params.mp5_alpha);
+    break;
   }
 
   case reconstruction_t::eppm: {
@@ -94,12 +126,23 @@ reconstruct(const GF3D2<const CCTK_REAL> &gf_var, const PointDesc &p,
         eppm(gf_var, cells_Ip, gf_is_press, gf_press, gf_vel_dir,
              reconstruct_params);
 
-    return array<CCTK_REAL, 2>{rc_Im[1], rc_Ip[0]};
+    tmp = {rc_Im[1], rc_Ip[0]};
+    break;
   }
 
   default:
     assert(0);
   }
+
+  // In the following we assume that Container
+  // can be constructed from an std::array!
+
+  if constexpr (std::is_same<Container, std::array<CCTK_REAL,2>>::value) {
+    return tmp; // zero-cost
+  } else {
+    return Container{tmp};
+  }
+
 }
 
 } // namespace ReconX

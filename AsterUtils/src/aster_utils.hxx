@@ -164,14 +164,13 @@ calc_avg_neighbors(const vec<T, D> flag, const vec<T, D> u_nbs,
          CCTK_REAL(D);
 }
 
-// Compute flux derivatives with optional higher order corrections
-CCTK_DEVICE CCTK_HOST inline CCTK_REAL
+// Higher order corrections
+// template <typename T>
+CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
 compute_flux_derivatives(const GF3D2<const CCTK_REAL> &gf, const PointDesc &p, int dir,
                         int correction_order) {
-  CCTK_REAL correction;
-  correction = 0.0;
-  
-  // New code combines above stencils at two faces to directly add to RHS
+
+  // New code combines stencils at two faces to directly add to RHS
   // Here, p.I is the cell center index, gf(p.I) is the left face, gf(p.I + p.DI) is the right
   const auto Im3 = p.I - 2 * p.DI[dir];
   const auto Im2 = p.I - p.DI[dir];
@@ -179,17 +178,56 @@ compute_flux_derivatives(const GF3D2<const CCTK_REAL> &gf, const PointDesc &p, i
   const auto Ip = p.I + p.DI[dir];
   const auto Ip2 = p.I + 2 * p.DI[dir];
   const auto Ip3 = p.I + 3 * p.DI[dir];
-  if (correction_order == 4) {
-    correction = 
-      (9.0/8.0) * (gf(Ip) - gf(Im)) - (1.0/24.0) * (gf(Ip2) - gf(Im2)); 
-  } else if (correction_order == 6) {
-    correction = 
-      (75.0/64.0) * (gf(Ip) - gf(Im)) - (25.0/384.0) * (gf(Ip2) - gf(Im2)) +
-      (3.0/640.0) * (gf(Ip3) - gf(Im3));
-  } else {
-    correction = gf(Ip) - gf(Im);
-  }
+
+  CCTK_REAL correction = 
+    (correction_order==2) * (gf(Ip) - gf(Im)) +
+    (correction_order==4) 
+      * ((9.0/8.0) * (gf(Ip) - gf(Im)) - (1.0/24.0) * (gf(Ip2) - gf(Im2)));
+      // + (correction_order==6) 
+      //   * ((75.0/64.0) * (gf(Ip) - gf(Im)) - (25.0/384.0) * (gf(Ip2) - gf(Im2))
+      //   + (3.0/640.0) * (gf(Ip3) - gf(Im3)));
+
   return correction;
+}
+
+// upwind-CT related
+
+template <typename T>
+CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE static inline void
+maxspeeds_from_lambdas(const vec<vec<T, 4>, 2> &lambda, T &ap, T &am) {
+  T lmax = T(0);
+  T lmin = T(0);
+#pragma unroll
+  for (int s = 0; s < 2; ++s) {
+#pragma unroll
+    for (int m = 0; m < 4; ++m) {
+      const T lm = lambda(s)(m);
+      lmax = fmax(lmax, lm);
+      lmin = fmin(lmin, lm);
+    }
+  }
+  ap = fmax(T(0), lmax);
+  am = fmax(T(0), -lmin);
+}
+
+template <typename T>
+CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE static inline T
+avg_upwind(T uL, T uR, T ap, T am) noexcept {
+  const T s = ap + am;
+  if (s <= T(1e-14)) {
+    return T(0.5) * (uL + uR);
+  }
+  return (ap * uL + am * uR) / s;
+}
+
+template <typename T>
+CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE static inline T
+hll_upwind(T uL, T uR, T fL, T fR, T ap, T am) noexcept {
+  const T s = ap + am;
+  if (s <= T(1e-14)) {
+    return T(0.5) * (fL + fR);
+  }
+  return (ap * fL + am * fR - ap * am * (uR - uL)) / s;
 }
 
 } // namespace AsterUtils

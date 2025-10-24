@@ -1,21 +1,58 @@
 #Schedule definitions for thorn AsterMasks
 
 STORAGE: aster_mask_vc
+STORAGE: aster_mask_cc
 
-SCHEDULE AsterMasks_Initialize IN CCTK_INITIAL BEFORE ODESolvers_Initial {
-LANG: C
-WRITES: aster_mask_vc(everywhere)
-WRITES: aster_mask_cc(everywhere)
-} "Initialize VC and CC mask to true"
+# ----- CCTK_INITIAL
 
-SCHEDULE AsterMasks_Initialize IN CCTK_POSTREGRID BEFORE ODESolvers_PostStep {
+SCHEDULE AsterMasks_SetToOne IN CCTK_INITIAL BEFORE ODESolvers_Initial {
 LANG: C
-WRITES: aster_mask_vc(everywhere)
-WRITES: aster_mask_cc(everywhere)
-} "Initialize VC and CC mask to true"
+WRITES:  aster_mask_vc(everywhere) aster_mask_cc(everywhere)
+} "Set masks = 1"
 
-SCHEDULE AsterMasks_Initialize IN CCTK_POST_RECOVER_VARIABLES {
+SCHEDULE AsterMasks_SetMaskBoolZero IN CCTK_INITIAL BEFORE ODESolvers_Initial AFTER AsterMasks_Init {
 LANG: C
-WRITES: aster_mask_vc(everywhere)
-WRITES: aster_mask_cc(everywhere)
-} "Initialize VC and CC mask to true"
+OPTIONS: global
+WRITES:  MaskBool
+} "Set MaskBool = 0"
+
+# ----- ODESolvers_PostStep
+
+SCHEDULE AsterMasks_SetToOnePostStep IN ODESolvers_PostStep BEFORE ADMBaseX_SetADMVars {
+LANG: C
+READS:  MaskBool
+READS:  aster_mask_vc(everywhere) aster_mask_cc(everywhere)
+WRITES: aster_mask_vc(everywhere) aster_mask_cc(everywhere)
+} "If (MaskBool = 1) masks = 1"
+
+SCHEDULE AsterMasks_SetMaskBoolZero IN ODESolvers_PostStep BEFORE ADMBaseX_SetADMVars AFTER AsterMasks_SetToOnePostStep {
+LANG: C
+OPTIONS: global
+WRITES:  MaskBool
+} "Set MaskBool = 0"
+
+# ----- CCTK_POSTREGRID
+
+SCHEDULE AsterMasks_SetToOne IN CCTK_POSTREGRID BEFORE ODESolvers_PostStep {
+LANG: C
+WRITES: aster_mask_vc(everywhere) aster_mask_cc(everywhere)
+} "Set masks = 1"
+
+SCHEDULE AsterMasks_SetMaskBoolZero IN CCTK_POSTREGRID BEFORE ODESolvers_PostStep AFTER AsterMasks_SetToOne {
+LANG: C
+OPTIONS: global
+WRITES:  MaskBool
+} "Set MaskBool = 0"
+
+# ----- CCTK_POST_RECOVER_VARIABLES
+
+SCHEDULE AsterMasks_SetToOne IN CCTK_POST_RECOVER_VARIABLES BEFORE ODESolvers_PostStep {
+LANG: C
+WRITES: aster_mask_vc(everywhere) aster_mask_cc(everywhere)
+} "Set masks = 1"
+
+SCHEDULE AsterMasks_SetMaskBoolZero IN CCTK_POST_RECOVER_VARIABLES BEFORE ODESolvers_PostStep AFTER AsterMasks_SetToOne {
+LANG: C
+OPTIONS: global
+WRITES:  MaskBool
+} "Set MaskBool = 0"
