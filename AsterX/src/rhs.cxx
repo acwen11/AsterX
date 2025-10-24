@@ -271,8 +271,12 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
         DYe_rhs(p.I) += calcupdate_hydro(gf_fDYe, p);
 
         // Diagnostic only, save min(theta)
-        theta_tot(p.I) = min({theta_x(p.I), theta_x(p.I + p.DI[0]), theta_y(p.I), theta_y(p.I + p.DI[1]),
-                              theta_z(p.I), theta_z(p.I + p.DI[2])});
+        theta_tot(p.I) = 1.0;
+        for (int ii=0; ii<3; ii++)
+          theta_tot(p.I) = min({theta_tot(p.I),
+              theta_x(p.I), theta_x(p.I + p.DI[ii]), theta_y(p.I), theta_y(p.I + p.DI[ii]),
+              theta_z(p.I), theta_z(p.I + p.DI[ii])});
+
 #ifdef CCTK_DEBUG
         if (isnan(densrhs(p.I))) {
           printf("calcupdate = %f, ", calcupdate_hydro(gf_fdens, p));
