@@ -69,10 +69,12 @@ void CalcRHSofPsi_impl(CCTK_ARGUMENTS, const CCTK_REAL damp_fac) {
 }
 
 template <int i>
-void CalcRHSofAvec(CCTK_ARGUMENTS, const vector_potential_gauge_t gauge, const int order) {
+void CalcRHSofAvec(CCTK_ARGUMENTS, const vector_potential_gauge_t gauge,
+                   const int order) {
   switch (gauge) {
   case vector_potential_gauge_t::algebraic: {
-    CalcRHSofAvec_impl<i, vector_potential_gauge_t::algebraic>(CCTK_PASS_CTOC, order);
+    CalcRHSofAvec_impl<i, vector_potential_gauge_t::algebraic>(CCTK_PASS_CTOC,
+                                                               order);
     break;
   }
   case vector_potential_gauge_t::generalized_lorenz: {
@@ -148,10 +150,11 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
 
         // Diagnostic only, save min(theta)
         theta_tot(p.I) = 1.0;
-        for (int ii=0; ii<3; ii++)
-          theta_tot(p.I) = min({theta_tot(p.I),
-              theta_x(p.I), theta_x(p.I + p.DI[ii]), theta_y(p.I), theta_y(p.I + p.DI[ii]),
-              theta_z(p.I), theta_z(p.I + p.DI[ii])});
+        for (int ii = 0; ii < 3; ii++)
+          theta_tot(p.I) =
+              min({theta_tot(p.I), theta_x(p.I), theta_x(p.I + p.DI[ii]),
+                   theta_y(p.I), theta_y(p.I + p.DI[ii]), theta_z(p.I),
+                   theta_z(p.I + p.DI[ii])});
 
 #ifdef CCTK_DEBUG
         if (isnan(densrhs(p.I))) {

@@ -17,8 +17,8 @@ using namespace std;
 using namespace Arith;
 
 // c = 1 Lax-Friedrichs solver for PP limiter
-inline CCTK_DEVICE CCTK_HOST CCTK_REAL
-laxf_simple(vec<CCTK_REAL, 2> var, vec<CCTK_REAL, 2> flux) {
+inline CCTK_DEVICE CCTK_HOST CCTK_REAL laxf_simple(vec<CCTK_REAL, 2> var,
+                                                   vec<CCTK_REAL, 2> flux) {
   return 0.5 * ((flux(0) + flux(1)) - (var(1) - var(0)));
 }
 

@@ -109,19 +109,20 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
   // Prebind the velocity slice for this direction once
   const auto gf_vel_dir_i = gf_vels(dir_i);
 
-  const auto reconstruct_pt =
-      [=] CCTK_DEVICE(const GF3D2<const CCTK_REAL> &var, const PointDesc &p,
-                      bool gf_is_rho, bool gf_is_press) {
-        return reconstruct<vec<CCTK_REAL, 2>>(var, p, reconstruction, dir_i,
-                                              gf_is_rho, gf_is_press, press,
-                                              gf_vel_dir_i, reconstruct_params);
-      };
+  const auto reconstruct_pt = [=] CCTK_DEVICE(const GF3D2<const CCTK_REAL> &var,
+                                              const PointDesc &p,
+                                              bool gf_is_rho,
+                                              bool gf_is_press) {
+    return reconstruct<vec<CCTK_REAL, 2> >(var, p, reconstruction, dir_i,
+                                           gf_is_rho, gf_is_press, press,
+                                           gf_vel_dir_i, reconstruct_params);
+  };
   const auto reconstruct_loworder =
       [=] CCTK_DEVICE(const GF3D2<const CCTK_REAL> &var, const PointDesc &p,
                       bool gf_is_rho, bool gf_is_press) {
-        return reconstruct<vec<CCTK_REAL, 2>>(var, p, reconstruction_LO, dir_i,
-                                              gf_is_rho, gf_is_press, press,
-                                              gf_vel_dir_i, reconstruct_params);
+        return reconstruct<vec<CCTK_REAL, 2> >(
+            var, p, reconstruction_LO, dir_i, gf_is_rho, gf_is_press, press,
+            gf_vel_dir_i, reconstruct_params);
       };
 
   const auto calcflux =
@@ -175,10 +176,10 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
       });
 
   const int nloop = (correction_order - 2) / 2;
-  grid.loop_mixpn_device<face_centred[0], face_centred[1],
-                       face_centred[2]>(grid.nghostzones, nloop, [=] CCTK_DEVICE(
-                                                              const PointDesc
-                                                                  &p) {
+  grid.loop_mixpn_device<
+      face_centred[0], face_centred[1],
+      face_centred
+          [2]>(grid.nghostzones, nloop, [=] CCTK_DEVICE(const PointDesc &p) {
     /* Reconstruct primitives from the cells on left (indice 0) and right
      * (indice 1) side of this face rc = reconstructed variables or
      * computed from reconstructed variables */
@@ -224,54 +225,64 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
 
     const auto coord_i = p.X;
     const auto coord_im = p.X - p.DX[dir_i];
-    r_atm(0) = sqrt(coord_im[0] * coord_im[0] + coord_im[1] * coord_im[1] + coord_im[2] * coord_im[2]);
-    r_atm(1) = sqrt(coord_i[0] * coord_i[0] + coord_i[1] * coord_i[1] + coord_i[2] * coord_i[2]);
+    r_atm(0) = sqrt(coord_im[0] * coord_im[0] + coord_im[1] * coord_im[1] +
+                    coord_im[2] * coord_im[2]);
+    r_atm(1) = sqrt(coord_i[0] * coord_i[0] + coord_i[1] * coord_i[1] +
+                    coord_i[2] * coord_i[2]);
 
     // Grading rho
-    rho_atm(0) =
-      (r_atm(0) > r_atmo)
-        ? (rho_abs_min * pow((r_atmo / r_atm(0)), n_rho_atmo))
-        : rho_abs_min;
+    rho_atm(0) = (r_atm(0) > r_atmo)
+                     ? (rho_abs_min * pow((r_atmo / r_atm(0)), n_rho_atmo))
+                     : rho_abs_min;
     rho_atm(0) = std::max(eos_3p->rgrho.min, rho_atm(0));
     rho_cut(0) = rho_atm(0) * recon_fthr;
 
-    rho_atm(1) =
-      (r_atm(1) > r_atmo)
-        ? (rho_abs_min * pow((r_atmo / r_atm(1)), n_rho_atmo))
-        : rho_abs_min;
+    rho_atm(1) = (r_atm(1) > r_atmo)
+                     ? (rho_abs_min * pow((r_atmo / r_atm(1)), n_rho_atmo))
+                     : rho_abs_min;
     rho_atm(1) = std::max(eos_3p->rgrho.min, rho_atm(1));
     rho_cut(1) = rho_atm(1) * recon_fthr;
 
     // Grading temperature or pressure
     if (use_press_atmo) {
       press_atm(0) = (r_atm(0) > r_atmo)
-                     ? (p_atmo * pow(r_atmo / r_atm(0), n_press_atmo))
-                     : p_atmo;
-      press_atm(0) = std::max(eos_3p->press_from_valid_rho_temp_ye(rho_atm(0), eos_3p->rgtemp.min, Ye_atmo), press_atm(0));
+                         ? (p_atmo * pow(r_atmo / r_atm(0), n_press_atmo))
+                         : p_atmo;
+      press_atm(0) = std::max(eos_3p->press_from_valid_rho_temp_ye(
+                                  rho_atm(0), eos_3p->rgtemp.min, Ye_atmo),
+                              press_atm(0));
       press_atm(1) = (r_atm(1) > r_atmo)
-                     ? (p_atmo * pow(r_atmo / r_atm(1), n_press_atmo))
-                     : p_atmo;
-      press_atm(1) = std::max(eos_3p->press_from_valid_rho_temp_ye(rho_atm(1), eos_3p->rgtemp.min, Ye_atmo), press_atm(1));
-      eps_atm(0) = eos_3p->eps_from_valid_rho_press_ye(rho_atm(0), press_atm(0), Ye_atmo);
-      eps_atm(1) = eos_3p->eps_from_valid_rho_press_ye(rho_atm(1), press_atm(1), Ye_atmo);
-      temp_atm(0) = eos_3p->temp_from_valid_rho_eps_ye(rho_atm(0), eps_atm(0), Ye_atmo);
-      temp_atm(1) = eos_3p->temp_from_valid_rho_eps_ye(rho_atm(1), eps_atm(1), Ye_atmo);
+                         ? (p_atmo * pow(r_atmo / r_atm(1), n_press_atmo))
+                         : p_atmo;
+      press_atm(1) = std::max(eos_3p->press_from_valid_rho_temp_ye(
+                                  rho_atm(1), eos_3p->rgtemp.min, Ye_atmo),
+                              press_atm(1));
+      eps_atm(0) = eos_3p->eps_from_valid_rho_press_ye(rho_atm(0), press_atm(0),
+                                                       Ye_atmo);
+      eps_atm(1) = eos_3p->eps_from_valid_rho_press_ye(rho_atm(1), press_atm(1),
+                                                       Ye_atmo);
+      temp_atm(0) =
+          eos_3p->temp_from_valid_rho_eps_ye(rho_atm(0), eps_atm(0), Ye_atmo);
+      temp_atm(1) =
+          eos_3p->temp_from_valid_rho_eps_ye(rho_atm(1), eps_atm(1), Ye_atmo);
     } else {
       temp_atm(0) = (r_atm(0) > r_atmo)
-                     ? (t_atmo * pow(r_atmo / r_atm(0), n_temp_atmo))
-                     : t_atmo;
+                        ? (t_atmo * pow(r_atmo / r_atm(0), n_temp_atmo))
+                        : t_atmo;
       temp_atm(0) = std::max(eos_3p->rgtemp.min, temp_atm(0));
 
       temp_atm(1) = (r_atm(1) > r_atmo)
-                     ? (t_atmo * pow(r_atmo / r_atm(1), n_temp_atmo))
-                     : t_atmo;
+                        ? (t_atmo * pow(r_atmo / r_atm(1), n_temp_atmo))
+                        : t_atmo;
       temp_atm(1) = std::max(eos_3p->rgtemp.min, temp_atm(1));
-      press_atm(0) =
-          eos_3p->press_from_valid_rho_temp_ye(rho_atm(0), temp_atm(0), Ye_atmo);
-      press_atm(1) =
-          eos_3p->press_from_valid_rho_temp_ye(rho_atm(1), temp_atm(1), Ye_atmo);
-      eps_atm(0) = eos_3p->eps_from_valid_rho_temp_ye(rho_atm(0), temp_atm(0), Ye_atmo);
-      eps_atm(1) = eos_3p->eps_from_valid_rho_temp_ye(rho_atm(1), temp_atm(1), Ye_atmo);
+      press_atm(0) = eos_3p->press_from_valid_rho_temp_ye(rho_atm(0),
+                                                          temp_atm(0), Ye_atmo);
+      press_atm(1) = eos_3p->press_from_valid_rho_temp_ye(rho_atm(1),
+                                                          temp_atm(1), Ye_atmo);
+      eps_atm(0) =
+          eos_3p->eps_from_valid_rho_temp_ye(rho_atm(0), temp_atm(0), Ye_atmo);
+      eps_atm(1) =
+          eos_3p->eps_from_valid_rho_temp_ye(rho_atm(1), temp_atm(1), Ye_atmo);
     }
     // End atmosphere
 
@@ -285,9 +296,10 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
       temp_rc = reconstruct_pt(temperature, p, false, false);
 
       // Use lower-order if reconstructed rho, entropy, Ye or T is <= 0
-      if ((rho_rc(0) <= rho_cut(0)) || (entropy_rc(0) <= 0.0) || (Ye_rc(0) <= 0.0) || (temp_rc(0) <= 0.0) ||
-          (rho_rc(1) <= rho_cut(1)) || (entropy_rc(1) <= 0.0) || (Ye_rc(1) <= 0.0) || (temp_rc(1) <= 0.0) ||
-          useLO) {
+      if ((rho_rc(0) <= rho_cut(0)) || (entropy_rc(0) <= 0.0) ||
+          (Ye_rc(0) <= 0.0) || (temp_rc(0) <= 0.0) ||
+          (rho_rc(1) <= rho_cut(1)) || (entropy_rc(1) <= 0.0) ||
+          (Ye_rc(1) <= 0.0) || (temp_rc(1) <= 0.0) || useLO) {
 
         useLO = true;
 
@@ -301,14 +313,16 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
       if (rho_rc(0) <= rho_cut(0)) {
         resetL = true;
         rho_rc(0) = rho_atm(0);
-        entropy_rc(0) = eos_3p->kappa_from_valid_rho_eps_ye(rho_atm(0), eps_atm(0), Ye_atmo);
+        entropy_rc(0) = eos_3p->kappa_from_valid_rho_eps_ye(
+            rho_atm(0), eps_atm(0), Ye_atmo);
         temp_rc(0) = temp_atm(0);
         Ye_rc(0) = Ye_atmo;
       }
       if (rho_rc(1) <= rho_cut(1)) {
-      	resetR = true;
+        resetR = true;
         rho_rc(1) = rho_atm(1);
-        entropy_rc(1) = eos_3p->kappa_from_valid_rho_eps_ye(rho_atm(1), eps_atm(1), Ye_atmo);
+        entropy_rc(1) = eos_3p->kappa_from_valid_rho_eps_ye(
+            rho_atm(1), eps_atm(1), Ye_atmo);
         temp_rc(1) = temp_atm(1);
         Ye_rc(1) = Ye_atmo;
       }
@@ -328,9 +342,10 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
       press_rc = reconstruct_pt(press, p, false, true);
 
       // Use lower-order if reconstructed rho, entropy, Ye or press is <= 0
-      if ((rho_rc(0) <= rho_cut(0)) || (entropy_rc(0) <= 0.0) || (Ye_rc(0) <= 0.0) || (press_rc(0) <= 0.0) ||
-          (rho_rc(1) <= rho_cut(1)) || (entropy_rc(1) <= 0.0) || (Ye_rc(1) <= 0.0) || (press_rc(1) <= 0.0) ||
-           useLO) {
+      if ((rho_rc(0) <= rho_cut(0)) || (entropy_rc(0) <= 0.0) ||
+          (Ye_rc(0) <= 0.0) || (press_rc(0) <= 0.0) ||
+          (rho_rc(1) <= rho_cut(1)) || (entropy_rc(1) <= 0.0) ||
+          (Ye_rc(1) <= 0.0) || (press_rc(1) <= 0.0) || useLO) {
 
         useLO = true;
 
@@ -344,14 +359,16 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
       if (rho_rc(0) <= rho_cut(0)) {
         resetL = true;
         rho_rc(0) = rho_atm(0);
-        entropy_rc(0) = eos_3p->kappa_from_valid_rho_eps_ye(rho_atm(0), eps_atm(0), Ye_atmo);
+        entropy_rc(0) = eos_3p->kappa_from_valid_rho_eps_ye(
+            rho_atm(0), eps_atm(0), Ye_atmo);
         press_rc(0) = press_atm(0);
         Ye_rc(0) = Ye_atmo;
       }
       if (rho_rc(1) <= rho_cut(1)) {
-      	resetR = true;
+        resetR = true;
         rho_rc(1) = rho_atm(1);
-        entropy_rc(1) = eos_3p->kappa_from_valid_rho_eps_ye(rho_atm(1), eps_atm(1), Ye_atmo);
+        entropy_rc(1) = eos_3p->kappa_from_valid_rho_eps_ye(
+            rho_atm(1), eps_atm(1), Ye_atmo);
         press_rc(1) = press_atm(1);
         Ye_rc(1) = Ye_atmo;
       }
@@ -502,7 +519,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
       }
     }
     /* END RECONSTRUCTION */
-      
+
     /* vtilde^i = alpha * v^i - beta^i */
     const vec<vec<CCTK_REAL, 2>, 3> vtildes_rc([&](int i) ARITH_INLINE {
       return vec<CCTK_REAL, 2>([&](int f) ARITH_INLINE {
@@ -543,13 +560,15 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
     const vec<CCTK_REAL, 2> cs2_rc([&](int f) ARITH_INLINE {
       if (reconstruct_with_temperature)
         return eos_3p->csnd_from_valid_rho_temp_ye(rho_rc(f), temp_rc(f),
-                                                  Ye_rc(f)) *
-               eos_3p->csnd_from_valid_rho_temp_ye(rho_rc(f), temp_rc(f), Ye_rc(f));
+                                                   Ye_rc(f)) *
+               eos_3p->csnd_from_valid_rho_temp_ye(rho_rc(f), temp_rc(f),
+                                                   Ye_rc(f));
 
       else
         return eos_3p->csnd_from_valid_rho_eps_ye(rho_rc(f), eps_rc(f),
                                                   Ye_rc(f)) *
-               eos_3p->csnd_from_valid_rho_eps_ye(rho_rc(f), eps_rc(f), Ye_rc(f));
+               eos_3p->csnd_from_valid_rho_eps_ye(rho_rc(f), eps_rc(f),
+                                                  Ye_rc(f));
     });
 
     const vec<CCTK_REAL, 2> h_rc([&](int f) ARITH_INLINE {
@@ -670,8 +689,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
           (dir_i != 1) * calcflux(lambda, Btildes_rc(1), flux_Btildes(1));
       fluxBzs(dir_i)(p.I) =
           (dir_i != 2) * calcflux(lambda, Btildes_rc(2), flux_Btildes(2));
-    }
-    else {
+    } else {
       fluxdenss(dir_i)(p.I) = laxf(lambda, dens_rc, flux_dens);
       fluxDEnts(dir_i)(p.I) = laxf(lambda, DEnt_rc, flux_DEnt);
       fluxmomxs(dir_i)(p.I) = laxf(lambda, moms_rc(0), flux_moms(0));
@@ -698,7 +716,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
       vec<CCTK_REAL, 2> rho_ppl = {rho(Im), rho(Ip)};
 
       // Reconstruct entropy
-      vec<CCTK_REAL, 2> entropy_ppl = {entropy(Im), entropy(Ip)}; 
+      vec<CCTK_REAL, 2> entropy_ppl = {entropy(Im), entropy(Ip)};
 
       // Reconstruct Ye
       vec<CCTK_REAL, 2> Ye_ppl = {Ye(Im), Ye(Ip)};
@@ -715,8 +733,8 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
 
         // Compute eps_ppl and press_ppl using lambdas
         for (int f = 0; f < 2; ++f) {
-          eps_ppl(f) =
-              eos_3p->eps_from_valid_rho_temp_ye(rho_ppl(f), temp_ppl(f), Ye_ppl(f));
+          eps_ppl(f) = eos_3p->eps_from_valid_rho_temp_ye(
+              rho_ppl(f), temp_ppl(f), Ye_ppl(f));
           press_ppl(f) = eos_3p->press_from_valid_rho_temp_ye(
               rho_ppl(f), temp_ppl(f), Ye_ppl(f));
         }
@@ -728,10 +746,10 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
 
         // Compute eps_ppl and temp_ppl using lambdas
         for (int f = 0; f < 2; ++f) {
-          eps_ppl(f) = eos_3p->eps_from_valid_rho_press_ye(rho_ppl(f), press_ppl(f),
-                                                          Ye_ppl(f));
-          temp_ppl(f) =
-              eos_3p->temp_from_valid_rho_eps_ye(rho_ppl(f), eps_ppl(f), Ye_ppl(f));
+          eps_ppl(f) = eos_3p->eps_from_valid_rho_press_ye(
+              rho_ppl(f), press_ppl(f), Ye_ppl(f));
+          temp_ppl(f) = eos_3p->temp_from_valid_rho_eps_ye(
+              rho_ppl(f), eps_ppl(f), Ye_ppl(f));
         }
       }
 
@@ -783,7 +801,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
           vlows_ppl(i)(j) = zveclow_ppl(i)(j) / w_lorentz_ppl(j);
         }
       }
-        
+
       /* vtilde^i = alpha * v^i - beta^i */
       const vec<vec<CCTK_REAL, 2>, 3> vtildes_ppl([&](int i) ARITH_INLINE {
         return vec<CCTK_REAL, 2>([&](int f) ARITH_INLINE {
@@ -796,14 +814,16 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
         return w_lorentz_ppl(f) * calc_contraction(Bs_ppl, vlows_ppl)(f);
       });
       /* covariant magnetic field measured by the Eulerian observer */
-      const vec<vec<CCTK_REAL, 2>, 3> Blows_ppl = calc_contraction(g_avg, Bs_ppl);
+      const vec<vec<CCTK_REAL, 2>, 3> Blows_ppl =
+          calc_contraction(g_avg, Bs_ppl);
       /* B^2 = B^i * B_i */
       const vec<CCTK_REAL, 2> B2_ppl = calc_contraction(Bs_ppl, Blows_ppl);
       /* covariant magnetic field measured by the comoving observer:
        *  b_i = B_i/W + alpha*b^0*v_i */
       const vec<vec<CCTK_REAL, 2>, 3> blows_ppl([&](int i) ARITH_INLINE {
         return vec<CCTK_REAL, 2>([&](int f) ARITH_INLINE {
-          return Blows_ppl(i)(f) / w_lorentz_ppl(f) + alp_b0_ppl(f) * vlows_ppl(i)(f);
+          return Blows_ppl(i)(f) / w_lorentz_ppl(f) +
+                 alp_b0_ppl(f) * vlows_ppl(i)(f);
         });
       });
       /* b^2 = b^{\mu} * b_{\mu} */
@@ -902,13 +922,13 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
       /* END REPEATED RECONSTRUCTION CODE */
 
       // Calc LO flux
-      const CCTK_REAL fluxLOdenss = laxf_simple(dens_ppl,    flux_dens_ppl);
-      const CCTK_REAL fluxLODEnts = laxf_simple(DEnt_ppl,    flux_DEnt_ppl);
-      const CCTK_REAL fluxLODYes  = laxf_simple(DYe_ppl,     flux_DYe_ppl);
+      const CCTK_REAL fluxLOdenss = laxf_simple(dens_ppl, flux_dens_ppl);
+      const CCTK_REAL fluxLODEnts = laxf_simple(DEnt_ppl, flux_DEnt_ppl);
+      const CCTK_REAL fluxLODYes = laxf_simple(DYe_ppl, flux_DYe_ppl);
       const CCTK_REAL fluxLOmomxs = laxf_simple(moms_ppl(0), flux_moms_ppl(0));
       const CCTK_REAL fluxLOmomys = laxf_simple(moms_ppl(1), flux_moms_ppl(1));
       const CCTK_REAL fluxLOmomzs = laxf_simple(moms_ppl(2), flux_moms_ppl(2));
-      const CCTK_REAL fluxLOtaus  = laxf_simple(tau_ppl,     flux_tau_ppl);
+      const CCTK_REAL fluxLOtaus = laxf_simple(tau_ppl, flux_tau_ppl);
 
       // Get 2 * \alpha * CFL with \alpha = 3
       const CCTK_REAL a2cfl = 6 * CCTK_DELTA_TIME / p.DX[dir_i];
@@ -940,14 +960,16 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
       CCTK_REAL theta_p = 1.0;
 
       if (newdens_p < densmin_p)
-        theta_p = min(
-          theta, max(0.0, (newdensLO_p - densmin_p) /
-            (a2cfl * (fluxLOdenss - fluxdenss(dir_i)(Ip)))));
+        theta_p =
+            min(theta,
+                max(0.0, (newdensLO_p - densmin_p) /
+                             (a2cfl * (fluxLOdenss - fluxdenss(dir_i)(Ip)))));
 
       if (newdens_m < densmin_m)
-        theta_m = min(
-          theta, max(0.0, (newdensLO_m - densmin_m) /
-            (a2cfl * (fluxdenss(dir_i)(Ip) - fluxLOdenss))));
+        theta_m =
+            min(theta,
+                max(0.0, (newdensLO_m - densmin_m) /
+                             (a2cfl * (fluxdenss(dir_i)(Ip) - fluxLOdenss))));
 
       theta = min(theta_m, theta_p);
 
@@ -963,31 +985,40 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
         const CCTK_REAL DYemin_p = densmin_p * eos_3p->rgye.min;
 
         if (newDYe_p < DYemin_p)
-          theta_p = min(
-            theta, max(0.0, (newDYeLO_p - DYemin_p) /
-              (a2cfl * (fluxLODYes - fluxDYes(dir_i)(Ip)))));
+          theta_p =
+              min(theta,
+                  max(0.0, (newDYeLO_p - DYemin_p) /
+                               (a2cfl * (fluxLODYes - fluxDYes(dir_i)(Ip)))));
 
         if (newDYe_m < DYemin_m)
-          theta_m = min(
-            theta, max(0.0, (newDYeLO_m - DYemin_m) /
-              (a2cfl * (fluxDYes(dir_i)(Ip) - fluxLODYes))));
+          theta_m =
+              min(theta,
+                  max(0.0, (newDYeLO_m - DYemin_m) /
+                               (a2cfl * (fluxDYes(dir_i)(Ip) - fluxLODYes))));
 
         theta = min(theta_m, theta_p);
       }
 
       // Update flux GF
-      fluxdenss(dir_i)(Ip) = (1 - theta) * fluxLOdenss + theta * fluxdenss(dir_i)(Ip);
-      fluxDEnts(dir_i)(Ip) = (1 - theta) * fluxLODEnts + theta * fluxDEnts(dir_i)(Ip);
-      fluxDYes(dir_i)(Ip) = (1 - theta) * fluxLODYes + theta * fluxDYes(dir_i)(Ip);
-      fluxmomxs(dir_i)(Ip) = (1 - theta) * fluxLOmomxs + theta * fluxmomxs(dir_i)(Ip);
-      fluxmomys(dir_i)(Ip) = (1 - theta) * fluxLOmomys + theta * fluxmomys(dir_i)(Ip);
-      fluxmomzs(dir_i)(Ip) = (1 - theta) * fluxLOmomzs + theta * fluxmomzs(dir_i)(Ip);
-      fluxtaus(dir_i)(Ip) = (1 - theta) * fluxLOtaus + theta * fluxtaus(dir_i)(Ip);
+      fluxdenss(dir_i)(Ip) =
+          (1 - theta) * fluxLOdenss + theta * fluxdenss(dir_i)(Ip);
+      fluxDEnts(dir_i)(Ip) =
+          (1 - theta) * fluxLODEnts + theta * fluxDEnts(dir_i)(Ip);
+      fluxDYes(dir_i)(Ip) =
+          (1 - theta) * fluxLODYes + theta * fluxDYes(dir_i)(Ip);
+      fluxmomxs(dir_i)(Ip) =
+          (1 - theta) * fluxLOmomxs + theta * fluxmomxs(dir_i)(Ip);
+      fluxmomys(dir_i)(Ip) =
+          (1 - theta) * fluxLOmomys + theta * fluxmomys(dir_i)(Ip);
+      fluxmomzs(dir_i)(Ip) =
+          (1 - theta) * fluxLOmomzs + theta * fluxmomzs(dir_i)(Ip);
+      fluxtaus(dir_i)(Ip) =
+          (1 - theta) * fluxLOtaus + theta * fluxtaus(dir_i)(Ip);
       thetagf(dir_i)(Ip) = theta;
     } else {
       thetagf(dir_i)(p.I) = 1.0;
     }
-          
+
 #ifdef CCTK_DEBUG
     if (isnan(dens_rc(0)) || isnan(dens_rc(1)) || isnan(moms_rc(0)(0)) ||
         isnan(moms_rc(0)(1)) || isnan(moms_rc(1)(0)) || isnan(moms_rc(1)(1)) ||
