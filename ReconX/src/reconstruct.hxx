@@ -11,7 +11,6 @@
 #include "minmod.hxx"
 #include "ppm.hxx"
 #include "eppm.hxx"
-#include "weno5.hxx"
 #include "wenoz.hxx"
 #include "wenozp.hxx"
 #include "mp5.hxx"
@@ -32,7 +31,6 @@ enum class reconstruction_t {
   monocentral,
   ppm,
   eppm,
-  weno5,
   wenoz,
   wenozp,
   mp5
@@ -82,13 +80,6 @@ reconstruct(const GF3D2<const CCTK_REAL> &gf_var, const PointDesc &p,
         gf_var(Ippp), gf_press(Immm), gf_press(Imm), gf_press(Im), gf_press(Ip),
         gf_press(Ipp), gf_press(Ippp), gf_vel_dir(Imm), gf_vel_dir(Im),
         gf_vel_dir(Ip), gf_vel_dir(Ipp), gf_is_rho, reconstruct_params);
-    break;
-  }
-
-  case reconstruction_t::weno5: {
-    tmp = weno5_reconstruct(gf_var(Immm), gf_var(Imm), gf_var(Im), gf_var(Ip),
-                             gf_var(Ipp), gf_var(Ippp),
-                             reconstruct_params.weno_eps);
     break;
   }
 

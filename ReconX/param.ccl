@@ -9,7 +9,6 @@ KEYWORD reconstruction_method "Reconstruction method" STEERABLE=never
   "monocentral" :: ""
   "ppm" :: ""
   "eppm" :: ""
-  "weno5" :: ""
   "wenoz" :: ""
   "wenozp" :: ""
   "mp5" :: ""
