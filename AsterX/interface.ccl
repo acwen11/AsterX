@@ -113,9 +113,6 @@ CCTK_REAL Fbeta TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"'
 CCTK_REAL LOflag TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Shock detector switch"
 CCTK_REAL etac TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Shock detector measure"
 
-CCTK_REAL volform TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "sqrt(detg)"
-CCTK_REAL w_lorentz TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Fluid Lorentz factor"
-
 CCTK_REAL Ex TYPE=gf CENTERING={cvv} TAGS='checkpoint="no"' "x-component of E"
 CCTK_REAL Ey TYPE=gf CENTERING={vcv} TAGS='checkpoint="no"' "y-component of E"
 CCTK_REAL Ez TYPE=gf CENTERING={vvc} TAGS='checkpoint="no"' "z-component of E"
