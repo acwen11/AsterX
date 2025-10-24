@@ -72,7 +72,7 @@ template <int i>
 void CalcRHSofAvec(CCTK_ARGUMENTS, const vector_potential_gauge_t gauge, const int order) {
   switch (gauge) {
   case vector_potential_gauge_t::algebraic: {
-    CalcRHSofAvec_impl<i, vector_potential_gauge_t::algebraic>(CCTK_PASS_CTOC);
+    CalcRHSofAvec_impl<i, vector_potential_gauge_t::algebraic>(CCTK_PASS_CTOC, order);
     break;
   }
   case vector_potential_gauge_t::generalized_lorenz: {
@@ -165,9 +165,9 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
 #endif
       });
 
-  CalcRHSofAvec<0>(CCTK_PASS_CTOC, gauge);
-  CalcRHSofAvec<1>(CCTK_PASS_CTOC, gauge);
-  CalcRHSofAvec<2>(CCTK_PASS_CTOC, gauge);
+  CalcRHSofAvec<0>(CCTK_PASS_CTOC, gauge, mag_order);
+  CalcRHSofAvec<1>(CCTK_PASS_CTOC, gauge, mag_order);
+  CalcRHSofAvec<2>(CCTK_PASS_CTOC, gauge, mag_order);
 
   CalcRHSofPsi(CCTK_PASS_CTOC, gauge, lorenz_damp_fac);
 }

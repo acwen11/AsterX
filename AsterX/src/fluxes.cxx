@@ -62,6 +62,10 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
     break;
   case reconstruction_t::wenoz:
     assert(cctk_nghostzones[dir_i] >= 3);
+    break;
+  case reconstruction_t::wenozp:
+    assert(cctk_nghostzones[dir_i] >= 3);
+    break;
   case reconstruction_t::mp5:
     assert(cctk_nghostzones[dir_i] >= 3);
     break;
@@ -482,16 +486,17 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
     };
     }
 
+    // Set vels to 0 if flagged for atm reset
     if (resetL) {
       w_lorentz_rc(0) = 1.0;
-      for (int i = 0; i <= 2; ++i) {   // loop over components
+      for (int i = 0; i <= 2; ++i) {
         vels_rc(i)(0) = 0.0;
         vlows_rc(i)(0) = 0.0;
       }
     }
     if (resetR) {
       w_lorentz_rc(1) = 1.0;
-      for (int i = 0; i <= 2; ++i) {   // loop over components
+      for (int i = 0; i <= 2; ++i) {
         vels_rc(i)(1) = 0.0;
         vlows_rc(i)(1) = 0.0;
       }
@@ -651,19 +656,36 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
                     w_lorentz_rc, h_rc, bsq_rc);
 
     /* Calculate numerical fluxes */
-    fluxdenss(dir_i)(p.I) = calcflux(lambda, dens_rc, flux_dens);
-    fluxDEnts(dir_i)(p.I) = calcflux(lambda, DEnt_rc, flux_DEnt);
-    fluxmomxs(dir_i)(p.I) = calcflux(lambda, moms_rc(0), flux_moms(0));
-    fluxmomys(dir_i)(p.I) = calcflux(lambda, moms_rc(1), flux_moms(1));
-    fluxmomzs(dir_i)(p.I) = calcflux(lambda, moms_rc(2), flux_moms(2));
-    fluxtaus(dir_i)(p.I) = calcflux(lambda, tau_rc, flux_tau);
-    fluxDYes(dir_i)(p.I) = calcflux(lambda, DYe_rc, flux_DYe);
-    fluxBxs(dir_i)(p.I) =
-        (dir_i != 0) * calcflux(lambda, Btildes_rc(0), flux_Btildes(0));
-    fluxBys(dir_i)(p.I) =
-        (dir_i != 1) * calcflux(lambda, Btildes_rc(1), flux_Btildes(1));
-    fluxBzs(dir_i)(p.I) =
-        (dir_i != 2) * calcflux(lambda, Btildes_rc(2), flux_Btildes(2));
+    if (!useLO || !loworder_flux) {
+      fluxdenss(dir_i)(p.I) = calcflux(lambda, dens_rc, flux_dens);
+      fluxDEnts(dir_i)(p.I) = calcflux(lambda, DEnt_rc, flux_DEnt);
+      fluxmomxs(dir_i)(p.I) = calcflux(lambda, moms_rc(0), flux_moms(0));
+      fluxmomys(dir_i)(p.I) = calcflux(lambda, moms_rc(1), flux_moms(1));
+      fluxmomzs(dir_i)(p.I) = calcflux(lambda, moms_rc(2), flux_moms(2));
+      fluxtaus(dir_i)(p.I) = calcflux(lambda, tau_rc, flux_tau);
+      fluxDYes(dir_i)(p.I) = calcflux(lambda, DYe_rc, flux_DYe);
+      fluxBxs(dir_i)(p.I) =
+          (dir_i != 0) * calcflux(lambda, Btildes_rc(0), flux_Btildes(0));
+      fluxBys(dir_i)(p.I) =
+          (dir_i != 1) * calcflux(lambda, Btildes_rc(1), flux_Btildes(1));
+      fluxBzs(dir_i)(p.I) =
+          (dir_i != 2) * calcflux(lambda, Btildes_rc(2), flux_Btildes(2));
+    }
+    else {
+      fluxdenss(dir_i)(p.I) = laxf(lambda, dens_rc, flux_dens);
+      fluxDEnts(dir_i)(p.I) = laxf(lambda, DEnt_rc, flux_DEnt);
+      fluxmomxs(dir_i)(p.I) = laxf(lambda, moms_rc(0), flux_moms(0));
+      fluxmomys(dir_i)(p.I) = laxf(lambda, moms_rc(1), flux_moms(1));
+      fluxmomzs(dir_i)(p.I) = laxf(lambda, moms_rc(2), flux_moms(2));
+      fluxtaus(dir_i)(p.I) = laxf(lambda, tau_rc, flux_tau);
+      fluxDYes(dir_i)(p.I) = laxf(lambda, DYe_rc, flux_DYe);
+      fluxBxs(dir_i)(p.I) =
+          (dir_i != 0) * laxf(lambda, Btildes_rc(0), flux_Btildes(0));
+      fluxBys(dir_i)(p.I) =
+          (dir_i != 1) * laxf(lambda, Btildes_rc(1), flux_Btildes(1));
+      fluxBzs(dir_i)(p.I) =
+          (dir_i != 2) * laxf(lambda, Btildes_rc(2), flux_Btildes(2));
+    }
 
     if (use_pplim) {
 
@@ -1360,6 +1382,8 @@ extern "C" void AsterX_CalcAuxTermsForAvecPsiRHS(CCTK_ARGUMENTS) {
     reconstruction = reconstruction_t::eppm;
   else if (CCTK_EQUALS(reconstruction_method, "wenoz"))
     reconstruction = reconstruction_t::wenoz;
+  else if (CCTK_EQUALS(reconstruction_method, "wenozp"))
+    reconstruction = reconstruction_t::wenozp;
   else if (CCTK_EQUALS(reconstruction_method, "mp5"))
     reconstruction = reconstruction_t::mp5;
   else
@@ -1383,6 +1407,7 @@ extern "C" void AsterX_CalcAuxTermsForAvecPsiRHS(CCTK_ARGUMENTS) {
   reconstruct_params.enhanced_ppm_C2 = enhanced_ppm_C2;
   // wenoz parameters
   reconstruct_params.weno_eps = weno_eps;
+  reconstruct_params.weno_mp = weno_mp;
   // mp5 parameters
   reconstruct_params.mp5_alpha = mp5_alpha;
 

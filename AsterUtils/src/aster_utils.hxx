@@ -179,15 +179,12 @@ compute_flux_derivatives(const GF3D2<const CCTK_REAL> &gf, const PointDesc &p, i
   const auto Ip2 = p.I + 2 * p.DI[dir];
   const auto Ip3 = p.I + 3 * p.DI[dir];
 
-  CCTK_REAL correction = 
-    (correction_order==2) * (gf(Ip) - gf(Im)) +
-    (correction_order==4) 
+  return (correction_order==2) * (gf(Ip) - gf(Im))
+    + (correction_order==4) 
       * ((9.0/8.0) * (gf(Ip) - gf(Im)) - (1.0/24.0) * (gf(Ip2) - gf(Im2)));
-      // + (correction_order==6) 
-      //   * ((75.0/64.0) * (gf(Ip) - gf(Im)) - (25.0/384.0) * (gf(Ip2) - gf(Im2))
-      //   + (3.0/640.0) * (gf(Ip3) - gf(Im3)));
-
-  return correction;
+    + (correction_order==6) 
+      * ((75.0/64.0) * (gf(Ip) - gf(Im)) - (25.0/384.0) * (gf(Ip2) - gf(Im2))
+      + (3.0/640.0) * (gf(Ip3) - gf(Im3)));
 }
 
 // upwind-CT related
