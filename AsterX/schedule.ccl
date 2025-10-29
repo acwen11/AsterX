@@ -334,3 +334,15 @@ if(update_tmunu){
     SYNC: TmunuBaseX::eTtt TmunuBaseX::eTti TmunuBaseX::eTij
   } "Compute the energy-momentum tensor"
 }
+
+if(add_dissipation)
+{
+  SCHEDULE AsterX_Add_Dissipation_AvecPsi IN AsterX_RHSGroup \
+     AFTER AsterX_RHS
+  {
+    LANG: C
+    READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere) Psi(everywhere)
+    READS: Avec_x_rhs(everywhere) Avec_y_rhs(everywhere) Avec_z_rhs(everywhere) Psi_rhs(everywhere)
+    WRITES: Avec_x_rhs(interior) Avec_y_rhs(interior) Avec_z_rhs(interior) Psi_rhs(interior)
+  } "Add KO dissipation"
+}
