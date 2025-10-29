@@ -56,7 +56,7 @@ CarpetX::regrid_every = 128000
 CarpetX::regrid_error_threshold = 0.9
 
 CarpetX::ghost_size = 3
-CarpetX::dtfac = 0.35
+CarpetX::dtfac = 0.25
 
 CarpetX::prolongation_type = "ddf" #"poly-cons3lfb"
 #CarpetX::prolongation_order = 5
