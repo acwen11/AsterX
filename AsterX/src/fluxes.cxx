@@ -198,8 +198,8 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
 
     // Booleans controlling reconstruction fallbacks
     bool useLO = false;
-    bool resetL = false;
-    bool resetR = false;
+    // bool resetL = false;
+    // bool resetR = false;
 
     // Reconstruct density
     auto rho_rc = reconstruct_pt(rho, p, true, true);
@@ -309,6 +309,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
         temp_rc = reconstruct_loworder(temperature, p, false, false);
       }
 
+			/*
       // If reconstructed rho is still <= atmo, flag for reset
       if (rho_rc(0) <= rho_cut(0)) {
         resetL = true;
@@ -326,6 +327,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
         temp_rc(1) = temp_atm(1);
         Ye_rc(1) = Ye_atmo;
       }
+			*/
       // End lower-order
 
       // Compute eps_rc and press_rc using lambdas
@@ -355,6 +357,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
         press_rc = reconstruct_loworder(press, p, false, true);
       }
 
+			/*
       // If reconstructed rho is still <= atmo, flag for reset
       if (rho_rc(0) <= rho_cut(0)) {
         resetL = true;
@@ -372,7 +375,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
         press_rc(1) = press_atm(1);
         Ye_rc(1) = Ye_atmo;
       }
-
+			*/
       // End lower-order
 
       // Compute eps_rc and temp_rc using lambdas
@@ -504,6 +507,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
     }
 
     // Set vels to 0 if flagged for atm reset
+    /*
     if (resetL) {
       w_lorentz_rc(0) = 1.0;
       for (int i = 0; i <= 2; ++i) {
@@ -518,6 +522,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
         vlows_rc(i)(1) = 0.0;
       }
     }
+		*/
     /* END RECONSTRUCTION */
 
     /* vtilde^i = alpha * v^i - beta^i */

@@ -86,9 +86,17 @@ calc_avg_e2e(const GF3D2<const T> &gf, const PointDesc &p) {
 template <typename T>
 CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
 calc_avg_f2c(const GF3D2<const T> &gf, const PointDesc &p, const int dir, const int order) {
-	return (order==2) * (0.5 * (gf(p.I + p.DI[dir]) + gf(p.I))) + 
-				 (order==4) * (-(1.0/16.0) * (gf(p.I - p.DI[dir]) + gf(p.I + 2*p.DI[dir]))
-					 + (9.0/16.0) * (gf(p.I + p.DI[dir]) + gf(p.I)));
+  const auto Im3 = p.I - 2 * p.DI[dir];
+  const auto Im2 = p.I - p.DI[dir];
+  const auto Im = p.I;
+  const auto Ip = p.I + p.DI[dir];
+  const auto Ip2 = p.I + 2 * p.DI[dir];
+  const auto Ip3 = p.I + 3 * p.DI[dir];
+
+	return (order==2) * (0.5 * (gf(Ip) + gf(Im))) + 
+				 (order==4) * (-(1.0/16.0) * (gf(Im2) + gf(Ip2)) + (9.0/16.0) * (gf(Ip) + gf(Im))) +
+				 (order==6) * ((3.0/256.0) * (gf(Im3) + gf(Ip3)) - (25.0/256.0) * (gf(Im2) + gf(Ip2)) +
+						(150.0/256.0) * (gf(Im) + gf(Ip)));
 }
 
 // Second-order average of edge-centered grid functions (along dir) to cell

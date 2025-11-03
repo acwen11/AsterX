@@ -44,9 +44,19 @@ calc_fd2_v2v_oneside(const GF3D2<const T> &gf, const PointDesc &p,
 template <int dir, typename T>
 CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
 calc_fd2_v2e(const GF3D2<const T> &gf, const PointDesc &p, const int order) {
-  return  (1.0 / p.DX[dir]) * ( 
-		(order==2) * (gf(p.I + p.DI[dir]) - gf(p.I)) +
-		(order==4) * ((9.0/8.0) * (gf(p.I + p.DI[dir]) - gf(p.I)) - (1.0/24.0) * (gf(p.I + 2*p.DI[dir]) - gf(p.I - p.DI[dir]))));
+  const auto Im3 = p.I - 2 * p.DI[dir];
+  const auto Im2 = p.I - p.DI[dir];
+  const auto Im = p.I;
+  const auto Ip = p.I + p.DI[dir];
+  const auto Ip2 = p.I + 2 * p.DI[dir];
+  const auto Ip3 = p.I + 3 * p.DI[dir];
+
+  return (1.0 / p.DX[dir]) * ((order==2) * (gf(Ip) - gf(Im))
+    + (order==4)
+      * ((9.0/8.0) * (gf(Ip) - gf(Im)) - (1.0/24.0) * (gf(Ip2) - gf(Im2)))
+    + (order==6)
+      * ((75.0/64.0) * (gf(Ip) - gf(Im)) - (25.0/384.0) * (gf(Ip2) - gf(Im2))
+      + (3.0/640.0) * (gf(Ip3) - gf(Im3))));
 }
 
 template <typename T>
