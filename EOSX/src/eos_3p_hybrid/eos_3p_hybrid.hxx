@@ -126,8 +126,8 @@ public:
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   csnd_from_valid_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
                              const CCTK_REAL ye) const {
-    assert(0);
-    return 999;
+    printf("eos_3p_hybrid: temperature not implemented");
+    return 0.0;
   }
 
   // temperature is not yet implemented in thc

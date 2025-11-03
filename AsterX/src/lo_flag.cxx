@@ -48,7 +48,7 @@ LOFlagVar(const GF3D2<const CCTK_REAL> &gf, const CCTK_REAL ref,
 
 // Calculate low-order flag for a particular gridfunction
 template <typename EOSType>
-void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p, const bool havetemp) {
+void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_SetLOFlag;
   DECLARE_CCTK_PARAMETERS;
 
@@ -90,15 +90,8 @@ void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p, const bool havetemp) {
         }
 
         // Calculate c_sound
-        CCTK_REAL csL = 0.0;
-        if (havetemp) {
-          csL = eos_3p->csnd_from_valid_rho_temp_ye(rho(p.I), temperature(p.I),
-                                                    Ye(p.I));
-        } else {
-          CCTK_REAL epsL = eps(p.I);
-          csL = eos_3p->csnd_from_valid_rho_eps_ye(rho(p.I), epsL, Ye(p.I));
-        }
-        const CCTK_REAL cs = csL;
+        const CCTK_REAL cs = eos_3p->csnd_from_valid_rho_temp_ye(rho(p.I), temperature(p.I),
+                                                  Ye(p.I));
 
         // Check velocity
         for (int dir = 0; dir < 3; dir++) {
@@ -159,17 +152,17 @@ extern "C" void AsterX_SetLOFlag(CCTK_ARGUMENTS) {
   case eos_3param::IdealGas: {
     // Get local eos object
     auto eos_3p_ig = global_eos_3p_ig;
-    CalcLOFlag(cctkGH, eos_3p_ig, false);
+    CalcLOFlag(cctkGH, eos_3p_ig);
     break;
   }
   case eos_3param::Hybrid: {
     auto eos_3p_hyb = global_eos_3p_hyb;
-    CalcLOFlag(cctkGH, eos_3p_hyb, false);
+    CalcLOFlag(cctkGH, eos_3p_hyb);
     break;
   }
   case eos_3param::Tabulated: {
     auto eos_3p_tab3d = global_eos_3p_tab3d;
-    CalcLOFlag(cctkGH, eos_3p_tab3d, true);
+    CalcLOFlag(cctkGH, eos_3p_tab3d);
     break;
   }
   default:

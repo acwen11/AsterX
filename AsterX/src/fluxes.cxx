@@ -558,17 +558,10 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
     // vars
 
     const vec<CCTK_REAL, 2> cs2_rc([&](int f) ARITH_INLINE {
-      if (reconstruct_with_temperature)
-        return eos_3p->csnd_from_valid_rho_temp_ye(rho_rc(f), temp_rc(f),
-                                                   Ye_rc(f)) *
-               eos_3p->csnd_from_valid_rho_temp_ye(rho_rc(f), temp_rc(f),
-                                                   Ye_rc(f));
-
-      else
-        return eos_3p->csnd_from_valid_rho_eps_ye(rho_rc(f), eps_rc(f),
-                                                  Ye_rc(f)) *
-               eos_3p->csnd_from_valid_rho_eps_ye(rho_rc(f), eps_rc(f),
-                                                  Ye_rc(f));
+      return eos_3p->csnd_from_valid_rho_temp_ye(rho_rc(f), temp_rc(f),
+                                                 Ye_rc(f)) *
+             eos_3p->csnd_from_valid_rho_temp_ye(rho_rc(f), temp_rc(f),
+                                                 Ye_rc(f));
     });
 
     const vec<CCTK_REAL, 2> h_rc([&](int f) ARITH_INLINE {
