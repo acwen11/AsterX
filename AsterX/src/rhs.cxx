@@ -131,15 +131,12 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
   const auto calcupdate_hydro =
       [=] CCTK_DEVICE(const vec<GF3D2<const CCTK_REAL>, dim> &gf_fluxes,
                       const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        vec<CCTK_REAL, 3> dfluxes([&](int i) ARITH_INLINE {
-          return compute_flux_derivatives(gf_fluxes(i), p, i, correction_order);
-        });
-        return -calc_contraction(idx, dfluxes);
-        // CCTK_REAL dfluxes = 0.0;
-				// dfluxes -= calc_fd2_v2e<0>(gf_fluxes(0), p, correction_order);
-				// dfluxes -= calc_fd2_v2e<1>(gf_fluxes(1), p, correction_order);
-				// dfluxes -= calc_fd2_v2e<2>(gf_fluxes(2), p, correction_order);
-				// return dfluxes;
+        vec<CCTK_REAL, 3> dfluxes{
+				  calc_fd2_v2e<0>(gf_fluxes(0), p, correction_order),
+				  calc_fd2_v2e<1>(gf_fluxes(1), p, correction_order),
+				  calc_fd2_v2e<2>(gf_fluxes(2), p, correction_order)
+        };
+				return -(dfluxes(0) + dfluxes(1) + dfluxes(2));
       };
 
   grid.loop_int_device<1, 1, 1>(

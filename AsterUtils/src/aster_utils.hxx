@@ -164,29 +164,6 @@ calc_avg_neighbors(const vec<T, D> flag, const vec<T, D> u_nbs,
          CCTK_REAL(D);
 }
 
-// Higher order corrections
-// template <typename T>
-CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-compute_flux_derivatives(const GF3D2<const CCTK_REAL> &gf, const PointDesc &p, int dir,
-                        int correction_order) {
-
-  // New code combines stencils at two faces to directly add to RHS
-  // Here, p.I is the cell center index, gf(p.I) is the left face, gf(p.I + p.DI) is the right
-  const auto Im3 = p.I - 2 * p.DI[dir];
-  const auto Im2 = p.I - p.DI[dir];
-  const auto Im = p.I;
-  const auto Ip = p.I + p.DI[dir];
-  const auto Ip2 = p.I + 2 * p.DI[dir];
-  const auto Ip3 = p.I + 3 * p.DI[dir];
-
-  return (correction_order==2) * (gf(Ip) - gf(Im))
-    + (correction_order==4) 
-      * ((9.0/8.0) * (gf(Ip) - gf(Im)) - (1.0/24.0) * (gf(Ip2) - gf(Im2)))
-    + (correction_order==6) 
-      * ((75.0/64.0) * (gf(Ip) - gf(Im)) - (25.0/384.0) * (gf(Ip2) - gf(Im2))
-      + (3.0/640.0) * (gf(Ip3) - gf(Im3)));
-}
-
 // upwind-CT related
 
 template <typename T>
