@@ -101,7 +101,6 @@ extern "C" void ID_TabEOS_HydroQuantities_initial_temp_ent(CCTK_ARGUMENTS) {
   grid.loop_all_device<1, 1, 1>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-
         CCTK_REAL radial_distance =
             std::sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
         CCTK_REAL temp_atm =

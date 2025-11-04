@@ -1,0 +1,16 @@
+# Parameter definitions for thorn AsterAnalysis
+
+BOOLEAN compute_MHD "Compute MHD quantities?" STEERABLE=always
+{
+} "yes"
+
+BOOLEAN compute_MHD_spherical "Compute MHD quantities in spherical coordinates?" STEERABLE=always
+{
+} "yes"
+
+BOOLEAN verbose "Do we want verbose output?" STEERABLE=always
+{
+} "no"
+
+SHARES: AsterX
+USES KEYWORD recon_type

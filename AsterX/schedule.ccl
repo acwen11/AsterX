@@ -4,7 +4,7 @@ STORAGE: dens mom tau DEnt DYe dB Psi HydroBaseX::Bvec dBx_stag dBy_stag dBz_sta
 STORAGE: flux_x flux_y flux_z
 STORAGE: densrhs momrhs taurhs DEntrhs Avec_x_rhs Avec_y_rhs Avec_z_rhs Psi_rhs
 STORAGE: ADMBaseX::metric ADMBaseX::lapse ADMBaseX::shift ADMBaseX::curv
-STORAGE: Aux_in_RHSof_A_Psi
+STORAGE: G Fbeta Fx_stag Fy_stag Fz_stag
 STORAGE: TmunuBaseX::eTtt TmunuBaseX::eTti TmunuBaseX::eTij
 
 
@@ -45,7 +45,14 @@ SCHEDULE AsterX_ComputedBstagFromA IN AsterX_InitialGroup
   LANG: C
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
   WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
+  SYNC: dBx_stag dBy_stag dBz_stag
 } "Calculate dBstag from curl of A"
+
+# SCHEDULE AsterX_ProlongatedBstag IN AsterX_InitialGroup AFTER AsterX_ComputedBstagFromA BEFORE AsterX_ComputedBFromdBstag
+# {
+#   LANG: C
+#   OPTIONS: global
+# } "Prolongate dBstag only"
 
 SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_InitialGroup AFTER AsterX_ComputedBstagFromA
 {
@@ -119,13 +126,13 @@ SCHEDULE AsterX_FluxAuxZero_Initial IN AsterX_TouchNonEvolVarsGroup
   #######################################################################
   # Suppose to be constructed fully in AsterX_CalcAuxTermsForAvecPsiRHS #
   #######################################################################
-  WRITES: Aux_in_RHSof_A_Psi(everywhere)
+  WRITES: Fx_stag(everywhere) Fy_stag(everywhere) Fz_stag(everywhere)
  
   ####################################################
   # Suppose to be constructed fully in AsterX_Fluxes #
   ####################################################
   #WRITES: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
-  #WRITES: vtilde_xface(everywhere) vtilde_yface(everywhere) vtilde_zface(everywhere)
+  #WRITES: vbar_xface(everywhere) vbar_yface(everywhere) vbar_zface(everywhere)
   #WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
 } "Set Fluxes and Auxiliary variables to zero initially"
 
@@ -147,7 +154,12 @@ SCHEDULE AsterX_Sync IN ODESolvers_PostStep
   SYNC: dens tau mom DEnt DYe Avec_x Avec_y Avec_z Psi
 } "Synchronize"
 
-
+SCHEDULE AsterX_Sync AT post_recover_variables BEFORE ODESolvers_PostStep AFTER AsterX_TouchNonEvolVarsGroup
+{
+  LANG: C
+  OPTIONS: global
+  SYNC: saved_prims
+} "Synchronize"
 
 SCHEDULE GROUP AsterX_Con2PrimGroup IN ODESolvers_PostStep BEFORE TmunuBaseX_SetTmunuVars AFTER AsterX_Sync
 {
@@ -158,7 +170,14 @@ SCHEDULE AsterX_ComputedBstagFromA IN AsterX_Con2PrimGroup
   LANG: C
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
   WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
+  SYNC: dBx_stag dBy_stag dBz_stag
 } "Calculate dBstag from curl of A"
+
+# SCHEDULE AsterX_ProlongatedBstag IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBstagFromA BEFORE AsterX_ComputedBFromdBstag
+# {
+#   LANG: C
+#   OPTIONS: global
+# } "Prolongate dBstag only"
 
 SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBstagFromA
 {
@@ -184,7 +203,7 @@ SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBsta
   WRITES: zvec(everywhere)
   WRITES: svec(everywhere)
   WRITES: dens(everywhere) tau(everywhere) DEnt(everywhere) mom(everywhere) DYe(everywhere) dB(everywhere)
-  WRITES: volform(everywhere) w_lorentz(everywhere)
+  WRITES: w_lorentz(everywhere) volform(everywhere)
 } "Calculate primitive variables from conservative variables"
 
 SCHEDULE AsterX_ApplyOuterBCOnPrim IN AsterX_Con2PrimGroup AFTER AsterX_Con2Prim
@@ -193,8 +212,23 @@ SCHEDULE AsterX_ApplyOuterBCOnPrim IN AsterX_Con2PrimGroup AFTER AsterX_Con2Prim
   OPTIONS: global
 } "Apply CarpetX boundary conditions on primitive variables"
 
+SCHEDULE AsterX_InitLOFlag IN CCTK_PRESTEP 
+{
+	LANG: C
+	WRITES: LOflag(everywhere)
+} "Init this flag to 0"
 
-
+if (use_deriv_shock_detector)
+{
+  SCHEDULE AsterX_SetLOFlag IN CCTK_PRESTEP AFTER AsterX_InitLOFlag 
+  {
+    LANG: C
+    READS: ADMBaseX::metric(interior)
+    READS: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::temperature(interior) HydroBaseX::Ye(interior) HydroBaseX::Bvec(interior)
+    WRITES: etac(interior) LOflag(interior)
+    SYNC: LOflag
+  } "Detect shocks, flag for low-order recon fallback"
+}
 
 SCHEDULE GROUP AsterX_RHSGroup IN ODESolvers_RHS
 {
@@ -214,30 +248,44 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   READS: zvec_x(everywhere) zvec_y(everywhere) zvec_z(everywhere)
   READS: svec_x(everywhere) svec_y(everywhere) svec_z(everywhere)
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere) Psi(everywhere)
+  READS: dens(everywhere) DYe(everywhere)
+  READS: LOflag(everywhere)
   WRITES: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
-  WRITES: vtilde_xface(everywhere) vtilde_yface(everywhere) vtilde_zface(everywhere)
+  WRITES: theta_x(everywhere) theta_y(everywhere) theta_z(everywhere)
+  WRITES: vbar_xface(everywhere) vbar_yface(everywhere) vbar_zface(everywhere)
   WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
 } "Calculate the hydro fluxes"
 
-SCHEDULE AsterX_ApplyOuterBCOnFluxes IN AsterX_RHSGroup AFTER AsterX_Fluxes BEFORE AsterX_RHS
+SCHEDULE AsterX_RestrictFluxes IN AsterX_RHSGroup AFTER AsterX_Fluxes BEFORE AsterX_RHS
 {
   LANG: C
   OPTIONS: global
 } "Apply CarpetX boundary conditions on flux variables"
 
-if (CCTK_EQUALS(vector_potential_gauge, "generalized Lorentz")) {
-  SCHEDULE AsterX_CalcAuxTermsForAvecPsiRHS IN AsterX_RHSGroup AFTER AsterX_Fluxes BEFORE AsterX_SourceTerms
-  {
-    LANG: C
-    READS: ADMBaseX::metric(interior)
-    READS: ADMBaseX::lapse(interior)
-    READS: ADMBaseX::shift(interior)
-    READS: Avec_x(interior) Avec_y(interior) Avec_z(interior) Psi(interior)
-    READS: Aux_in_RHSof_A_Psi(interior)
-    WRITES: Aux_in_RHSof_A_Psi(interior)
-    SYNC: Aux_in_RHSof_A_Psi
-  } "Calculate the auxiliary terms for the rhs of Avec and Psi"
-}
+SCHEDULE AsterX_CalcAuxTermsForAvecPsiRHS IN AsterX_RHSGroup AFTER AsterX_Fluxes BEFORE AsterX_SourceTerms
+{
+  LANG: C
+  READS: ADMBaseX::metric(everywhere)
+  READS: ADMBaseX::lapse(everywhere)
+  READS: ADMBaseX::shift(everywhere)
+  READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere) Psi(everywhere)
+  READS: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
+  READS: HydroBaseX::vel(everywhere) HydroBaseX::press(everywhere)
+  READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
+  READS: vbar_xface(everywhere) vbar_yface(everywhere) vbar_zface(everywhere)
+  READS: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
+  READS: Fx_stag(everywhere) Fy_stag(everywhere) Fz_stag(everywhere)
+  WRITES: Ex(interior) Ey(interior) Ez(interior)
+  WRITES: G(interior)
+  WRITES: Fbeta(everywhere)
+  WRITES: Fx_stag(everywhere) Fy_stag(everywhere) Fz_stag(everywhere)
+} "Calculate the auxiliary terms for the rhs of Avec and Psi"
+
+SCHEDULE AsterX_RestrictAuxTermsForAvecPsiRHS IN AsterX_RHSGroup AFTER AsterX_CalcAuxTermsForAvecPsiRHS BEFORE AsterX_SourceTerms
+{
+  LANG: C
+  OPTIONS: global
+} "Restrict the auxiliary terms for the rhs of Avec and Psi"
 
 SCHEDULE AsterX_SourceTerms IN AsterX_RHSGroup AFTER AsterX_Fluxes
 {
@@ -258,15 +306,17 @@ SCHEDULE AsterX_RHS IN AsterX_RHSGroup AFTER AsterX_SourceTerms
 {
   LANG: C
   READS: ADMBaseX::metric(everywhere) ADMBaseX::lapse(everywhere) ADMBaseX::shift(everywhere)
-  READS: HydroBaseX::vel(everywhere) HydroBaseX::press(everywhere)
   READS: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
   READS: densrhs(interior) taurhs(interior) momrhs(interior) DEntrhs(interior) DYe_rhs(interior)
   READS: Psi(everywhere)
-  READS: Aux_in_RHSof_A_Psi(everywhere)
-  READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
-  READS: vtilde_xface(everywhere) vtilde_yface(everywhere) vtilde_zface(everywhere)
-  READS: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
+  READS: Ex(interior) Ey(interior) Ez(interior)
+  READS: G(interior)
+  READS: Fbeta(everywhere)
+  READS: Fx_stag(everywhere) Fy_stag(everywhere) Fz_stag(everywhere)
+  READS: theta_x(everywhere) theta_y(everywhere) theta_z(everywhere)
+  READS: LOflag(everywhere) 
   WRITES: densrhs(interior) taurhs(interior) momrhs(interior) DEntrhs(interior) DYe_rhs(interior)
+  WRITES: theta_tot(interior)
   WRITES: Avec_x_rhs(interior) Avec_y_rhs(interior) Avec_z_rhs(interior) Psi_rhs(interior)
 } "Update the RHS of the hydro equations with the flux contributions"
 

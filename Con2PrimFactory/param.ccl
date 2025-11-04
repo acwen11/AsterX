@@ -71,6 +71,11 @@ CCTK_REAL c2p_tol "c2p torelance for root finding" STEERABLE=ALWAYS
   0:* :: "Larger than zero"
 } 1e-10
 
+CCTK_REAL tauFluid_atmo "Minimum conserved internal energy of fluid" STEERABLE=ALWAYS
+{
+  [0.0:* :: "Larger than zero"
+} 1e-15
+
 BOOLEAN use_press_atmo "Use pressure in atmosphere definition and limiting. Important for graded atmosphere." STEERABLE=ALWAYS
 {
 } "no"
