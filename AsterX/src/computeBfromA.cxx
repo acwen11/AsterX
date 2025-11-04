@@ -21,10 +21,6 @@ template <int dir> void ComputeStaggeredB(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_ComputedBstagFromA;
   DECLARE_CCTK_PARAMETERS;
 
-  const std::array dx{CCTK_DELTA_SPACE(0), CCTK_DELTA_SPACE(1),
-                      CCTK_DELTA_SPACE(2)};
-  const std::array idx{1 / dx[0], 1 / dx[1], 1 / dx[2]};
-
   static_assert(dir >= 0 && dir < 3, "");
 
   constexpr array<int, dim> face_centred = {!(dir == 0), !(dir == 1),
