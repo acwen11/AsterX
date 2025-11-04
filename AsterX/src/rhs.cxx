@@ -136,10 +136,10 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
         });
         return -calc_contraction(idx, dfluxes);
         // CCTK_REAL dfluxes = 0.0;
-				// dfluxes -= calc_fd2_v2e<0>(gf_fluxes(0), p, correction_order);
-				// dfluxes -= calc_fd2_v2e<1>(gf_fluxes(1), p, correction_order);
-				// dfluxes -= calc_fd2_v2e<2>(gf_fluxes(2), p, correction_order);
-				// return dfluxes;
+        // dfluxes -= calc_fd2_v2e<0>(gf_fluxes(0), p, correction_order);
+        // dfluxes -= calc_fd2_v2e<1>(gf_fluxes(1), p, correction_order);
+        // dfluxes -= calc_fd2_v2e<2>(gf_fluxes(2), p, correction_order);
+        // return dfluxes;
       };
 
   grid.loop_int_device<1, 1, 1>(

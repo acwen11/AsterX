@@ -93,10 +93,10 @@ calc_avg_f2c(const GF3D2<const T> &gf, const PointDesc &p, const int dir, const 
   const auto Ip2 = p.I + 2 * p.DI[dir];
   const auto Ip3 = p.I + 3 * p.DI[dir];
 
-	return (order==2) * (0.5 * (gf(Ip) + gf(Im))) + 
-				 (order==4) * (-(1.0/16.0) * (gf(Im2) + gf(Ip2)) + (9.0/16.0) * (gf(Ip) + gf(Im))) +
-				 (order==6) * ((3.0/256.0) * (gf(Im3) + gf(Ip3)) - (25.0/256.0) * (gf(Im2) + gf(Ip2)) +
-						(150.0/256.0) * (gf(Im) + gf(Ip)));
+  return (order==2) * (0.5 * (gf(Ip) + gf(Im))) + 
+    (order==4) * (-(1.0/16.0) * (gf(Im2) + gf(Ip2)) + (9.0/16.0) * (gf(Ip) + gf(Im))) +
+    (order==6) * ((3.0/256.0) * (gf(Im3) + gf(Ip3)) - (25.0/256.0) * (gf(Im2) + gf(Ip2)) +
+      (150.0/256.0) * (gf(Im) + gf(Ip)));
 }
 
 // Second-order average of edge-centered grid functions (along dir) to cell
