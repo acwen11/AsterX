@@ -31,16 +31,16 @@ template <int dir> void ComputeStaggeredB(CCTK_ARGUMENTS) {
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         if (dir == 0) {
           /* dBx is curl(A) at (i-1/2,j,k) */
-          dBx_stag(p.I) = calc_fd2_v2e<1>(Avec_z, p, mag_order) -
-                          calc_fd2_v2e<2>(Avec_y, p, mag_order);
+          dBx_stag(p.I) = calc_fd2_forward_midpoint<1>(Avec_z, p, mag_order) -
+                          calc_fd2_forward_midpoint<2>(Avec_y, p, mag_order);
         } else if (dir == 1) {
           /* dBy is curl(A) at (i,j-1/2,k) */
-          dBy_stag(p.I) = calc_fd2_v2e<2>(Avec_x, p, mag_order) -
-                          calc_fd2_v2e<0>(Avec_z, p, mag_order);
+          dBy_stag(p.I) = calc_fd2_forward_midpoint<2>(Avec_x, p, mag_order) -
+                          calc_fd2_forward_midpoint<0>(Avec_z, p, mag_order);
         } else if (dir == 2) {
           /* dBz is curl(A) at (i,j,z-1/2) */
-          dBz_stag(p.I) = calc_fd2_v2e<0>(Avec_y, p, mag_order) -
-                          calc_fd2_v2e<1>(Avec_x, p, mag_order);
+          dBz_stag(p.I) = calc_fd2_forward_midpoint<0>(Avec_y, p, mag_order) -
+                          calc_fd2_forward_midpoint<1>(Avec_x, p, mag_order);
         }
 
         // TODO: need to implement copy conditions?
@@ -53,16 +53,16 @@ template <int dir> void ComputeStaggeredB(CCTK_ARGUMENTS) {
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
           if (dir == 0) {
             /* dBx is curl(A) at (i-1/2,j,k) */
-            dBx_stag(p.I) =
-                calc_fd2_v2e<1>(Avec_z, p, 2) - calc_fd2_v2e<2>(Avec_y, p, 2);
+            dBx_stag(p.I) = calc_fd2_forward_midpoint<1>(Avec_z, p, 2) -
+                            calc_fd2_forward_midpoint<2>(Avec_y, p, 2);
           } else if (dir == 1) {
             /* dBy is curl(A) at (i,j-1/2,k) */
-            dBy_stag(p.I) =
-                calc_fd2_v2e<2>(Avec_x, p, 2) - calc_fd2_v2e<0>(Avec_z, p, 2);
+            dBy_stag(p.I) = calc_fd2_forward_midpoint<2>(Avec_x, p, 2) -
+                            calc_fd2_forward_midpoint<0>(Avec_z, p, 2);
           } else if (dir == 2) {
             /* dBz is curl(A) at (i,j,z-1/2) */
-            dBz_stag(p.I) =
-                calc_fd2_v2e<0>(Avec_y, p, 2) - calc_fd2_v2e<1>(Avec_x, p, 2);
+            dBz_stag(p.I) = calc_fd2_forward_midpoint<0>(Avec_y, p, 2) -
+                            calc_fd2_forward_midpoint<1>(Avec_x, p, 2);
           }
         });
   }
