@@ -931,14 +931,14 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
         return calc_avg_v2c(gf_g(i, j), p);
       });
       const CCTK_REAL sqrtg_p = sqrt(calc_det(g_avg_p));
-      const CCTK_REAL densmin_p = sqrtg_p * w_lorentz_ppl(1) * rho_atm(1);
+      const CCTK_REAL densmin_p = sqrtg_p * rho_atm(1);
 
       //// At Im
       const smat<CCTK_REAL, 3> g_avg_m([&](int i, int j) ARITH_INLINE {
         return calc_avg_v2c(gf_g(i, j), p, Im);
       });
       const CCTK_REAL sqrtg_m = sqrt(calc_det(g_avg_m));
-      const CCTK_REAL densmin_m = sqrtg_m * w_lorentz_ppl(0) * rho_atm(0);
+      const CCTK_REAL densmin_m = sqrtg_m * rho_atm(0);
 
       // Calc theta from dens
       const CCTK_REAL newdens_p = dens(Ip) + a2cfl * fluxdenss(dir_i)(Ip);
