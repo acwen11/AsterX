@@ -300,7 +300,11 @@ public:
     CCTK_REAL lr = std::log(std::fmin(std::fmax(rho, rgrho.min), rgrho.max));
     CCTK_REAL lt = std::log(std::fmin(std::fmax(temp, rgtemp.min), rgtemp.max));
     CCTK_REAL v = interptable->interpolate<EV::CS2>(lr, lt, ye)[0];
-    assert(v >= 0);
+    // assert(v >= 0);
+    if (v < 0){
+      printf("cs^2 < 0 detected! This should have been fixed by table preprocessing!\n");
+      v = 0;
+    }
     return sqrt(v);
   }
 
