@@ -93,7 +93,8 @@ extern "C" void AsterX_ProlongatedBstag(CCTK_ARGUMENTS) {
                                           CCTK_GroupIndex("AsterX::dBy_stag"),
                                           CCTK_GroupIndex("AsterX::dBz_stag")};
 
-  SyncGroupsByDirIProlongateOnly(cctkGH, groups.size(), groups.data(), nullptr);
+  //SyncGroupsByDirIProlongateOnly(cctkGH, groups.size(), groups.data(), nullptr);
+  SyncGroupsByDirINoRestrict(cctkGH, groups.size(), groups.data(), nullptr);
 }
 
 } // namespace AsterX
