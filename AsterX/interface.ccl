@@ -15,7 +15,7 @@ PUBLIC:
 
 CCTK_REAL dens TYPE=gf CENTERING={ccc} TAGS='rhs="densrhs" dependents="HydroBaseX::rho TmunuBaseX::eTtt AsterX::flux_x AsterX::flux_y AsterX::flux_z"' "Conserved rest mass density"
 
-CCTK_REAL mom TYPE=gf CENTERING={ccc} TAGS='parities={-1 +1 +1    +1 -1 +1    +1 +1 -1} rhs="momrhs" dependents="HydroBaseX::vel TmunuBaseX::eTti"'
+CCTK_REAL mom TYPE=gf CENTERING={ccc} TAGS='rhs="momrhs" dependents="HydroBaseX::vel TmunuBaseX::eTti"'
 {
   momx, momy, momz
 } "Conserved momentum density"
@@ -74,7 +74,7 @@ CCTK_REAL theta_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"' "flux limiter i
 
 CCTK_REAL densrhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved rest mass density RHS"
 
-CCTK_REAL momrhs TYPE=gf CENTERING={ccc} TAGS='parities={-1 +1 +1    +1 -1 +1    +1 +1 -1} checkpoint="no"'
+CCTK_REAL momrhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
 {
   momxrhs, momyrhs, momzrhs
 } "Conserved momentum density RHS"
@@ -84,22 +84,22 @@ CCTK_REAL taurhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved inter
 CCTK_REAL DYe_rhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved electron fraction RHS"
 CCTK_REAL DEntrhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Advected entropy density RHS"
 
-CCTK_REAL Avec_x TYPE=gf CENTERING={cvv} TAGS='parities={-1 +1 +1} rhs="Avec_x_rhs"' "x-component of vector potential"
-CCTK_REAL Avec_y TYPE=gf CENTERING={vcv} TAGS='parities={+1 -1 +1} rhs="Avec_y_rhs"' "y-component of vector potential"
-CCTK_REAL Avec_z TYPE=gf CENTERING={vvc} TAGS='parities={+1 +1 -1} rhs="Avec_z_rhs"' "z-component of vector potential"
+CCTK_REAL Avec_x TYPE=gf CENTERING={cvv} TAGS='rhs="Avec_x_rhs"' "x-component of vector potential"
+CCTK_REAL Avec_y TYPE=gf CENTERING={vcv} TAGS='rhs="Avec_y_rhs"' "y-component of vector potential"
+CCTK_REAL Avec_z TYPE=gf CENTERING={vvc} TAGS='rhs="Avec_z_rhs"' "z-component of vector potential"
 
-CCTK_REAL Avec_x_rhs TYPE=gf CENTERING={cvv} TAGS='parities={-1 +1 +1} checkpoint="no"' "x-component of vector potential RHS"
-CCTK_REAL Avec_y_rhs TYPE=gf CENTERING={vcv} TAGS='parities={+1 -1 +1} checkpoint="no"' "y-component of vector potential RHS"
-CCTK_REAL Avec_z_rhs TYPE=gf CENTERING={vvc} TAGS='parities={+1 +1 -1} checkpoint="no"' "z-component of vector potential RHS"
+CCTK_REAL Avec_x_rhs TYPE=gf CENTERING={cvv} TAGS='checkpoint="no"' "x-component of vector potential RHS"
+CCTK_REAL Avec_y_rhs TYPE=gf CENTERING={vcv} TAGS='checkpoint="no"' "y-component of vector potential RHS"
+CCTK_REAL Avec_z_rhs TYPE=gf CENTERING={vvc} TAGS='checkpoint="no"' "z-component of vector potential RHS"
 
 CCTK_REAL dB TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
 {
   dBx, dBy, dBz
 } "Densitized magnetic field components: sqrt(det(gamma_ij))*B^k"
 
-CCTK_REAL dBx_stag TYPE=gf CENTERING={vcc} TAGS='parities={+1 -1 -1} checkpoint="no"' "x-component of staggered densitized magnetic field"
-CCTK_REAL dBy_stag TYPE=gf CENTERING={cvc} TAGS='parities={-1 +1 -1} checkpoint="no"' "y-component of staggered densitized magnetic field"
-CCTK_REAL dBz_stag TYPE=gf CENTERING={ccv} TAGS='parities={-1 -1 +1} checkpoint="no"' "z-component of staggered densitized magnetic field"
+CCTK_REAL dBx_stag TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"' "x-component of staggered densitized magnetic field"
+CCTK_REAL dBy_stag TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"' "y-component of staggered densitized magnetic field"
+CCTK_REAL dBz_stag TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"' "z-component of staggered densitized magnetic field"
 
 CCTK_REAL Psi TYPE=gf CENTERING={vvv} TAGS='rhs="Psi_rhs"' "t-component of vector potential: sqrt(det(gamma_ij))*Phi"
 
@@ -135,12 +135,12 @@ CCTK_REAL saved_prims TYPE=gf CENTERING={ccc}
   saved_Ye
 } "Saved primitive variables as initial guesses for con2prim"
 
-CCTK_REAL zvec TYPE=gf CENTERING={ccc} TAGS='parities={-1 +1 +1    +1 -1 +1    +1 +1 -1} checkpoint="no"'
+CCTK_REAL zvec TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
 {
   zvec_x, zvec_y, zvec_z
 } ""
 
-CCTK_REAL svec TYPE=gf CENTERING={ccc} TAGS='parities={-1 +1 +1    +1 -1 +1    +1 +1 -1} checkpoint="no"'
+CCTK_REAL svec TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
 {
   svec_x, svec_y, svec_z
 } ""
