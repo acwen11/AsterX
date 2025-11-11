@@ -26,16 +26,16 @@ void ApplyOuterBC(CCTK_ARGUMENTS, const std::vector<int> &groups) {
       const int ntls = groupdata.mfab.size();
       const int sync_tl = ntls > 1 ? ntls - 1 : ntls;
 
-      if (leveldata.level == 0) {
-        // Copy from adjacent boxes on same level and apply boundary conditions
-        for (int tl = 0; tl < sync_tl; ++tl) {
-          tasks1.submit_serially([&tasks2, &leveldata, &groupdata, tl]() {
-            FillPatch_Sync(tasks2, groupdata, *groupdata.mfab.at(tl),
-                           ghext->patchdata.at(leveldata.patch)
-                               .amrcore->Geom(leveldata.level));
-          });
-        } // for tl
-      }
+      // Copy from adjacent boxes on same level and apply boundary conditions
+      // Even though this introduces additional communication, it makes the code
+      // compatible with symmetries.
+      for (int tl = 0; tl < sync_tl; ++tl) {
+        tasks1.submit_serially([&tasks2, &leveldata, &groupdata, tl]() {
+          FillPatch_Sync(tasks2, groupdata, *groupdata.mfab.at(tl),
+                         ghext->patchdata.at(leveldata.patch)
+                             .amrcore->Geom(leveldata.level));
+        });
+      } // for tl
     });
   } // for gi
 
@@ -93,7 +93,14 @@ extern "C" void AsterX_ProlongatedBstag(CCTK_ARGUMENTS) {
                                           CCTK_GroupIndex("AsterX::dBy_stag"),
                                           CCTK_GroupIndex("AsterX::dBz_stag")};
 
-  SyncGroupsByDirIProlongateOnly(cctkGH, groups.size(), groups.data(), nullptr);
+  //SyncGroupsByDirIProlongateOnly(cctkGH, groups.size(), groups.data(), nullptr);
+  SyncGroupsByDirINoRestrict(cctkGH, groups.size(), groups.data(), nullptr);
+}
+
+extern "C" void AsterX_ProlongatedB(CCTK_ARGUMENTS) {
+  static const std::vector<int> groups = {CCTK_GroupIndex("AsterX::dB")};
+
+  SyncGroupsByDirINoRestrict(cctkGH, groups.size(), groups.data(), nullptr);
 }
 
 } // namespace AsterX

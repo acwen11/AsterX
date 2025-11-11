@@ -1442,7 +1442,7 @@ extern "C" void AsterX_CalcAuxTermsForAvecPsiRHS(CCTK_ARGUMENTS) {
   CalcE<1>(CCTK_PASS_CTOC, use_uct, reconstruction, reconstruct_params);
   CalcE<2>(CCTK_PASS_CTOC, use_uct, reconstruction, reconstruct_params);
 
-  grid.loop_int_device<0, 0, 0>(
+  grid.loop_allm1_device<0, 0, 0>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         const vec<CCTK_REAL, 3> A_vert([&](int i) ARITH_INLINE {
