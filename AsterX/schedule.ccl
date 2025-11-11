@@ -45,7 +45,6 @@ SCHEDULE AsterX_ComputedBstagFromA IN AsterX_InitialGroup
   LANG: C
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
   WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
-  # SYNC: dBx_stag dBy_stag dBz_stag
 } "Calculate dBstag from curl of A"
 
 SCHEDULE AsterX_ProlongatedBstag IN AsterX_InitialGroup AFTER AsterX_ComputedBstagFromA BEFORE AsterX_ComputedBFromdBstag
@@ -60,6 +59,12 @@ SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_InitialGroup AFTER AsterX_Computed
   READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
   WRITES: dB(everywhere)
 } "Calculate centered dB from dBstag"
+
+SCHEDULE AsterX_ProlongatedB IN AsterX_InitialGroup AFTER AsterX_ComputedBFromdBstag BEFORE AsterX_ComputeBFromdB 
+{
+  LANG: C
+  OPTIONS: global
+} "Prolongate and communicate cell centered dB"
 
 SCHEDULE AsterX_ComputeBFromdB IN AsterX_InitialGroup AFTER AsterX_ComputedBFromdBstag
 {
@@ -170,7 +175,6 @@ SCHEDULE AsterX_ComputedBstagFromA IN AsterX_Con2PrimGroup
   LANG: C
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
   WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
-  # SYNC: dBx_stag dBy_stag dBz_stag
 } "Calculate dBstag from curl of A"
 
 SCHEDULE AsterX_ProlongatedBstag IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBstagFromA BEFORE AsterX_ComputedBFromdBstag
@@ -185,6 +189,12 @@ SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_Con2PrimGroup AFTER AsterX_Compute
   READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
   WRITES: dB(everywhere)
 } "Calculate centered dB from dBstag"
+
+SCHEDULE AsterX_ProlongatedB IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBstag BEFORE AsterX_Con2Prim 
+{
+  LANG: C
+  OPTIONS: global
+} "Prolongate and communicate cell centered dB"
 
 SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBstag
 {
@@ -276,7 +286,7 @@ SCHEDULE AsterX_CalcAuxTermsForAvecPsiRHS IN AsterX_RHSGroup AFTER AsterX_Fluxes
   READS: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
   READS: Fx_stag(everywhere) Fy_stag(everywhere) Fz_stag(everywhere)
   WRITES: Ex(interior) Ey(interior) Ez(interior)
-  WRITES: G(interior)
+  WRITES: G(everywhere)
   WRITES: Fbeta(everywhere)
   WRITES: Fx_stag(everywhere) Fy_stag(everywhere) Fz_stag(everywhere)
 } "Calculate the auxiliary terms for the rhs of Avec and Psi"
@@ -310,7 +320,7 @@ SCHEDULE AsterX_RHS IN AsterX_RHSGroup AFTER AsterX_SourceTerms
   READS: densrhs(interior) taurhs(interior) momrhs(interior) DEntrhs(interior) DYe_rhs(interior)
   READS: Psi(everywhere)
   READS: Ex(interior) Ey(interior) Ez(interior)
-  READS: G(interior)
+  READS: G(everywhere)
   READS: Fbeta(everywhere)
   READS: Fx_stag(everywhere) Fy_stag(everywhere) Fz_stag(everywhere)
   READS: theta_x(everywhere) theta_y(everywhere) theta_z(everywhere)
