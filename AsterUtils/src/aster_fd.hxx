@@ -46,20 +46,24 @@ template <int dir, typename T>
 CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
 calc_fd2_forward_midpoint(const GF3D2<const T> &gf, const PointDesc &p,
                           const int order) {
-  const auto Im3 = p.I - 2 * p.DI[dir];
-  const auto Im2 = p.I - p.DI[dir];
-  const auto Im = p.I;
-  const auto Ip = p.I + p.DI[dir];
-  const auto Ip2 = p.I + 2 * p.DI[dir];
-  const auto Ip3 = p.I + 3 * p.DI[dir];
+  // Fill stencil
+  // This assumes a maximum order/stencil size of 6
+  const vect<int, dim> Im = p.I;
+  array<vect<int, dim>, 6> stencil = {Im, Im, Im, Im, Im, Im}; // dummy value for init
+  const int nstencil = (order / 2) - 1;
+  int offset = -nstencil;
+  for (int ii = 2 - nstencil; ii <= 3 + nstencil; ii++) {
+    stencil[ii] = Im + offset * p.DI[dir];
+    offset += 1;
+  }
 
   return (1.0 / p.DX[dir]) *
-         ((order == 2) * (gf(Ip) - gf(Im)) +
-          (order == 4) * ((9.0 / 8.0) * (gf(Ip) - gf(Im)) -
-                          (1.0 / 24.0) * (gf(Ip2) - gf(Im2))) +
-          (order == 6) * ((75.0 / 64.0) * (gf(Ip) - gf(Im)) -
-                          (25.0 / 384.0) * (gf(Ip2) - gf(Im2)) +
-                          (3.0 / 640.0) * (gf(Ip3) - gf(Im3))));
+         ((order == 2) * (gf(stencil[3]) - gf(stencil[2])) +
+          (order == 4) * ((9.0 / 8.0) * (gf(stencil[3]) - gf(stencil[2])) -
+                          (1.0 / 24.0) * (gf(stencil[4]) - gf(stencil[1]))) +
+          (order == 6) * ((75.0 / 64.0) * (gf(stencil[3]) - gf(stencil[2])) -
+                          (25.0 / 384.0) * (gf(stencil[4]) - gf(stencil[1])) +
+                          (3.0 / 640.0) * (gf(stencil[5]) - gf(stencil[0]))));
 }
 
 // FD2: cell centered input gridfunction along dir, vertex centered output

@@ -86,17 +86,21 @@ calc_avg_e2e(const GF3D2<const T> &gf, const PointDesc &p) {
 template <typename T>
 CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
 calc_avg_f2c(const GF3D2<const T> &gf, const PointDesc &p, const int dir, const int order) {
-  const auto Im3 = p.I - 2 * p.DI[dir];
-  const auto Im2 = p.I - p.DI[dir];
-  const auto Im = p.I;
-  const auto Ip = p.I + p.DI[dir];
-  const auto Ip2 = p.I + 2 * p.DI[dir];
-  const auto Ip3 = p.I + 3 * p.DI[dir];
+  // Fill stencil
+  // This assumes a maximum order/stencil size of 6
+  const vect<int, dim> Im = p.I;
+  array<vect<int, dim>, 6> stencil = {Im, Im, Im, Im, Im, Im}; // dummy value for init
+  const int nstencil = (order / 2) - 1;
+  int offset = -nstencil;
+  for (int ii = 2 - nstencil; ii <= 3 + nstencil; ii++) {
+    stencil[ii] = Im + offset * p.DI[dir];
+    offset += 1;
+  }
 
-  return (order==2) * (0.5 * (gf(Ip) + gf(Im))) + 
-    (order==4) * (-(1.0/16.0) * (gf(Im2) + gf(Ip2)) + (9.0/16.0) * (gf(Ip) + gf(Im))) +
-    (order==6) * ((3.0/256.0) * (gf(Im3) + gf(Ip3)) - (25.0/256.0) * (gf(Im2) + gf(Ip2)) +
-      (150.0/256.0) * (gf(Im) + gf(Ip)));
+	return (order==2) * (0.5 * (gf(stencil[2]) + gf(stencil[3]))) + 
+    (order==4) * (-(1.0/16.0) * (gf(stencil[1]) + gf(stencil[4])) + (9.0/16.0) * (gf(stencil[2]) + gf(stencil[3]))) +
+    (order==6) * ((3.0/256.0) * (gf(stencil[0]) + gf(stencil[5])) - (25.0/256.0) * (gf(stencil[1]) + gf(stencil[4])) +
+      (150.0/256.0) * (gf(stencil[2]) + gf(stencil[3])));
 }
 
 // Second-order average of edge-centered grid functions (along dir) to cell
