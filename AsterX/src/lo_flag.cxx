@@ -47,8 +47,7 @@ LOFlagVar(const GF3D2<const CCTK_REAL> &gf, const CCTK_REAL ref,
 }
 
 // Calculate low-order flag for a particular gridfunction
-template <typename EOSType>
-void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p) {
+template <typename EOSType> void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_SetLOFlag;
   DECLARE_CCTK_PARAMETERS;
 
@@ -90,8 +89,8 @@ void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p) {
         }
 
         // Calculate c_sound
-        const CCTK_REAL cs = eos_3p->csnd_from_valid_rho_temp_ye(rho(p.I), temperature(p.I),
-                                                  Ye(p.I));
+        const CCTK_REAL cs = eos_3p->csnd_from_valid_rho_temp_ye(
+            rho(p.I), temperature(p.I), Ye(p.I));
 
         // Check velocity
         for (int dir = 0; dir < 3; dir++) {
