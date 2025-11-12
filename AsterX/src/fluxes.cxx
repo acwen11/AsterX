@@ -173,6 +173,8 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
         am_face(dir_i)(p.I) = 0;
         vbar_j(dir_i)(p.I) = 0;
         vbar_k(dir_i)(p.I) = 0;
+
+        thetagf(dir_i)(p.I) = 0;
       });
 
   const int nloop = (correction_order - 2) / 2;
@@ -1442,6 +1444,21 @@ extern "C" void AsterX_CalcAuxTermsForAvecPsiRHS(CCTK_ARGUMENTS) {
   CalcE<1>(CCTK_PASS_CTOC, use_uct, reconstruction, reconstruct_params);
   CalcE<2>(CCTK_PASS_CTOC, use_uct, reconstruction, reconstruct_params);
 
+  grid.loop_all_device<0, 0, 0>(grid.nghostzones,
+                                [=] CCTK_DEVICE(const PointDesc &p)
+                                    CCTK_ATTRIBUTE_ALWAYS_INLINE {
+                                      Fbetax(p.I) = betax(p.I) * Psi(p.I);
+                                      Fbetay(p.I) = betay(p.I) * Psi(p.I);
+                                      Fbetaz(p.I) = betaz(p.I) * Psi(p.I);
+
+                                      // Init G
+                                      G(p.I) = 0.0;
+                                    });
+
+  CalcFstag<0>(CCTK_PASS_CTOC);
+  CalcFstag<1>(CCTK_PASS_CTOC);
+  CalcFstag<2>(CCTK_PASS_CTOC);
+
   grid.loop_allm1_device<0, 0, 0>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
@@ -1457,18 +1474,6 @@ extern "C" void AsterX_CalcAuxTermsForAvecPsiRHS(CCTK_ARGUMENTS) {
 
         G(p.I) = alp(p.I) * Psi(p.I) / sqrtg - calc_contraction(betas, A_vert);
       });
-
-  grid.loop_all_device<0, 0, 0>(grid.nghostzones,
-                                [=] CCTK_DEVICE(const PointDesc &p)
-                                    CCTK_ATTRIBUTE_ALWAYS_INLINE {
-                                      Fbetax(p.I) = betax(p.I) * Psi(p.I);
-                                      Fbetay(p.I) = betay(p.I) * Psi(p.I);
-                                      Fbetaz(p.I) = betaz(p.I) * Psi(p.I);
-                                    });
-
-  CalcFstag<0>(CCTK_PASS_CTOC);
-  CalcFstag<1>(CCTK_PASS_CTOC);
-  CalcFstag<2>(CCTK_PASS_CTOC);
 }
 
 } // namespace AsterX

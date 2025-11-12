@@ -60,11 +60,13 @@ SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_InitialGroup AFTER AsterX_Computed
   WRITES: dB(everywhere)
 } "Calculate centered dB from dBstag"
 
-SCHEDULE AsterX_ProlongatedB IN AsterX_InitialGroup AFTER AsterX_ComputedBFromdBstag BEFORE AsterX_ComputeBFromdB 
-{
-  LANG: C
-  OPTIONS: global
-} "Prolongate and communicate cell centered dB"
+if (mag_order > 2) {
+  SCHEDULE AsterX_CommdB IN AsterX_InitialGroup AFTER AsterX_ComputedBFromdBstag BEFORE AsterX_ComputeBFromdB 
+  {
+    LANG: C
+    OPTIONS: global
+  } "Communicate cell centered dB between processes"
+}
 
 SCHEDULE AsterX_ComputeBFromdB IN AsterX_InitialGroup AFTER AsterX_ComputedBFromdBstag
 {
@@ -190,11 +192,13 @@ SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_Con2PrimGroup AFTER AsterX_Compute
   WRITES: dB(everywhere)
 } "Calculate centered dB from dBstag"
 
-SCHEDULE AsterX_ProlongatedB IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBstag BEFORE AsterX_Con2Prim 
-{
-  LANG: C
-  OPTIONS: global
-} "Prolongate and communicate cell centered dB"
+if (mag_order > 2) {
+  SCHEDULE AsterX_CommdB IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBstag BEFORE AsterX_Con2Prim 
+  {
+    LANG: C
+    OPTIONS: global
+  } "Communicate cell centered dB across processes"
+}
 
 SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBstag
 {
