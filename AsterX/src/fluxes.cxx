@@ -174,7 +174,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
         vbar_j(dir_i)(p.I) = 0;
         vbar_k(dir_i)(p.I) = 0;
 
-        thetagf(dir_i)(p.I) = 0;
+        thetagf(dir_i)(p.I) = 1.0;
       });
 
   const int nloop = (correction_order - 2) / 2;
