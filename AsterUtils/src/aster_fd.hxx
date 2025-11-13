@@ -45,7 +45,7 @@ calc_fd2_v2v_oneside(const GF3D2<const T> &gf, const PointDesc &p,
 template <int dir, typename T>
 CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
 calc_fd2_forward_midpoint(const GF3D2<const T> &gf, const PointDesc &p,
-                          const int order) {
+                          const int order, const vec<CCTK_REAL, dim> idx) {
   // Fill stencil
   // This assumes a maximum order/stencil size of 6
   const vect<int, dim> Im = p.I;
@@ -58,7 +58,7 @@ calc_fd2_forward_midpoint(const GF3D2<const T> &gf, const PointDesc &p,
     offset += 1;
   }
 
-  return (1.0 / p.DX[dir]) *
+  return idx(dir) *
          ((order == 2) * (gf(stencil[3]) - gf(stencil[2])) +
           (order == 4) * ((9.0 / 8.0) * (gf(stencil[3]) - gf(stencil[2])) -
                           (1.0 / 24.0) * (gf(stencil[4]) - gf(stencil[1]))) +
