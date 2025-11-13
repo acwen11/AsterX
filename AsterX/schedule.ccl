@@ -51,7 +51,7 @@ SCHEDULE AsterX_ProlongatedBstag IN AsterX_InitialGroup AFTER AsterX_ComputedBst
 {
   LANG: C
   OPTIONS: global
-} "Prolongate and communicate dBstag"
+} "Prolongate dBstag"
 
 SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_InitialGroup AFTER AsterX_ComputedBstagFromA
 {
@@ -60,7 +60,14 @@ SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_InitialGroup AFTER AsterX_Computed
   WRITES: dB(everywhere)
 } "Calculate centered dB from dBstag"
 
+# Extra interprocessor syncs only for higher order stencils
 if (mag_order > 2) {
+  SCHEDULE AsterX_CommdBstag IN AsterX_InitialGroup AFTER AsterX_ProlongatedBstag BEFORE AsterX_ComputedBFromdBstag
+  {
+    LANG: C
+    OPTIONS: global
+  } "Communicate dBstag between processes"
+
   SCHEDULE AsterX_CommdB IN AsterX_InitialGroup AFTER AsterX_ComputedBFromdBstag BEFORE AsterX_ComputeBFromdB 
   {
     LANG: C
@@ -183,7 +190,7 @@ SCHEDULE AsterX_ProlongatedBstag IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBs
 {
   LANG: C
   OPTIONS: global
-} "Prolongate and communicate dBstag"
+} "Prolongate dBstag"
 
 SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBstagFromA
 {
@@ -192,12 +199,19 @@ SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_Con2PrimGroup AFTER AsterX_Compute
   WRITES: dB(everywhere)
 } "Calculate centered dB from dBstag"
 
+# Extra interprocessor syncs only for higher order stencils
 if (mag_order > 2) {
+  SCHEDULE AsterX_CommdBstag IN AsterX_Con2PrimGroup AFTER AsterX_ProlongatedBstag BEFORE AsterX_ComputedBFromdBstag
+  {
+    LANG: C
+    OPTIONS: global
+  } "Communicate dBstag between processes"
+
   SCHEDULE AsterX_CommdB IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBstag BEFORE AsterX_Con2Prim 
   {
     LANG: C
     OPTIONS: global
-  } "Communicate cell centered dB across processes"
+  } "Communicate cell centered dB between processes"
 }
 
 SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBstag
