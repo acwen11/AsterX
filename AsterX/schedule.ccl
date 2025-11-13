@@ -62,7 +62,7 @@ SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_InitialGroup AFTER AsterX_Computed
 
 # Extra interprocessor syncs only for higher order stencils
 if (mag_order > 2) {
-  SCHEDULE AsterX_CommdBstag IN AsterX_InitialGroup AFTER AsterX_ProlongatedBstag BEFORE AsterX_ComputedBFromdBstag
+  SCHEDULE AsterX_CommdBstag IN AsterX_InitialGroup AFTER AsterX_ComputedBstagFromA BEFORE AsterX_ProlongatedBstag 
   {
     LANG: C
     OPTIONS: global
@@ -201,7 +201,7 @@ SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_Con2PrimGroup AFTER AsterX_Compute
 
 # Extra interprocessor syncs only for higher order stencils
 if (mag_order > 2) {
-  SCHEDULE AsterX_CommdBstag IN AsterX_Con2PrimGroup AFTER AsterX_ProlongatedBstag BEFORE AsterX_ComputedBFromdBstag
+  SCHEDULE AsterX_CommdBstag IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBstagFromA BEFORE AsterX_ProlongatedBstag 
   {
     LANG: C
     OPTIONS: global
