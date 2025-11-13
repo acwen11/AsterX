@@ -21,10 +21,6 @@ template <int dir> void ComputeStaggeredB(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_ComputedBstagFromA;
   DECLARE_CCTK_PARAMETERS;
 
-  const vec<CCTK_REAL, dim> idx{1 / CCTK_DELTA_SPACE(0),
-                                1 / CCTK_DELTA_SPACE(1),
-                                1 / CCTK_DELTA_SPACE(2)};
-
   static_assert(dir >= 0 && dir < 3, "");
 
   constexpr array<int, dim> face_centred = {!(dir == 0), !(dir == 1),
@@ -35,16 +31,16 @@ template <int dir> void ComputeStaggeredB(CCTK_ARGUMENTS) {
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         if (dir == 0) {
           /* dBx is curl(A) at (i-1/2,j,k) */
-          dBx_stag(p.I) = calc_fd2_forward_midpoint<1>(Avec_z, p, mag_order, idx) -
-                          calc_fd2_forward_midpoint<2>(Avec_y, p, mag_order, idx);
+          dBx_stag(p.I) = calc_fd2_forward_midpoint<1>(Avec_z, p, mag_order) -
+                          calc_fd2_forward_midpoint<2>(Avec_y, p, mag_order);
         } else if (dir == 1) {
           /* dBy is curl(A) at (i,j-1/2,k) */
-          dBy_stag(p.I) = calc_fd2_forward_midpoint<2>(Avec_x, p, mag_order, idx) -
-                          calc_fd2_forward_midpoint<0>(Avec_z, p, mag_order, idx);
+          dBy_stag(p.I) = calc_fd2_forward_midpoint<2>(Avec_x, p, mag_order) -
+                          calc_fd2_forward_midpoint<0>(Avec_z, p, mag_order);
         } else if (dir == 2) {
           /* dBz is curl(A) at (i,j,z-1/2) */
-          dBz_stag(p.I) = calc_fd2_forward_midpoint<0>(Avec_y, p, mag_order, idx) -
-                          calc_fd2_forward_midpoint<1>(Avec_x, p, mag_order, idx);
+          dBz_stag(p.I) = calc_fd2_forward_midpoint<0>(Avec_y, p, mag_order) -
+                          calc_fd2_forward_midpoint<1>(Avec_x, p, mag_order);
         }
 
         // TODO: need to implement copy conditions?
@@ -57,16 +53,16 @@ template <int dir> void ComputeStaggeredB(CCTK_ARGUMENTS) {
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
           if (dir == 0) {
             /* dBx is curl(A) at (i-1/2,j,k) */
-            dBx_stag(p.I) = calc_fd2_forward_midpoint<1>(Avec_z, p, 2, idx) -
-                            calc_fd2_forward_midpoint<2>(Avec_y, p, 2, idx);
+            dBx_stag(p.I) = calc_fd2_forward_midpoint<1>(Avec_z, p, 2) -
+                            calc_fd2_forward_midpoint<2>(Avec_y, p, 2);
           } else if (dir == 1) {
             /* dBy is curl(A) at (i,j-1/2,k) */
-            dBy_stag(p.I) = calc_fd2_forward_midpoint<2>(Avec_x, p, 2, idx) -
-                            calc_fd2_forward_midpoint<0>(Avec_z, p, 2, idx);
+            dBy_stag(p.I) = calc_fd2_forward_midpoint<2>(Avec_x, p, 2) -
+                            calc_fd2_forward_midpoint<0>(Avec_z, p, 2);
           } else if (dir == 2) {
             /* dBz is curl(A) at (i,j,z-1/2) */
-            dBz_stag(p.I) = calc_fd2_forward_midpoint<0>(Avec_y, p, 2, idx) -
-                            calc_fd2_forward_midpoint<1>(Avec_x, p, 2, idx);
+            dBz_stag(p.I) = calc_fd2_forward_midpoint<0>(Avec_y, p, 2) -
+                            calc_fd2_forward_midpoint<1>(Avec_x, p, 2);
           }
         });
   }

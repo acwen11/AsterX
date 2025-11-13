@@ -17,10 +17,6 @@ template <int i, vector_potential_gauge_t gauge>
 void CalcRHSofAvec_impl(CCTK_ARGUMENTS, const int order) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_RHS;
 
-  const vec<CCTK_REAL, dim> idx{1 / CCTK_DELTA_SPACE(0),
-                                1 / CCTK_DELTA_SPACE(1),
-                                1 / CCTK_DELTA_SPACE(2)};
-
   const vec<GF3D2<const CCTK_REAL>, dim> gf_E{Ex, Ey, Ez};
   const vec<GF3D2<CCTK_REAL>, dim> gf_Avec_rhs{Avec_x_rhs, Avec_y_rhs,
                                                Avec_z_rhs};
@@ -39,7 +35,7 @@ void CalcRHSofAvec_impl(CCTK_ARGUMENTS, const int order) {
         grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
           gf_Avec_rhs(i)(p.I) =
-              -gf_E(i)(p.I) - calc_fd2_forward_midpoint<i>(G, p, order, idx);
+              -gf_E(i)(p.I) - calc_fd2_forward_midpoint<i>(G, p, order);
         });
   }
 }
@@ -121,10 +117,6 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
   else
     CCTK_ERROR("Unknown value for parameter \"vector_potential_gauge\"");
 
-  const vec<CCTK_REAL, dim> idx{1 / CCTK_DELTA_SPACE(0),
-                                1 / CCTK_DELTA_SPACE(1),
-                                1 / CCTK_DELTA_SPACE(2)};
-
   const vec<GF3D2<const CCTK_REAL>, dim> gf_fdens{fxdens, fydens, fzdens};
   const vec<GF3D2<const CCTK_REAL>, dim> gf_fDEnt{fxDEnt, fyDEnt, fzDEnt};
   const vec<GF3D2<const CCTK_REAL>, dim> gf_fmomx{fxmomx, fymomx, fzmomx};
@@ -137,9 +129,9 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
       [=] CCTK_DEVICE(const vec<GF3D2<const CCTK_REAL>, dim> &gf_fluxes,
                       const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         vec<CCTK_REAL, 3> dfluxes{
-            calc_fd2_forward_midpoint<0>(gf_fluxes(0), p, correction_order, idx),
-            calc_fd2_forward_midpoint<1>(gf_fluxes(1), p, correction_order, idx),
-            calc_fd2_forward_midpoint<2>(gf_fluxes(2), p, correction_order, idx)};
+            calc_fd2_forward_midpoint<0>(gf_fluxes(0), p, correction_order),
+            calc_fd2_forward_midpoint<1>(gf_fluxes(1), p, correction_order),
+            calc_fd2_forward_midpoint<2>(gf_fluxes(2), p, correction_order)};
         return -(dfluxes(0) + dfluxes(1) + dfluxes(2));
       };
 
