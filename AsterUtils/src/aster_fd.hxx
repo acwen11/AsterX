@@ -49,7 +49,8 @@ calc_fd2_forward_midpoint(const GF3D2<const T> &gf, const PointDesc &p,
   // Fill stencil
   // This assumes a maximum order/stencil size of 6
   const vect<int, dim> Im = p.I;
-  array<vect<int, dim>, 6> stencil = {Im, Im, Im, Im, Im, Im}; // dummy value for init
+  array<vect<int, dim>, 6> stencil = {Im, Im, Im,
+                                      Im, Im, Im}; // dummy value for init
   const int nstencil = (order / 2) - 1;
   int offset = -nstencil;
   for (int ii = 2 - nstencil; ii <= 3 + nstencil; ii++) {
