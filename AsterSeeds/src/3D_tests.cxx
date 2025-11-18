@@ -85,7 +85,7 @@ extern "C" void Tests3D_Initialize(CCTK_ARGUMENTS) {
 
     grid.loop_all<0, 1, 0>(grid.nghostzones, [=] CCTK_HOST(const PointDesc &p)
                                                  CCTK_ATTRIBUTE_ALWAYS_INLINE {
-                                                   Avec_y(p.I) = amplitude*(p.x + 0.5*p.dx);
+                                                   Avec_y(p.I) = amplitude*p.x;
                                                  });
 
     grid.loop_all<0, 0, 1>(grid.nghostzones, [=] CCTK_HOST(const PointDesc &p)
