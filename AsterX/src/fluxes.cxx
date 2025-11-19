@@ -289,7 +289,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
     // End atmosphere
 
     // Check shock detection flag
-    if (LOflag(p.I) || LOflag(p.I - p.DI[dir_i]))
+    if ((LOflag(p.I) || LOflag(p.I - p.DI[dir_i])) && (LO_flag_recon))
       useLO = true;
 
     if (reconstruct_with_temperature) {
@@ -669,7 +669,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
                     w_lorentz_rc, h_rc, bsq_rc);
 
     /* Calculate numerical fluxes */
-    if (!useLO || !loworder_flux) {
+    if (!useLO || !LO_flag_flux) {
       fluxdenss(dir_i)(p.I) = calcflux(lambda, dens_rc, flux_dens);
       fluxDEnts(dir_i)(p.I) = calcflux(lambda, DEnt_rc, flux_DEnt);
       fluxmomxs(dir_i)(p.I) = calcflux(lambda, moms_rc(0), flux_moms(0));

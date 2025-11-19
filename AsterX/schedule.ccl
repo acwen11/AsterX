@@ -284,6 +284,17 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
 } "Calculate the hydro fluxes"
 
+if (correction_order > 2) {
+  SCHEDULE AsterX_Flux_Corrections IN AsterX_RHSGroup AFTER AsterX_Fluxes
+  {
+    LANG: C
+    READS: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
+    READS: LOflag(everywhere)
+    WRITES: fluxHO_x(interior) fluxHO_y(interior) fluxHO_z(interior)
+    WRITES: flux_x(interior) flux_y(interior) flux_z(interior)
+  } "Computes the higher order corrections to fluxes and updates them"
+}
+
 SCHEDULE AsterX_RestrictFluxes IN AsterX_RHSGroup AFTER AsterX_Fluxes BEFORE AsterX_RHS
 {
   LANG: C

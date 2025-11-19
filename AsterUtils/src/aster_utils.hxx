@@ -164,6 +164,22 @@ calc_avg_neighbors(const vec<T, D> flag, const vec<T, D> u_nbs,
          CCTK_REAL(D);
 }
 
+// Higher order corrections
+template <int dir, typename T>
+CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
+higher_order_correction(const GF3D2<T> &gf, const PointDesc &p, int order)
+{
+  const auto Ipp = p.I + 2 * p.DI[dir];
+  const auto Ip = p.I + p.DI[dir];
+  const auto I = p.I;
+  const auto Im = p.I - p.DI[dir];
+  const auto Imm = p.I - 2 * p.DI[dir];
+
+  return (order==2) * gf(I) +
+    (order==4) * ((13.0/12.0)*gf(I) - (1.0/24.0)*(gf(Im) + gf(Ip))) +
+    (order==6) * ((1067.0/960.0)*gf(I) - (29.0/480.0)*( gf(Im) + gf(Ip) ) + (3.0/640.0)*( gf(Imm) + gf(Ipp) ));
+}
+
 // upwind-CT related
 
 template <typename T>

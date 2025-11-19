@@ -50,7 +50,11 @@ CCTK_REAL LO_rhothresh "Set LO flag to 0 below density threshold" STEERABLE=alwa
   0:* :: "Larger than zero"
 } 0.0
 
-BOOLEAN loworder_flux "Fall back to Lax-Friedrichs flux on flagged points?" STEERABLE=always
+BOOLEAN LO_flag_recon "Fall back to low order reconstruction on flagged points?" STEERABLE=always
+{
+} "no"
+
+BOOLEAN LO_flag_flux "Fall back to Lax-Friedrichs flux on flagged points?" STEERABLE=always
 {
 } "no"
 

@@ -66,6 +66,33 @@ CCTK_REAL flux_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
   fzBx fzBy fzBz
 } "Fluxes in z direction"
 
+CCTK_REAL fluxHO_x TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'
+{
+  fxdensHO
+  fxmomxHO fxmomyHO fxmomzHO
+  fxtauHO
+  fxDYeHO
+  fxDEntHO
+} "High Order Fluxes in x direction"
+
+CCTK_REAL fluxHO_y TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"'
+{
+  fydensHO
+  fymomxHO fymomyHO fymomzHO
+  fytauHO
+  fyDYeHO
+  fyDEntHO
+} "High Order Fluxes in y direction"
+
+CCTK_REAL fluxHO_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
+{
+  fzdensHO
+  fzmomxHO fzmomyHO fzmomzHO
+  fztauHO
+  fzDYeHO
+  fzDEntHO
+} "High Order Fluxes in y direction"
+
 CCTK_REAL theta_tot TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "min(thetas) taken over all cell faces"
 
 CCTK_REAL theta_x TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"' "flux limiter in x"
