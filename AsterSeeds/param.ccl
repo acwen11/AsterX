@@ -75,7 +75,7 @@ CCTK_REAL press_atmosphere "floor pressure in the atmosphere"
 
 # parameters for 1D tests
 
-CCTK_REAL amplitude "Wave amplitude" STEERABLE=never
+CCTK_REAL amplitude "Amplitude" STEERABLE=never
 {
   0.0:* :: ""
 } 1.0e-3
