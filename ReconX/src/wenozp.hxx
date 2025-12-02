@@ -78,7 +78,7 @@ wenozp(T gf_Imm, T gf_Im, T gf_I, T gf_Ip, T gf_Ipp, const CCTK_REAL dx,
 
   const vec<vec<T, 2>, 3> omegaZ([&](int j) ARITH_INLINE {
     return vec<T, 2>([&](int f) ARITH_INLINE {
-      return 0.125 * alphaZ(j)(f) / omega_denom(f);
+      return alphaZ(j)(f) / omega_denom(f);
     });
   });
 
@@ -86,18 +86,19 @@ wenozp(T gf_Imm, T gf_Im, T gf_I, T gf_Ip, T gf_Ipp, const CCTK_REAL dx,
   // interfaces
 
   // Spritz Weights:
-  T var_m = omegaZ(2)(0) * (3.0 * gf_Ipp - 10.0 * gf_Ip + 15.0 * gf_I) +
-            omegaZ(1)(0) * (-1.0 * gf_Ip + 6.0 * gf_I + 3.0 * gf_Im) +
-            omegaZ(0)(0) * (3.0 * gf_I + 6.0 * gf_Im - 1.0 * gf_Imm);
+  T var_m = omegaZ(2)(0) * 0.125 * (3.0 * gf_Ipp - 10.0 * gf_Ip + 15.0 * gf_I) +
+            omegaZ(1)(0) * 0.125 * (-1.0 * gf_Ip + 6.0 * gf_I + 3.0 * gf_Im) +
+            omegaZ(0)(0) * 0.125 * (3.0 * gf_I + 6.0 * gf_Im - 1.0 * gf_Imm);
 
-  T var_p = omegaZ(0)(1) * (3.0 * gf_Imm - 10.0 * gf_Im + 15.0 * gf_I) +
-            omegaZ(1)(1) * (-1.0 * gf_Im + 6.0 * gf_I + 3.0 * gf_Ip) +
-            omegaZ(2)(1) * (3.0 * gf_I + 6.0 * gf_Ip - 1.0 * gf_Ipp);
+  T var_p = omegaZ(0)(1) * 0.125 * (3.0 * gf_Imm - 10.0 * gf_Im + 15.0 * gf_I) +
+            omegaZ(1)(1) * 0.125 * (-1.0 * gf_Im + 6.0 * gf_I + 3.0 * gf_Ip) +
+            omegaZ(2)(1) * 0.125 * (3.0 * gf_I + 6.0 * gf_Ip - 1.0 * gf_Ipp);
 
   if (mp) {
     const CCTK_REAL mpw_alp = 2.0; // Parameters from Balsara + Shu 2000
     const CCTK_REAL mpw_beta = 4.0;
 
+    // Compute smoothness indicator
     // Right side (Left face)
     const vec<T, 4> mp_p{4.0 * dj(1) - dj(2), 4.0 * dj(2) - dj(1), dj(1),
                          dj(2)};
@@ -106,15 +107,6 @@ wenozp(T gf_Imm, T gf_Im, T gf_I, T gf_Ip, T gf_Ipp, const CCTK_REAL dx,
                        (sgn(mp_p(0)) + sgn(mp_p(3))));
     const T dM4_p =
         s_p * min({fabs(mp_p(0)), fabs(mp_p(1)), fabs(mp_p(2)), fabs(mp_p(3))});
-
-    const T uUL_p = gf_I + mpw_alp * (gf_I - gf_Im);
-    const T uMD_p = 0.5 * (gf_I + gf_Ip - dM4_p);
-    const T uLC_p = gf_I + 0.5 * (gf_I - gf_Im) + (mpw_beta / 3.0) * dM4_p;
-
-    const T up_min = max(min({gf_I, gf_Ip, uMD_p}), min({gf_I, uUL_p, uLC_p}));
-    const T up_max = min(max({gf_I, gf_Ip, uMD_p}), max({gf_I, uUL_p, uLC_p}));
-
-    var_p = var_p + minmod(up_min - var_p, up_max - var_p);
 
     // Left side (Right face)
     const vec<T, 4> mp_m{4.0 * dj(0) - dj(1), 4.0 * dj(1) - dj(0), dj(0),
@@ -125,9 +117,21 @@ wenozp(T gf_Imm, T gf_Im, T gf_I, T gf_Ip, T gf_Ipp, const CCTK_REAL dx,
     const T dM4_m =
         s_m * min({fabs(mp_m(0)), fabs(mp_m(1)), fabs(mp_m(2)), fabs(mp_m(3))});
 
+    // Compute limits
+    // Right side (Left face)
+    const T uUL_p = gf_I + mpw_alp * (gf_I - gf_Im);
+    const T uMD_p = 0.5 * (gf_I + gf_Ip - dM4_p);
+    const T uLC_p = gf_I + 0.5 * (gf_I - gf_Im) + (mpw_beta / 3.0) * dM4_m;
+
+    const T up_min = max(min({gf_I, gf_Ip, uMD_p}), min({gf_I, uUL_p, uLC_p}));
+    const T up_max = min(max({gf_I, gf_Ip, uMD_p}), max({gf_I, uUL_p, uLC_p}));
+
+    var_p = var_p + minmod(up_min - var_p, up_max - var_p);
+
+    // Left side (Right face)
     const T uUL_m = gf_I + mpw_alp * (gf_I - gf_Ip);
     const T uMD_m = 0.5 * (gf_I + gf_Im - dM4_m);
-    const T uLC_m = gf_I + 0.5 * (gf_I - gf_Ip) + (mpw_beta / 3.0) * dM4_m;
+    const T uLC_m = gf_I + 0.5 * (gf_I - gf_Ip) + (mpw_beta / 3.0) * dM4_p;
 
     const T um_min = max(min({gf_I, gf_Im, uMD_m}), min({gf_I, uUL_m, uLC_m}));
     const T um_max = min(max({gf_I, gf_Im, uMD_m}), max({gf_I, uUL_m, uLC_m}));
