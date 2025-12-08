@@ -41,11 +41,10 @@ inline CCTK_ATTRIBUTE_ALWAYS_INLINE
   if (det_m < 0)
     det_m = 0;
 
-  vec<CCTK_REAL, 4> lambda_m{((-a_m(1) + sqrt(det_m)) / (2 * a_m(2))) / alp_avg,
-                             ((-a_m(1) + sqrt(det_m)) / (2 * a_m(2))) / alp_avg,
-                             ((-a_m(1) - sqrt(det_m)) / (2 * a_m(2))) / alp_avg,
-                             ((-a_m(1) - sqrt(det_m)) / (2 * a_m(2))) /
-                                 alp_avg};
+  vec<CCTK_REAL, 4> lambda_m{((-a_m(1) + sqrt(det_m)) / (2 * a_m(2))),
+                             ((-a_m(1) + sqrt(det_m)) / (2 * a_m(2))),
+                             ((-a_m(1) - sqrt(det_m)) / (2 * a_m(2))),
+                             ((-a_m(1) - sqrt(det_m)) / (2 * a_m(2))) };
 
   // computing characteristics for the plus side
 
@@ -66,11 +65,10 @@ inline CCTK_ATTRIBUTE_ALWAYS_INLINE
   if (det_p < 0)
     det_p = 0;
 
-  vec<CCTK_REAL, 4> lambda_p{((-a_p(1) + sqrt(det_p)) / (2 * a_p(2))) / alp_avg,
-                             ((-a_p(1) + sqrt(det_p)) / (2 * a_p(2))) / alp_avg,
-                             ((-a_p(1) - sqrt(det_p)) / (2 * a_p(2))) / alp_avg,
-                             ((-a_p(1) - sqrt(det_p)) / (2 * a_p(2))) /
-                                 alp_avg};
+  vec<CCTK_REAL, 4> lambda_p{((-a_p(1) + sqrt(det_p)) / (2 * a_p(2))),
+                             ((-a_p(1) + sqrt(det_p)) / (2 * a_p(2))),
+                             ((-a_p(1) - sqrt(det_p)) / (2 * a_p(2))),
+                             ((-a_p(1) - sqrt(det_p)) / (2 * a_p(2)))};
 
   // 2D array containing characteristics for left (minus) and right
   // (plus) sides
