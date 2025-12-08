@@ -44,7 +44,7 @@ inline CCTK_ATTRIBUTE_ALWAYS_INLINE
   vec<CCTK_REAL, 4> lambda_m{((-a_m(1) + sqrt(det_m)) / (2 * a_m(2))),
                              ((-a_m(1) + sqrt(det_m)) / (2 * a_m(2))),
                              ((-a_m(1) - sqrt(det_m)) / (2 * a_m(2))),
-                             ((-a_m(1) - sqrt(det_m)) / (2 * a_m(2))) };
+                             ((-a_m(1) - sqrt(det_m)) / (2 * a_m(2)))};
 
   // computing characteristics for the plus side
 
