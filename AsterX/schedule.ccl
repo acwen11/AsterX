@@ -13,6 +13,10 @@ if(use_subcycling_wip) {
   STORAGE: densk2 momk2 tauk2 DYe_k2 DEntk2 Avec_x_k2 Avec_y_k2 Avec_z_k2 Psi_k2
   STORAGE: densk3 momk3 tauk3 DYe_k3 DEntk3 Avec_x_k3 Avec_y_k3 Avec_z_k3 Psi_k3
   STORAGE: densk4 momk4 tauk4 DYe_k4 DEntk4 Avec_x_k4 Avec_y_k4 Avec_z_k4 Psi_k4
+
+  SCHEDULE GROUP AsterX_Con2PrimGroup IN ODESolvers_PostSubStep BEFORE TmunuBaseX_SetTmunuVars AFTER ADMBaseX_SetADMVars
+  {
+  } "Compute primitive variables"
 }
 
 
