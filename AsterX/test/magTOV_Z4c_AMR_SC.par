@@ -27,6 +27,7 @@ CarpetX::poison_undefined_values = no
 
 CarpetX::use_subcycling_wip = yes
 CarpetX::restrict_during_sync = no
+ODESolvers::use_odesolvers_poststep_during_rksubsteps = no
 
 # Finest grid spacing is 0.15625 
 # To have a symmetric grid along 0, we have odd number of points (257) 
