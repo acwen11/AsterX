@@ -189,6 +189,106 @@ extern "C" void Tests2D_Initialize(CCTK_ARGUMENTS) {
                                                  });
   }
 
+  else if (CCTK_EQUALS(test_case, "KHI")) {
+    printf("Setting KHI data: \n");
+    printf(" rhoUp = %16.8e \n", rhoUp);
+    printf(" rhoLow = %16.8e \n", rhoLow);
+
+    grid.loop_all_device<1, 1, 1>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const Loop::PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+          // set velocities in opposite directions in x along the slip surface
+          // set slightly different densities along the slip surface
+          // location of slip surfaces hardcoded at (abs(p.y) = 0.25)
+          using std::abs;
+          if (abs(p.y) >= 0.25) {
+            rho(p.I) = rhoUp;
+            velx(p.I) = vxUp;
+          } else {
+            rho(p.I) = rhoLow;
+            velx(p.I) = vxLow;
+          }
+        //  printf("  rho, p.y = %16.8e, %16.8e \n", rho(p.I), p.y); 
+          // excite the instability by peturbing v^y
+          using std::exp, std::pow, std::sin;
+          vely(p.I) = w0 * sin(4 * M_PI * p.x) *
+                      (exp(-pow(p.y - 0.25, 2) / (2 * pow(sigma, 2))) +
+                       exp(-pow(p.y + 0.25, 2) / (2 * pow(sigma, 2))));
+
+          velz(p.I) = 0.0;
+
+          // set constant initial pressure throughout the domain
+          press(p.I) = p_val;
+
+          // TODO: compute eps using EOS driver
+          // for now, using ideal gas EOS
+          eps(p.I) = eos_3p_ig->eps_from_valid_rho_press_ye(rho(p.I), press(p.I),
+                                                        dummy_ye);
+        });
+
+    grid.loop_all_device<1, 0, 0>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p)
+            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_x(p.I) = 0.0; });
+
+    grid.loop_all_device<0, 1, 0>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p)
+            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_y(p.I) = 0.0; });
+
+    grid.loop_all_device<0, 0, 1>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p)
+            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_z(p.I) = 0.0; });
+  }
+
+  else if (CCTK_EQUALS(test_case, "magKHI")) {
+
+    const CCTK_REAL alpha = 0.01;
+    const CCTK_REAL beta = 0.1;
+    const CCTK_REAL v0 = 0.25;
+    const CCTK_REAL epsilon = 0.01*v0;
+    const CCTK_REAL pr = 20.0;
+
+    const CCTK_REAL sigma_pol = 0.01;
+    const CCTK_REAL sigma_tor = 1;
+    const CCTK_REAL Bx = sqrt(2.0 * pr * sigma_pol);
+    const CCTK_REAL Bz = sqrt(2.0 * pr * sigma_tor);
+
+    grid.loop_all_device<1, 1, 1>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const Loop::PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+
+          const CCTK_REAL kx = 2*M_PI*p.x;
+          const CCTK_REAL arg = (p.y*p.y)/(beta*beta);
+
+          rho(p.I) = 1.0;
+          press(p.I) = pr;
+          velx(p.I) = -v0 * tanh(p.y/alpha);
+          // excite the instability by peturbing v^y
+          vely(p.I) = 0.5 * epsilon * (sin(kx) - sin(-kx) )*exp(-arg);
+          velz(p.I) = 0.0;
+
+          eps(p.I) = eos_3p_ig->eps_from_valid_rho_press_ye(rho(p.I), press(p.I),
+                                                        dummy_ye);
+        });
+
+    grid.loop_all_device<1, 0, 0>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p)
+            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_x(p.I) = -Bz * p.y; });
+
+    grid.loop_all_device<0, 1, 0>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p)
+            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_y(p.I) = Bz * p.x - Bx * p.y; });
+
+    grid.loop_all_device<0, 0, 1>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p)
+            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_z(p.I) = Bx * p.y;; });
+  }
+
   else {
     CCTK_ERROR("Test case not defined");
   }
