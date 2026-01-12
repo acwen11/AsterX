@@ -190,10 +190,6 @@ extern "C" void Tests2D_Initialize(CCTK_ARGUMENTS) {
   }
 
   else if (CCTK_EQUALS(test_case, "KHI")) {
-    printf("Setting KHI data: \n");
-    printf(" rhoUp = %16.8e \n", rhoUp);
-    printf(" rhoLow = %16.8e \n", rhoLow);
-
     grid.loop_all_device<1, 1, 1>(
         grid.nghostzones,
         [=] CCTK_DEVICE(const Loop::PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
@@ -208,7 +204,6 @@ extern "C" void Tests2D_Initialize(CCTK_ARGUMENTS) {
             rho(p.I) = rhoLow;
             velx(p.I) = vxLow;
           }
-        //  printf("  rho, p.y = %16.8e, %16.8e \n", rho(p.I), p.y); 
           // excite the instability by peturbing v^y
           using std::exp, std::pow, std::sin;
           vely(p.I) = w0 * sin(4 * M_PI * p.x) *
@@ -219,9 +214,6 @@ extern "C" void Tests2D_Initialize(CCTK_ARGUMENTS) {
 
           // set constant initial pressure throughout the domain
           press(p.I) = p_val;
-
-          // TODO: compute eps using EOS driver
-          // for now, using ideal gas EOS
           eps(p.I) = eos_3p_ig->eps_from_valid_rho_press_ye(rho(p.I), press(p.I),
                                                         dummy_ye);
         });
@@ -286,7 +278,7 @@ extern "C" void Tests2D_Initialize(CCTK_ARGUMENTS) {
     grid.loop_all_device<0, 0, 1>(
         grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p)
-            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_z(p.I) = Bx * p.y;; });
+            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_z(p.I) = Bx * p.y; });
   }
 
   else {
