@@ -214,8 +214,8 @@ extern "C" void Tests2D_Initialize(CCTK_ARGUMENTS) {
 
           // set constant initial pressure throughout the domain
           press(p.I) = p_val;
-          eps(p.I) = eos_3p_ig->eps_from_valid_rho_press_ye(rho(p.I), press(p.I),
-                                                        dummy_ye);
+          eps(p.I) = eos_3p_ig->eps_from_valid_rho_press_ye(
+              rho(p.I), press(p.I), dummy_ye);
         });
 
     grid.loop_all_device<1, 0, 0>(
@@ -236,49 +236,52 @@ extern "C" void Tests2D_Initialize(CCTK_ARGUMENTS) {
 
   else if (CCTK_EQUALS(test_case, "magKHI")) {
 
-    const CCTK_REAL alpha = 0.01;
-    const CCTK_REAL beta = 0.1;
-    const CCTK_REAL v0 = 0.25;
-    const CCTK_REAL epsilon = 0.01*v0;
-    const CCTK_REAL pr = 20.0;
+    // paper: Kiuchi+ 2022, https://arxiv.org/abs/2205.04487
+    const CCTK_REAL a = 0.02;   // shear layer thickness (Eq. 4.8)
+    const CCTK_REAL vsh = 0.25; // shear amplitude (Eq. 4.8)
+    const CCTK_REAL pr = 20.0;  // uniform gas pressure
+    const CCTK_REAL rho0 = 1.0; // uniform density
 
     const CCTK_REAL sigma_pol = 0.01;
-    const CCTK_REAL sigma_tor = 1;
-    const CCTK_REAL Bx = sqrt(2.0 * pr * sigma_pol);
-    const CCTK_REAL Bz = sqrt(2.0 * pr * sigma_tor);
+    const CCTK_REAL Bx0 =
+        sqrt(2.0 * sigma_pol *
+             pr); // Eq. (4.9): (Bx,By,Bz) = (sqrt(2*sigma_pol*P), 0, 0)
 
     grid.loop_all_device<1, 1, 1>(
         grid.nghostzones,
         [=] CCTK_DEVICE(const Loop::PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+          // Eq. (4.8)
+          const CCTK_REAL vx = -vsh * tanh(p.y / a);
 
-          const CCTK_REAL kx = 2*M_PI*p.x;
-          const CCTK_REAL arg = (p.y*p.y)/(beta*beta);
+          // Eq. (4.10)
+          const CCTK_REAL vy =
+              (1.0 / 40000.0) * sin(2.0 * M_PI * p.x) * exp(-100.0 * p.y * p.y);
 
-          rho(p.I) = 1.0;
+          rho(p.I) = rho0;
           press(p.I) = pr;
-          velx(p.I) = -v0 * tanh(p.y/alpha);
-          // excite the instability by peturbing v^y
-          vely(p.I) = 0.5 * epsilon * (sin(kx) - sin(-kx) )*exp(-arg);
+
+          velx(p.I) = vx;
+          vely(p.I) = vy;
           velz(p.I) = 0.0;
 
-          eps(p.I) = eos_3p_ig->eps_from_valid_rho_press_ye(rho(p.I), press(p.I),
-                                                        dummy_ye);
+          eps(p.I) = eos_3p_ig->eps_from_valid_rho_press_ye(
+              rho(p.I), press(p.I), dummy_ye);
         });
 
     grid.loop_all_device<1, 0, 0>(
         grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p)
-            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_x(p.I) = -Bz * p.y; });
+            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_x(p.I) = 0.0; });
 
     grid.loop_all_device<0, 1, 0>(
         grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p)
-            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_y(p.I) = Bz * p.x - Bx * p.y; });
+            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_y(p.I) = 0.0; });
 
     grid.loop_all_device<0, 0, 1>(
         grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p)
-            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_z(p.I) = Bx * p.y; });
+            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_z(p.I) = Bx0 * p.y; });
   }
 
   else {
