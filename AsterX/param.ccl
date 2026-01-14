@@ -19,6 +19,10 @@ BOOLEAN use_entropy_fix "Shall we use inversion based on entropy as a backup?" S
 {
 } "no"
 
+BOOLEAN prolongate_dbstag "Shall we prolongate dBstag?" STEERABLE=always
+{
+} "yes"
+
 KEYWORD flux_type "Flux solver" STEERABLE=always
 {
   "LxF" :: ""
@@ -141,6 +145,16 @@ BOOLEAN excise "Avoid C2P and use BH values in masked region" STEERABLE=always
 BOOLEAN use_mask "Use AsterMasks gridfunctions?" STEERABLE=always
 {
 } no
+
+BOOLEAN add_dissipation "Add KO dissipation on Avec and Psi gridfunctions?" STEERABLE=always
+{
+} no
+
+CCTK_REAL eps_diss "KO dissipation strength" STEERABLE=always
+{
+  0:* :: "Larger than 0 to add dissipation. Might be unstable for values > 1/3"
+} 0.1
+
 
 SHARES: EOSX
 USES CCTK_REAL poly_gamma

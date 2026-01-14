@@ -26,6 +26,8 @@ KEYWORD test_case "Name of the testcase" STEERABLE=never
   "cylindrical blast"        :: ""
   "magnetic rotor"           :: ""
   "magnetic loop advection"  :: ""
+  "KHI"                      :: ""
+  "magKHI"                   :: ""
 
   "spherical shock"          :: ""
   "magTOV"                   :: ""
@@ -111,6 +113,46 @@ CCTK_KEYWORD mag_loop_adv_axial_vel "Zero or non-zero fluid velocity along the d
   "non-zero" :: "Non-zero fluid velocity along the direction of the magnetic loop's axis"
 } "zero"
 
+# parameters for 2D KHI
+
+CCTK_REAL p_val "initial pressure" STEERABLE=always
+{ 
+  0.0:* :: ""
+} 2.5
+
+CCTK_REAL w0 "amplitude of pertubation applied to v^y" STEERABLE=always
+{ 
+  0.0:* :: ""
+} 0.1
+
+CCTK_REAL sigma "parameter for the exponential in v^y" STEERABLE=always
+{ 
+  0.0:* :: ""
+} 0.0353553390593274
+
+# Initial data for region above the slip surface
+
+CCTK_REAL rhoUp "initial density" STEERABLE=always
+{ 
+  0.0:* :: ""
+} 1.0
+
+CCTK_REAL vxUp "initial x component of velocity" STEERABLE=always
+{ 
+  *:* :: ""
+} -0.5
+
+# Initial data for region below the slip surface
+
+CCTK_REAL rhoLow "initial density" STEERABLE=always
+{ 
+  0.0:* :: ""
+} 2.0
+
+CCTK_REAL vxLow "initial x component of velocity" STEERABLE=always
+{ 
+  *:* :: ""
+} 0.5
 
 # ---------------------------------------
 
