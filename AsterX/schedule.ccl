@@ -29,6 +29,8 @@ if(use_subcycling_wip) {
   STORAGE: k4_vector Avec_x_k4 Avec_y_k4 Avec_z_k4 Psi_k4
 }
 
+STORAGE: cons_vector_pv
+
 
 if(unit_test)
 {
@@ -241,6 +243,23 @@ if (mag_correction_order > 2) {
   } "Communicate cell centered dB between processes"
 }
 
+# Convert cell-averages to point values at 4th order
+SCHEDULE AsterX_SetPointValues IN AsterX_Con2PrimGroup BEFORE AsterX_Con2Prim
+{
+  LANG: C
+  READS: dens(everywhere) tau(everywhere) DEnt(everywhere) mom(everywhere) DYe(everywhere)
+  WRITES: cons_vector_pv(everywhere)
+} "Convert cell-averages to point values at 4th order."
+
+# Extra interprocessor syncs only for higher order FV code
+if (use_ho_fv) {
+  SCHEDULE AsterX_CommConsPV IN AsterX_Con2PrimGroup AFTER AsterX_SetPointValues BEFORE AsterX_Con2Prim 
+  {
+    LANG: C
+    OPTIONS: global
+  } "Communicate cons_vector_pv between processes"
+}
+
 SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBstag
 {
   LANG: C
@@ -248,6 +267,7 @@ SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBsta
   READS: ADMBaseX::metric(everywhere)
   READS: ADMBaseX::lapse(everywhere)
   READS: cons_vector(everywhere) dB(everywhere)
+  READS: cons_vector_pv(everywhere)
   READS: ADMBaseX::shift(everywhere)
   READS: saved_prims(everywhere)
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
@@ -318,6 +338,15 @@ SCHEDULE AsterX_RestrictFluxes IN AsterX_RHSGroup AFTER AsterX_Fluxes BEFORE Ast
   LANG: C
   OPTIONS: global
 } "Apply CarpetX boundary conditions on flux variables"
+}
+
+if (use_ho_fv) {
+  SCHEDULE AsterX_FluxesFVHO IN AsterX_RHSGroup AFTER AsterX_Fluxes BEFORE AsterX_RestrictFluxes
+  {
+    LANG: C
+    READS: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
+    WRITES: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
+  } "Add HO FV correction to fluxes"
 }
 
 SCHEDULE AsterX_CalcAuxTermsForAvecPsiRHS IN AsterX_RHSGroup AFTER AsterX_Fluxes BEFORE AsterX_SourceTerms

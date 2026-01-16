@@ -86,7 +86,8 @@ public:
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
   cons_floors_and_ceilings(const EOSType *eos_3p, cons_vars &cv,
                            const smat<CCTK_REAL, 3> &glo,
-                           const CCTK_REAL &tauFluid_atm) const;
+                           const CCTK_REAL &tauFluid_atm,
+                           bool &write_back) const;
 };
 
 template <typename EOSType>
@@ -433,7 +434,8 @@ template <typename EOSType>
 CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
 c2p::cons_floors_and_ceilings(const EOSType *eos_3p, cons_vars &cv,
                               const smat<CCTK_REAL, 3> &glo,
-                              const CCTK_REAL &tauFluid_atmo) const {
+                              const CCTK_REAL &tauFluid_atmo,
+                              bool &write_back) const {
 
   // Limit conservative variables
   // Note that conservatives are densitized
@@ -456,6 +458,7 @@ c2p::cons_floors_and_ceilings(const EOSType *eos_3p, cons_vars &cv,
   if (cv.tau <= tau_lim) {
     //cv.tau = tau_lim + tauF_atmo;
     cv.tau = tau_lim + sqrt_detg * tauFluid_atmo;
+    write_back = true;
   }
 
   // Dominant energy condition
@@ -470,6 +473,7 @@ c2p::cons_floors_and_ceilings(const EOSType *eos_3p, cons_vars &cv,
   if (mom2L > slim2) {
     // (A51) from https://arxiv.org/pdf/1112.0568
     cv.mom = cv.mom * sqrt(slim2 / mom2L);
+    write_back = true;
   }
 };
 

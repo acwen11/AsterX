@@ -95,6 +95,10 @@ CCTK_INT unit_test_repetitions "Number of times each unit test should be repeate
 
 restricted:
 
+BOOLEAN use_ho_fv "HO FV terms" STEERABLE=always
+{
+} no
+
 CCTK_INT mag_correction_order "Order of accuracy for higher order corrections to magnetic field evolution" STEERABLE=never
 {
   2 :: "Second order accurate"
