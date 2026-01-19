@@ -496,8 +496,11 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     const CCTK_REAL B2 = calc_contraction(pv.Bvec, B_low);
     const CCTK_REAL bsq = ( B2 + alp_b0 * alp_b0 ) / ( wlor*wlor );
 
-    sigma(p.I) = bsq/pv.rho;
+    sigma(p.I)    = bsq/pv.rho;
     inv_beta(p.I) = 0.5 * bsq/pv.press;
+    wlorentz(p.I) = wlor;
+    normB(p.I)    = sqrt(B2);
+    smallb2(p.I)  = bsq; 
   };
 
   cctk_grid.loop_all_device<1, 1, 1>(grid.nghostzones, c2p_impl);
