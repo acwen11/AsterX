@@ -119,9 +119,6 @@ CCTK_REAL Fbeta TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"'
   Fbetax, Fbetay, Fbetaz
 } "Auxiliary variables which appear in the rhs of Psi"
 
-CCTK_REAL volform TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "sqrt(detg)"
-CCTK_REAL w_lorentz TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Fluid Lorentz factor"
-
 CCTK_REAL G TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"' "Auxiliary variable which appears in the rhs of Avec"
 
 CCTK_REAL Fx_stag TYPE=gf CENTERING={cvv} TAGS='checkpoint="no"' "x-component of F"
@@ -138,12 +135,15 @@ CCTK_REAL Ez TYPE=gf CENTERING={vvc} TAGS='checkpoint="no"' "z-component of E"
 
 CCTK_REAL con2prim_flag TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Flag indicating failure of con2prim"
 
-CCTK_REAL diagnostics TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
+CCTK_REAL helpers TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
 {
+  sigma
+  inv_beta
   w_lorentz
   B_norm
   b2small
-} "Diagnostic grid functions"
+  volform
+} "Helper grid functions"
 
 # saved_prims are computed only once at the beginning of the simulation
 # at the outer physical boundary because they are not needed afterwards 

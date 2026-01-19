@@ -485,19 +485,19 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     saved_eps(p.I) = eps(p.I);
     saved_Ye(p.I) = Ye(p.I);
 
-    // Compute diagnostics
+    // Compute helpers
+    volform(p.I) = sqrt_detg;
+    w_lorentz(p.I) = wlor;
     v_low = calc_contraction(glo, pv.vel);
     const vec<CCTK_REAL, 3> B_low = calc_contraction(glo, pv.Bvec);
 
     const CCTK_REAL alp_b0 = wlor * calc_contraction(pv.Bvec, v_low);
 
     const CCTK_REAL B2 = calc_contraction(pv.Bvec, B_low);
-    const CCTK_REAL bsq = (B2 + alp_b0 * alp_b0) / (wlor * wlor);
+    const CCTK_REAL bsq = ( B2 + alp_b0 * alp_b0 ) / ( wlor*wlor );
 
-    w_lorentz(p.I) = wlor;
-    B_norm(p.I) = sqrt(B2);
-    b2small(p.I) = bsq;
-    volform(p.I) = sqrt_detg;
+    sigma(p.I) = bsq/pv.rho;
+    inv_beta(p.I) = 0.5 * bsq/pv.press;
   };
 
   cctk_grid.loop_all_device<1, 1, 1>(grid.nghostzones, c2p_impl);
