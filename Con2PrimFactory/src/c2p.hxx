@@ -312,7 +312,6 @@ c2p::prims_floors_and_ceilings(const EOSType *eos_3p, prim_vars &pv,
       pv.w_lor = 1. / sqrt(1. - vsq_Sol); 
     }
   }
-
 }
 
 template <typename EOSType, bool limiting>

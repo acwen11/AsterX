@@ -120,6 +120,9 @@ CCTK_REAL helpers TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
 {
   sigma
   inv_beta
+  wlorentz
+  normB
+  smallb2
 } "Helper grid functions"
 
 # saved_prims are computed only once at the beginning of the simulation
