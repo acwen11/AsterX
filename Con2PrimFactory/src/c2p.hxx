@@ -46,6 +46,8 @@ protected:
   CCTK_REAL rho_BH;
   CCTK_REAL eps_BH;
   CCTK_REAL vwlim_BH;
+  CCTK_REAL sigma_max;
+  CCTK_REAL inv_beta_max;
   bool ye_lenient;
   bool use_zprim;
   bool use_temp;
@@ -68,7 +70,10 @@ protected:
   template <typename EOSType>
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
   prims_floors_and_ceilings(const EOSType *eos_3p, prim_vars &pv,
-                            const cons_vars &cv, const smat<CCTK_REAL, 3> &glo,
+                            const cons_vars &cv,
+			    const CCTK_REAL alp,
+			    const vec<CCTK_REAL, 3> &beta, 
+			    const smat<CCTK_REAL, 3> &glo,
                             c2p_report &rep) const;
 
 public:
@@ -88,10 +93,15 @@ template <typename EOSType>
 CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
 c2p::prims_floors_and_ceilings(const EOSType *eos_3p, prim_vars &pv,
                                const cons_vars &cv,
+			       const CCTK_REAL alp,
+			       const vec<CCTK_REAL, 3> &beta,
                                const smat<CCTK_REAL, 3> &glo,
                                c2p_report &rep) const {
 
   bool recomp_eps_press_entropy = false;
+
+  // Need to store this here for later use
+  const CCTK_REAL rho_h_fluid_old = pv.rho + pv.rho*pv.eps + pv.press;
 
   // ----------
   // Floor and ceiling for Ye
@@ -116,7 +126,7 @@ c2p::prims_floors_and_ceilings(const EOSType *eos_3p, prim_vars &pv,
   // ----------
 
   // check if computed velocities are within the specified limit
-  const vec<CCTK_REAL, 3> v_low = calc_contraction(glo, pv.vel);
+  vec<CCTK_REAL, 3> v_low = calc_contraction(glo, pv.vel);
   CCTK_REAL vsq_Sol = calc_contraction(v_low, pv.vel);
   CCTK_REAL sol_v = sqrt(vsq_Sol);
 
@@ -212,6 +222,95 @@ c2p::prims_floors_and_ceilings(const EOSType *eos_3p, prim_vars &pv,
     pv.eps = eos_3p->eps_from_valid_rho_temp_ye(pv.rho, pv.temperature, pv.Ye);
     pv.press = eos_3p->press_from_valid_rho_temp_ye(pv.rho, pv.temperature, pv.Ye);
     pv.entropy = eos_3p->kappa_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+    recomp_eps_press_entropy = false;
+  }
+
+  // ----------
+  // Floors for jet/magnetized regions
+  // ----------
+
+  // Compute helpers
+
+  v_low = calc_contraction(glo, pv.vel);
+  const vec<CCTK_REAL, 3> B_low = calc_contraction(glo, pv.Bvec);
+
+  const CCTK_REAL Bdotv  = calc_contraction(pv.Bvec, v_low);
+  const CCTK_REAL alp_b0 = pv.w_lor * Bdotv;
+
+  const CCTK_REAL B2 = calc_contraction(pv.Bvec, B_low);
+  const CCTK_REAL bsq = ( B2 + alp_b0 * alp_b0 ) / ( pv.w_lor*pv.w_lor );
+
+  // Add mass and energy for sigma and inv beta ceiling
+
+  bool mag_ceiling = false;
+  
+  if (bsq > sigma_max * pv.rho) { 
+    pv.rho = bsq / sigma_max;
+    mag_ceiling = true;
+  }
+
+  if ( bsq > 2.0 * inv_beta_max * pv.press ) {
+    pv.press = 0.5 * bsq / inv_beta_max;
+    mag_ceiling = true;
+  }
+
+  if (mag_ceiling) {
+
+    rep.adjust_cons = true;
+
+    pv.eps = eos_3p->eps_from_valid_rho_press_ye(pv.rho, pv.press, pv.Ye);
+    pv.temperature = eos_3p->temp_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+    pv.entropy = eos_3p->kappa_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+    mag_ceiling = false;
+
+    // Drift floors from https://arxiv.org/pdf/1611.09365
+    // to correct parallel velocity, adapted from SphericalNR
+    // by Vassilios Mewes
+
+    const CCTK_REAL B = sqrt(B2);
+
+    const CCTK_REAL ut = pv.w_lor / alp;
+
+    const CCTK_REAL u1 = pv.w_lor * (pv.vel(0) - beta(0)/alp);
+    const CCTK_REAL u2 = pv.w_lor * (pv.vel(1) - beta(1)/alp);
+    const CCTK_REAL u3 = pv.w_lor * (pv.vel(2) - beta(2)/alp);
+
+    const CCTK_REAL v_par_old = pv.w_lor * Bdotv / B / ut;
+
+    const CCTK_REAL ut_perp = 1.0 / sqrt(1.0/(ut*ut) + v_par_old*v_par_old);
+
+    const CCTK_REAL u1_perp = ut_perp * (u1/ut - v_par_old * pv.Bvec(0) / B);
+    const CCTK_REAL u2_perp = ut_perp * (u2/ut - v_par_old * pv.Bvec(1) / B);
+    const CCTK_REAL u3_perp = ut_perp * (u3/ut - v_par_old * pv.Bvec(2) / B);
+
+    const CCTK_REAL BdotQ = pv.w_lor * rho_h_fluid_old * Bdotv * ut;
+
+    const CCTK_REAL rho_h_fluid_new = pv.rho + pv.rho*pv.eps + pv.press;
+
+    const CCTK_REAL xx = 2.0*BdotQ/(B*rho_h_fluid_new*ut_perp);
+
+    const CCTK_REAL v_par_new = xx/(1.0 + sqrt(1.0+xx*xx))/ut_perp;
+
+    const CCTK_REAL v1_new = v_par_new * pv.Bvec(0) / B + u1_perp/ut_perp;
+    const CCTK_REAL v2_new = v_par_new * pv.Bvec(1) / B + u2_perp/ut_perp;
+    const CCTK_REAL v3_new = v_par_new * pv.Bvec(2) / B + u3_perp/ut_perp;
+
+    // Now update the Valencia three-velocity
+
+    pv.vel(0) = (v1_new + beta(0)) / alp;
+    pv.vel(1) = (v2_new + beta(1)) / alp;
+    pv.vel(2) = (v3_new + beta(2)) / alp;
+
+    v_low   = calc_contraction(glo, pv.vel);
+    vsq_Sol = calc_contraction(v_low, pv.vel);
+    sol_v   = sqrt(vsq_Sol);
+
+    if ( sol_v > v_lim ) {
+      pv.vel *= v_lim / sol_v;
+      pv.w_lor = w_lim;
+    } else {
+      pv.w_lor = 1. / sqrt(1. - vsq_Sol); 
+    }
   }
 
 }

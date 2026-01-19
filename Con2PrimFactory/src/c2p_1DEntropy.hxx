@@ -16,7 +16,9 @@ public:
       const EOSType *eos_3p, const atmosphere &atm, CCTK_INT maxIter,
       CCTK_REAL tol, CCTK_REAL alp_thresh_in, CCTK_REAL consError,
       CCTK_REAL vwlim, CCTK_REAL B_lim, CCTK_REAL rho_BH_in,
-      CCTK_REAL eps_BH_in, CCTK_REAL vwlim_BH_in, bool ye_len, bool use_z,
+      CCTK_REAL eps_BH_in, CCTK_REAL vwlim_BH_in, 
+      CCTK_REAL sigma_max_in, CCTK_REAL inv_beta_max_in,
+      bool ye_len, bool use_z,
       bool use_temperature, bool use_pressure_atmo);
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
@@ -50,7 +52,9 @@ public:
   template <typename EOSType>
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
   solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
-        const smat<CCTK_REAL, 3> &glo, c2p_report &rep) const;
+		  const CCTK_REAL alp,
+		  const vec<CCTK_REAL, 3> &beta,
+                  const smat<CCTK_REAL, 3> &glo, c2p_report &rep) const;
 
   /* Destructor */
   CCTK_HOST CCTK_DEVICE ~c2p_1DEntropy();
@@ -63,7 +67,9 @@ CCTK_HOST CCTK_DEVICE
         const EOSType *eos_3p, const atmosphere &atm, CCTK_INT maxIter,
         CCTK_REAL tol, CCTK_REAL alp_thresh_in, CCTK_REAL consError,
         CCTK_REAL vwlim, CCTK_REAL B_lim, CCTK_REAL rho_BH_in,
-        CCTK_REAL eps_BH_in, CCTK_REAL vwlim_BH_in, bool ye_len, bool use_z,
+        CCTK_REAL eps_BH_in, CCTK_REAL vwlim_BH_in, 
+	CCTK_REAL sigma_max_in, CCTK_REAL inv_beta_max_in,
+	bool ye_len, bool use_z,
         bool use_temperature, bool use_pressure_atmo) {
 
   // Base
@@ -79,6 +85,8 @@ CCTK_HOST CCTK_DEVICE
   rho_BH = rho_BH_in;
   eps_BH = eps_BH_in;
   vwlim_BH = vwlim_BH_in;
+  sigma_max = sigma_max_in;
+  inv_beta_max = inv_beta_max_in;
   ye_lenient = ye_len;
   use_zprim = use_z;
   use_temp = use_temperature;
@@ -267,6 +275,8 @@ c2p_1DEntropy::funcRoot_1DEntropy(CCTK_REAL Ssq, CCTK_REAL Bsq, CCTK_REAL BiSi,
 template <typename EOSType>
 CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
 c2p_1DEntropy::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
+		     const CCTK_REAL alp,
+                     const vec<CCTK_REAL, 3> &beta,
                      const smat<CCTK_REAL, 3> &glo, c2p_report &rep) const {
 
   // ROOTSTAT status = ROOTSTAT::SUCCESS;
@@ -430,7 +440,7 @@ c2p_1DEntropy::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
     return;
   }
 
-  c2p::prims_floors_and_ceilings(eos_3p, pv, cv, glo, rep);
+  c2p::prims_floors_and_ceilings(eos_3p, pv, cv, alp, beta, glo, rep);
 
   // Recompute cons if prims have been adjusted
   if (rep.adjust_cons) {

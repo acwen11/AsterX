@@ -13,16 +13,16 @@ USES INCLUDE HEADER: aster_fd.hxx aster_interp.hxx aster_utils.hxx
 
 PUBLIC:
 
-CCTK_REAL dens TYPE=gf CENTERING={ccc} TAGS='rhs="densrhs" dependents="HydroBaseX::rho TmunuBaseX::eTtt AsterX::flux_x AsterX::flux_y AsterX::flux_z"' "Conserved rest mass density"
+CCTK_REAL dens TYPE=gf CENTERING={ccc} TAGS='rhs="densrhs" dependents="HydroBaseX::rho TmunuBaseX::eTtt AsterX::flux_x AsterX::flux_y AsterX::flux_z" prolongation_type="minmod" prolongation_order=1' "Conserved rest mass density"
 
-CCTK_REAL mom TYPE=gf CENTERING={ccc} TAGS='rhs="momrhs" dependents="HydroBaseX::vel TmunuBaseX::eTti"'
+CCTK_REAL mom TYPE=gf CENTERING={ccc} TAGS='rhs="momrhs" dependents="HydroBaseX::vel TmunuBaseX::eTti" prolongation_type="minmod" prolongation_order=1'
 {
   momx, momy, momz
 } "Conserved momentum density"
 
-CCTK_REAL tau TYPE=gf CENTERING={ccc} TAGS='rhs="taurhs" dependents="HydroBaseX::eps HydroBaseX::press HydroBaseX::temperature HydroBaseX::Ye HydroBaseX::Bvec TmunuBaseX::eTij"' "Conserved internal energy density"
+CCTK_REAL tau TYPE=gf CENTERING={ccc} TAGS='rhs="taurhs" dependents="HydroBaseX::eps HydroBaseX::press HydroBaseX::temperature HydroBaseX::Ye HydroBaseX::Bvec TmunuBaseX::eTij" prolongation_type="minmod" prolongation_order=1' "Conserved internal energy density"
 
-CCTK_REAL DYe TYPE=gf CENTERING={ccc} TAGS='rhs="DYe_rhs" dependents="HydroBaseX::Ye AsterX::flux_x AsterX::flux_y AsterX::flux_z"' "Conserved electron fraction"
+CCTK_REAL DYe TYPE=gf CENTERING={ccc} TAGS='rhs="DYe_rhs" dependents="HydroBaseX::Ye AsterX::flux_x AsterX::flux_y AsterX::flux_z" prolongation_type="minmod" prolongation_order=1' "Conserved electron fraction"
 
 # DEnt is the conserved "evolved" entropy.
 # The corresponding primitive is stored in HydroBaseX::entropy.
@@ -34,7 +34,7 @@ CCTK_REAL DYe TYPE=gf CENTERING={ccc} TAGS='rhs="DYe_rhs" dependents="HydroBaseX
 # refer to "physical" and "evolved" entropy, respectively. In this 
 # evolution thorn we always refer to DEnt and entropy to describe 
 # the "evolved" quantities. 
-CCTK_REAL DEnt TYPE=gf CENTERING={ccc} TAGS='rhs="DEntrhs" dependents="HydroBaseX::entropy AsterX::flux_x AsterX::flux_y AsterX::flux_z"' "Advected entropy density"
+CCTK_REAL DEnt TYPE=gf CENTERING={ccc} TAGS='rhs="DEntrhs" dependents="HydroBaseX::entropy AsterX::flux_x AsterX::flux_y AsterX::flux_z" prolongation_type="minmod" prolongation_order=1' "Advected entropy density"
 
 CCTK_REAL flux_x TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'
 {
@@ -78,9 +78,9 @@ CCTK_REAL taurhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved inter
 CCTK_REAL DYe_rhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved electron fraction RHS"
 CCTK_REAL DEntrhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Advected entropy density RHS"
 
-CCTK_REAL Avec_x TYPE=gf CENTERING={cvv} TAGS='rhs="Avec_x_rhs"' "x-component of vector potential"
-CCTK_REAL Avec_y TYPE=gf CENTERING={vcv} TAGS='rhs="Avec_y_rhs"' "y-component of vector potential"
-CCTK_REAL Avec_z TYPE=gf CENTERING={vvc} TAGS='rhs="Avec_z_rhs"' "z-component of vector potential"
+CCTK_REAL Avec_x TYPE=gf CENTERING={cvv} TAGS='rhs="Avec_x_rhs" prolongation_type="hermite" prolongation_order=5' "x-component of vector potential"
+CCTK_REAL Avec_y TYPE=gf CENTERING={vcv} TAGS='rhs="Avec_y_rhs" prolongation_type="hermite" prolongation_order=5' "y-component of vector potential"
+CCTK_REAL Avec_z TYPE=gf CENTERING={vvc} TAGS='rhs="Avec_z_rhs" prolongation_type="hermite" prolongation_order=5' "z-component of vector potential"
 
 CCTK_REAL Avec_x_rhs TYPE=gf CENTERING={cvv} TAGS='checkpoint="no"' "x-component of vector potential RHS"
 CCTK_REAL Avec_y_rhs TYPE=gf CENTERING={vcv} TAGS='checkpoint="no"' "y-component of vector potential RHS"
@@ -91,11 +91,11 @@ CCTK_REAL dB TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
   dBx, dBy, dBz
 } "Densitized magnetic field components: sqrt(det(gamma_ij))*B^k"
 
-CCTK_REAL dBx_stag TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"' "x-component of staggered densitized magnetic field"
-CCTK_REAL dBy_stag TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"' "y-component of staggered densitized magnetic field"
-CCTK_REAL dBz_stag TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"' "z-component of staggered densitized magnetic field"
+CCTK_REAL dBx_stag TYPE=gf CENTERING={vcc} TAGS='checkpoint="no" prolongation_type="poly-cons3lfb" prolongation_order=3' "x-component of staggered densitized magnetic field"
+CCTK_REAL dBy_stag TYPE=gf CENTERING={cvc} TAGS='checkpoint="no" prolongation_type="poly-cons3lfb" prolongation_order=3' "y-component of staggered densitized magnetic field"
+CCTK_REAL dBz_stag TYPE=gf CENTERING={ccv} TAGS='checkpoint="no" prolongation_type="poly-cons3lfb" prolongation_order=3' "z-component of staggered densitized magnetic field"
 
-CCTK_REAL Psi TYPE=gf CENTERING={vvv} TAGS='rhs="Psi_rhs"' "t-component of vector potential: sqrt(det(gamma_ij))*Phi"
+CCTK_REAL Psi TYPE=gf CENTERING={vvv} TAGS='rhs="Psi_rhs" prolongation_type="hermite" prolongation_order=5' "t-component of vector potential: sqrt(det(gamma_ij))*Phi"
 
 CCTK_REAL Psi_rhs TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"' "t-component of vector potential RHS"
 
@@ -115,6 +115,12 @@ CCTK_REAL Fy_stag TYPE=gf CENTERING={vcv} TAGS='checkpoint="no"' "y-component of
 CCTK_REAL Fz_stag TYPE=gf CENTERING={vvc} TAGS='checkpoint="no"' "z-component of F"
 
 CCTK_REAL con2prim_flag TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Flag indicating failure of con2prim"
+
+CCTK_REAL helpers TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
+{
+  sigma
+  inv_beta
+} "Helper grid functions"
 
 # saved_prims are computed only once at the beginning of the simulation
 # at the outer physical boundary because they are not needed afterwards 
