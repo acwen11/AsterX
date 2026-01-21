@@ -35,7 +35,7 @@ void CalcRHSofAvec_impl(CCTK_ARGUMENTS, const int order) {
         grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
           gf_Avec_rhs(i)(p.I) =
-              -gf_E(i)(p.I) - calc_fd2_forward_midpoint<i>(G, p, order);
+              -gf_E(i)(p.I) - calc_fd_forward_midpoint<i>(G, p, order);
         });
   }
 }
@@ -129,9 +129,9 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
       [=] CCTK_DEVICE(const vec<GF3D2<const CCTK_REAL>, dim> &gf_fluxes,
                       const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         vec<CCTK_REAL, 3> dfluxes{
-            calc_fd2_forward_midpoint<0>(gf_fluxes(0), p, correction_order),
-            calc_fd2_forward_midpoint<1>(gf_fluxes(1), p, correction_order),
-            calc_fd2_forward_midpoint<2>(gf_fluxes(2), p, correction_order)};
+            calc_fd_forward_midpoint<0>(gf_fluxes(0), p, hydro_correction_order),
+            calc_fd_forward_midpoint<1>(gf_fluxes(1), p, hydro_correction_order),
+            calc_fd_forward_midpoint<2>(gf_fluxes(2), p, hydro_correction_order)};
         return -(dfluxes(0) + dfluxes(1) + dfluxes(2));
       };
 
@@ -166,9 +166,9 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
 #endif
       });
 
-  CalcRHSofAvec<0>(CCTK_PASS_CTOC, gauge, mag_order);
-  CalcRHSofAvec<1>(CCTK_PASS_CTOC, gauge, mag_order);
-  CalcRHSofAvec<2>(CCTK_PASS_CTOC, gauge, mag_order);
+  CalcRHSofAvec<0>(CCTK_PASS_CTOC, gauge, mag_correction_order);
+  CalcRHSofAvec<1>(CCTK_PASS_CTOC, gauge, mag_correction_order);
+  CalcRHSofAvec<2>(CCTK_PASS_CTOC, gauge, mag_correction_order);
 
   CalcRHSofPsi(CCTK_PASS_CTOC, gauge, lorenz_damp_fac);
 }

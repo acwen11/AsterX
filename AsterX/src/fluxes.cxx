@@ -102,7 +102,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
   const vec<GF3D2<CCTK_REAL>, dim> am_face{amin_xface, amin_yface, amin_zface};
 
   /* grid functions for PP flux limiter */
-  const vec<GF3D2<CCTK_REAL>, dim> thetagf{theta_x, theta_y, theta_z};
+  const vec<GF3D2<CCTK_REAL>, dim> gf_theta{theta_x, theta_y, theta_z};
 
   static_assert(dir_i >= 0 && dir_i < 3, "");
 
@@ -174,10 +174,10 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
         vbar_j(dir_i)(p.I) = 0;
         vbar_k(dir_i)(p.I) = 0;
 
-        thetagf(dir_i)(p.I) = 1.0;
+        gf_theta(dir_i)(p.I) = 1.0;
       });
 
-  const int nloop = (correction_order - 2) / 2;
+  const int nloop = (hydro_correction_order - 2) / 2;
   grid.loop_mixpn_device<
       face_centred[0], face_centred[1],
       face_centred
@@ -237,13 +237,13 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
                      ? (rho_abs_min * pow((r_atmo / r_atm(0)), n_rho_atmo))
                      : rho_abs_min;
     rho_atm(0) = std::max(eos_3p->rgrho.min, rho_atm(0));
-    rho_cut(0) = rho_atm(0) * recon_fthr;
+    rho_cut(0) = rho_atm(0) * recon_thresh;
 
     rho_atm(1) = (r_atm(1) > r_atmo)
                      ? (rho_abs_min * pow((r_atmo / r_atm(1)), n_rho_atmo))
                      : rho_abs_min;
     rho_atm(1) = std::max(eos_3p->rgrho.min, rho_atm(1));
-    rho_cut(1) = rho_atm(1) * recon_fthr;
+    rho_cut(1) = rho_atm(1) * recon_thresh;
 
     // Grading temperature or pressure
     if (use_press_atmo) {
@@ -706,46 +706,13 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
       const auto Im = p.I - p.DI[dir_i];
 
       /* BEGIN REPEATED RECONSTRUCTION CODE */
-      // Reconstruct density
+      // Copy fluid quantities from cell center to face
       vec<CCTK_REAL, 2> rho_ppl = {rho(Im), rho(Ip)};
-
-      // Reconstruct entropy
       vec<CCTK_REAL, 2> entropy_ppl = {entropy(Im), entropy(Ip)};
-
-      // Reconstruct Ye
       vec<CCTK_REAL, 2> Ye_ppl = {Ye(Im), Ye(Ip)};
-
-      // Initialize variables for eps, pressure, and temperature
-      vec<CCTK_REAL, 2> eps_ppl;
-      vec<CCTK_REAL, 2> press_ppl;
-      vec<CCTK_REAL, 2> temp_ppl;
-
-      if (reconstruct_with_temperature) {
-
-        // Reconstruct temperature
-        temp_ppl = {temperature(Im), temperature(Ip)};
-
-        // Compute eps_ppl and press_ppl using lambdas
-        for (int f = 0; f < 2; ++f) {
-          eps_ppl(f) = eos_3p->eps_from_valid_rho_temp_ye(
-              rho_ppl(f), temp_ppl(f), Ye_ppl(f));
-          press_ppl(f) = eos_3p->press_from_valid_rho_temp_ye(
-              rho_ppl(f), temp_ppl(f), Ye_ppl(f));
-        }
-
-      } else {
-
-        // Reconstruct pressure
-        press_ppl = {press(Im), press(Ip)};
-
-        // Compute eps_ppl and temp_ppl using lambdas
-        for (int f = 0; f < 2; ++f) {
-          eps_ppl(f) = eos_3p->eps_from_valid_rho_press_ye(
-              rho_ppl(f), press_ppl(f), Ye_ppl(f));
-          temp_ppl(f) = eos_3p->temp_from_valid_rho_eps_ye(
-              rho_ppl(f), eps_ppl(f), Ye_ppl(f));
-        }
-      }
+      vec<CCTK_REAL, 2> eps_ppl = {eps(Im), eps(Ip)};
+      vec<CCTK_REAL, 2> press_ppl = {press(Im), press(Ip)};
+      vec<CCTK_REAL, 2> temp_ppl = {temperature(Im), temperature(Ip)};
 
       const vec<CCTK_REAL, 2> rhoh_ppl([&](int f) ARITH_INLINE {
         return rho_ppl(f) + rho_ppl(f) * eps_ppl(f) + press_ppl(f);
@@ -1008,9 +975,9 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
           (1 - theta) * fluxLOmomzs + theta * fluxmomzs(dir_i)(Ip);
       fluxtaus(dir_i)(Ip) =
           (1 - theta) * fluxLOtaus + theta * fluxtaus(dir_i)(Ip);
-      thetagf(dir_i)(Ip) = theta;
+      gf_theta(dir_i)(Ip) = theta;
     } else {
-      thetagf(dir_i)(p.I) = 1.0;
+      gf_theta(dir_i)(p.I) = 1.0;
     }
 
 #ifdef CCTK_DEBUG

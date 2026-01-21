@@ -47,7 +47,7 @@ calc_avg_v2c(const GF3D2<const T> &gf, const PointDesc &p,
       }
     }
   }
-  return gf_avg / 8.0;
+  return gf_avg * T(0.125);
 }
 
 // Second-order average of edge-centered grid functions to vertex-centered
@@ -84,6 +84,57 @@ calc_avg_e2e(const GF3D2<const T> &gf, const PointDesc &p) {
 }
 
 // 1D average of face-centered grid functions to cell-centered
+// template <int FDORDER, typename T>
+// CCTK_DEVICE CCTK_HOST
+//     CCTK_ATTRIBUTE_ALWAYS_INLINE inline std::enable_if_t<FDORDER == 2, T>
+// calc_avg_f2c(const GF3D2<const T> &gf, const PointDesc &p, const int dir) {
+//   // Fill stencil
+//   array<vect<int, dim>, FDORDER> stencil;
+//   const int nstencil = (FDORDER / 2) - 1;
+//   int offset = -nstencil;
+//   for (int ii = 2 - nstencil; ii <= 3 + nstencil; ii++) {
+//     stencil[ii] = p.I + offset * p.DI[dir];
+//     offset += 1;
+//   }
+// 
+//   return 0.5 * (gf(stencil[0]) + gf(stencil[1]));
+// }
+// 
+// template <int FDORDER, typename T>
+// CCTK_DEVICE CCTK_HOST
+//     CCTK_ATTRIBUTE_ALWAYS_INLINE inline std::enable_if_t<FDORDER == 4, T>
+// calc_avg_f2c(const GF3D2<const T> &gf, const PointDesc &p, const int dir) {
+//   // Fill stencil
+//   array<vect<int, dim>, FDORDER> stencil;
+//   const int nstencil = (FDORDER / 2) - 1;
+//   int offset = -nstencil;
+//   for (int ii = 2 - nstencil; ii <= 3 + nstencil; ii++) {
+//     stencil[ii] = p.I + offset * p.DI[dir];
+//     offset += 1;
+//   }
+// 
+//   return -(1.0 / 16.0) * (gf(stencil[0]) + gf(stencil[3])) +
+//          (9.0 / 16.0) * (gf(stencil[1]) + gf(stencil[2]));
+// }
+// 
+// template <int FDORDER, typename T>
+// CCTK_DEVICE CCTK_HOST
+//     CCTK_ATTRIBUTE_ALWAYS_INLINE inline std::enable_if_t<FDORDER == 6, T>
+// calc_avg_f2c(const GF3D2<const T> &gf, const PointDesc &p, const int dir) {
+//   // Fill stencil
+//   array<vect<int, dim>, FDORDER> stencil;
+//   const int nstencil = (FDORDER / 2) - 1;
+//   int offset = -nstencil;
+//   for (int ii = 2 - nstencil; ii <= 3 + nstencil; ii++) {
+//     stencil[ii] = p.I + offset * p.DI[dir];
+//     offset += 1;
+//   }
+// 
+//   return (3.0 / 256.0) * (gf(stencil[0]) + gf(stencil[5])) -
+//          (25.0 / 256.0) * (gf(stencil[1]) + gf(stencil[4])) +
+//          (150.0 / 256.0) * (gf(stencil[2]) + gf(stencil[3]));
+// }
+
 template <typename T>
 CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
 calc_avg_f2c(const GF3D2<const T> &gf, const PointDesc &p, const int dir,

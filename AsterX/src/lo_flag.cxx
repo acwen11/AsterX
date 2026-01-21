@@ -59,7 +59,7 @@ template <typename EOSType> void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p) {
   grid.loop_int_device<1, 1, 1>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        if (rho(p.I) < LO_rhothresh) {
+        if (rho(p.I) < loworder_rho_thresh) {
           LOflag(p.I) = 1.0;
           return;
         }

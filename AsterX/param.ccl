@@ -29,7 +29,7 @@ KEYWORD flux_type "Flux solver" STEERABLE=always
   "HLLE" :: ""
 } "LxF"
 
-CCTK_INT correction_order "Order of accuracy to check if higher order corrections are to be applied" STEERABLE=never
+CCTK_INT hydro_correction_order "Order of accuracy for higher order corrections to hydrodynamic fluxes" STEERABLE=never
 {
   2 :: "Second order accurate"
   4 :: "Fourth order accurate"
@@ -49,7 +49,7 @@ CCTK_REAL eta_thresh "Threshold for shock detection measure (see Berta+ 2025, Ki
   *:* :: "Large number (eg. 1e100) to force H.O., negative to force L.O."
 } 0.005
 
-CCTK_REAL LO_rhothresh "Set LO flag to 0 below density threshold" STEERABLE=always
+CCTK_REAL loworder_rho_thresh "Set low-order flag to 0 below density threshold" STEERABLE=always
 {
   0:* :: "Larger than zero"
 } 0.0
@@ -57,11 +57,6 @@ CCTK_REAL LO_rhothresh "Set LO flag to 0 below density threshold" STEERABLE=alwa
 BOOLEAN loworder_flux "Fall back to Lax-Friedrichs flux on flagged points?" STEERABLE=always
 {
 } "no"
-
-CCTK_REAL recon_fthr "Threshold for resetting reconstructed values to atmo a la AthenaK." STEERABLE=always
-{
-  0:* :: "Larger than zero"
-} 0.0
 
 BOOLEAN local_estimate_error "Use error estimation criteria of this thorn" STEERABLE=always
 {
@@ -100,7 +95,7 @@ CCTK_INT unit_test_repetitions "Number of times each unit test should be repeate
 
 restricted:
 
-CCTK_INT mag_order "Separate mag and hydro DER order for now" STEERABLE=never
+CCTK_INT mag_correction_order "Order of accuracy for higher order corrections to magnetic field evolution" STEERABLE=never
 {
   2 :: "Second order accurate"
   4 :: "Fourth order accurate"
@@ -197,6 +192,7 @@ SHARES: ReconX
 USES KEYWORD reconstruction_method
 USES KEYWORD loworder_method
 USES CCTK_BOOLEAN reconstruct_with_temperature
+USES CCTK_REAL recon_thresh
 USES CCTK_REAL ppm_eta1
 USES CCTK_REAL ppm_eta2
 USES CCTK_REAL ppm_eps

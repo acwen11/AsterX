@@ -64,7 +64,7 @@ SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_InitialGroup AFTER AsterX_Computed
 } "Calculate centered dB from dBstag"
 
 # Extra interprocessor syncs only for higher order stencils
-if (mag_order > 2) {
+if (mag_correction_order > 2) {
   SCHEDULE AsterX_CommdBstag IN AsterX_InitialGroup AFTER AsterX_ComputedBstagFromA BEFORE AsterX_ProlongatedBstag 
   {
     LANG: C
@@ -206,7 +206,7 @@ SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_Con2PrimGroup AFTER AsterX_Compute
 } "Calculate centered dB from dBstag"
 
 # Extra interprocessor syncs only for higher order stencils
-if (mag_order > 2) {
+if (mag_correction_order > 2) {
   SCHEDULE AsterX_CommdBstag IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBstagFromA BEFORE AsterX_ProlongatedBstag 
   {
     LANG: C

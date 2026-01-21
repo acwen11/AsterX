@@ -26,6 +26,11 @@ CCTK_BOOLEAN reconstruct_with_temperature "Whether to reconstruct temperature an
 {
 } no
 
+CCTK_REAL recon_thresh "Fraction of atmosphere density below which reconstructed values are reset to atmosphere" STEERABLE=always
+{
+  0:* :: "Larger than zero"
+} 0.0
+
 #PPM parameters
 
 CCTK_BOOLEAN ppm_shock_detection "Whether to activate the PPM shock detection mechanism to detect contact discontinuities" STEERABLE=ALWAYS
