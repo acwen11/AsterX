@@ -96,10 +96,10 @@ calc_avg_e2e(const GF3D2<const T> &gf, const PointDesc &p) {
 //     stencil[ii] = p.I + offset * p.DI[dir];
 //     offset += 1;
 //   }
-// 
+//
 //   return 0.5 * (gf(stencil[0]) + gf(stencil[1]));
 // }
-// 
+//
 // template <int FDORDER, typename T>
 // CCTK_DEVICE CCTK_HOST
 //     CCTK_ATTRIBUTE_ALWAYS_INLINE inline std::enable_if_t<FDORDER == 4, T>
@@ -112,11 +112,11 @@ calc_avg_e2e(const GF3D2<const T> &gf, const PointDesc &p) {
 //     stencil[ii] = p.I + offset * p.DI[dir];
 //     offset += 1;
 //   }
-// 
+//
 //   return -(1.0 / 16.0) * (gf(stencil[0]) + gf(stencil[3])) +
 //          (9.0 / 16.0) * (gf(stencil[1]) + gf(stencil[2]));
 // }
-// 
+//
 // template <int FDORDER, typename T>
 // CCTK_DEVICE CCTK_HOST
 //     CCTK_ATTRIBUTE_ALWAYS_INLINE inline std::enable_if_t<FDORDER == 6, T>
@@ -129,7 +129,7 @@ calc_avg_e2e(const GF3D2<const T> &gf, const PointDesc &p) {
 //     stencil[ii] = p.I + offset * p.DI[dir];
 //     offset += 1;
 //   }
-// 
+//
 //   return (3.0 / 256.0) * (gf(stencil[0]) + gf(stencil[5])) -
 //          (25.0 / 256.0) * (gf(stencil[1]) + gf(stencil[4])) +
 //          (150.0 / 256.0) * (gf(stencil[2]) + gf(stencil[3]));

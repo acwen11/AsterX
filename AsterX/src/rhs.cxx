@@ -128,10 +128,12 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
   const auto calcupdate_hydro =
       [=] CCTK_DEVICE(const vec<GF3D2<const CCTK_REAL>, dim> &gf_fluxes,
                       const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        vec<CCTK_REAL, 3> dfluxes{
-            calc_fd_forward_midpoint<0>(gf_fluxes(0), p, hydro_correction_order),
-            calc_fd_forward_midpoint<1>(gf_fluxes(1), p, hydro_correction_order),
-            calc_fd_forward_midpoint<2>(gf_fluxes(2), p, hydro_correction_order)};
+        vec<CCTK_REAL, 3> dfluxes{calc_fd_forward_midpoint<0>(
+                                      gf_fluxes(0), p, hydro_correction_order),
+                                  calc_fd_forward_midpoint<1>(
+                                      gf_fluxes(1), p, hydro_correction_order),
+                                  calc_fd_forward_midpoint<2>(
+                                      gf_fluxes(2), p, hydro_correction_order)};
         return -(dfluxes(0) + dfluxes(1) + dfluxes(2));
       };
 

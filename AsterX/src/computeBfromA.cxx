@@ -31,16 +31,19 @@ template <int dir> void ComputeStaggeredB(CCTK_ARGUMENTS) {
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         if (dir == 0) {
           /* dBx is curl(A) at (i-1/2,j,k) */
-          dBx_stag(p.I) = calc_fd_forward_midpoint<1>(Avec_z, p, mag_correction_order) -
-                          calc_fd_forward_midpoint<2>(Avec_y, p, mag_correction_order);
+          dBx_stag(p.I) =
+              calc_fd_forward_midpoint<1>(Avec_z, p, mag_correction_order) -
+              calc_fd_forward_midpoint<2>(Avec_y, p, mag_correction_order);
         } else if (dir == 1) {
           /* dBy is curl(A) at (i,j-1/2,k) */
-          dBy_stag(p.I) = calc_fd_forward_midpoint<2>(Avec_x, p, mag_correction_order) -
-                          calc_fd_forward_midpoint<0>(Avec_z, p, mag_correction_order);
+          dBy_stag(p.I) =
+              calc_fd_forward_midpoint<2>(Avec_x, p, mag_correction_order) -
+              calc_fd_forward_midpoint<0>(Avec_z, p, mag_correction_order);
         } else if (dir == 2) {
           /* dBz is curl(A) at (i,j,z-1/2) */
-          dBz_stag(p.I) = calc_fd_forward_midpoint<0>(Avec_y, p, mag_correction_order) -
-                          calc_fd_forward_midpoint<1>(Avec_x, p, mag_correction_order);
+          dBz_stag(p.I) =
+              calc_fd_forward_midpoint<0>(Avec_y, p, mag_correction_order) -
+              calc_fd_forward_midpoint<1>(Avec_x, p, mag_correction_order);
         }
 
         // TODO: need to implement copy conditions?
