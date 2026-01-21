@@ -41,59 +41,7 @@ calc_fd2_v2v_oneside(const GF3D2<const T> &gf, const PointDesc &p,
 }
 
 // FD Forward Midpoint: vertex centered input gridfunction along dir, cell
-// centered output derivative template <int FDORDER, int dir, typename T>
-// CCTK_DEVICE CCTK_HOST
-//     CCTK_ATTRIBUTE_ALWAYS_INLINE inline std::enable_if_t<FDORDER == 2, T>
-// calc_fd_forward_midpoint(const GF3D2<const T> &gf, const PointDesc &p) {
-//   // Fill stencil
-//   array<vect<int, dim>, FDORDER> stencil;
-//   const int nstencil = (FDORDER / 2) - 1;
-//   int offset = -nstencil;
-//   for (int ii = 0; ii <= FDORDER; ii++) {
-//     stencil[ii] = p.I + offset * p.DI[dir];
-//     offset += 1;
-//   }
-//
-//   return (1.0 / p.DX[dir]) * (gf(stencil[1]) - gf(stencil[0]));
-// }
-//
-// template <int FDORDER, int dir, typename T>
-// CCTK_DEVICE CCTK_HOST
-//     CCTK_ATTRIBUTE_ALWAYS_INLINE inline std::enable_if_t<FDORDER == 4, T>
-// calc_fd_forward_midpoint(const GF3D2<const T> &gf, const PointDesc &p) {
-//   // Fill stencil
-//   array<vect<int, dim>, FDORDER> stencil;
-//   const int nstencil = (FDORDER / 2) - 1;
-//   int offset = -nstencil;
-//   for (int ii = 0; ii <= FDORDER; ii++) {
-//     stencil[ii] = p.I + offset * p.DI[dir];
-//     offset += 1;
-//   }
-//
-//   return (1.0 / p.DX[dir]) *
-//          ((9.0 / 8.0) * (gf(stencil[2]) - gf(stencil[1])) -
-//          (1.0 / 24.0) * (gf(stencil[3]) - gf(stencil[0])));
-// }
-//
-// template <int FDORDER, int dir, typename T>
-// CCTK_DEVICE CCTK_HOST
-//     CCTK_ATTRIBUTE_ALWAYS_INLINE inline std::enable_if_t<FDORDER == 6, T>
-// calc_fd_forward_midpoint(const GF3D2<const T> &gf, const PointDesc &p) {
-//   // Fill stencil
-//   array<vect<int, dim>, FDORDER> stencil;
-//   const int nstencil = (FDORDER / 2) - 1;
-//   int offset = -nstencil;
-//   for (int ii = 0; ii <= FDORDER; ii++) {
-//     stencil[ii] = p.I + offset * p.DI[dir];
-//     offset += 1;
-//   }
-//
-//   return (1.0 / p.DX[dir]) *
-//          ((75.0 / 64.0) * (gf(stencil[3]) - gf(stencil[2])) -
-//          (25.0 / 384.0) * (gf(stencil[4]) - gf(stencil[1])) +
-//          (3.0 / 640.0) * (gf(stencil[5]) - gf(stencil[0])));
-// }
-
+// centered output derivative 
 template <int dir, typename T>
 CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
 calc_fd_forward_midpoint(const GF3D2<const T> &gf, const PointDesc &p,
