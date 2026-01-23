@@ -935,6 +935,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
       theta = min(theta_m, theta_p);
 
       // Calc theta from DYe
+      // Note that this does not guarantee positivity of the primitive Ye
       if (istab) {
         const CCTK_REAL newDYe_p = DYe(Ip) + a2cfl * fluxDYes(dir_i)(Ip);
         const CCTK_REAL newDYe_m = DYe(Im) - a2cfl * fluxDYes(dir_i)(Ip);
