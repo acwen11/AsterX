@@ -16,6 +16,12 @@ namespace AsterX {
 using namespace std;
 using namespace Arith;
 
+// c = 1 Lax-Friedrichs solver for PP limiter
+inline CCTK_DEVICE CCTK_HOST CCTK_REAL laxf_simple(vec<CCTK_REAL, 2> var,
+                                                   vec<CCTK_REAL, 2> flux) {
+  return 0.5 * ((flux(0) + flux(1)) - (var(1) - var(0)));
+}
+
 // Lax-Friedrichs solver
 inline CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_DEVICE CCTK_HOST CCTK_REAL
 laxf(vec<vec<CCTK_REAL, 4>, 2> lam, vec<CCTK_REAL, 2> var,
