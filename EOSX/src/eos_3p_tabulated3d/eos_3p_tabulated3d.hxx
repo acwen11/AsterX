@@ -9,6 +9,10 @@
 #include <mpi.h>
 #include <hdf5.h>
 
+#include <AMReX_Arena.H>
+#include <AMReX_Gpu.H>
+#include <AMReX_GpuUtility.H>
+
 #include "../eos_3p.hxx"
 #include "../utils/eos_brent.hxx" // zero_brent
 #include "../utils/eos_linear_interp_ND.hxx"
@@ -84,14 +88,26 @@ public:
 
     const int npoints = nrho * ntemp * nye;
 
+    // Read and communicate tables using host memory to avoid UCX mtype paths.
+    auto *host_arena = amrex::The_Pinned_Arena();
+
+    CCTK_REAL *logrho_h = (CCTK_REAL *)host_arena->alloc(nrho * sizeof(CCTK_REAL));
+    CCTK_REAL *logtemp_h = (CCTK_REAL *)host_arena->alloc(ntemp * sizeof(CCTK_REAL));
+    CCTK_REAL *yes_h = (CCTK_REAL *)host_arena->alloc(nye * sizeof(CCTK_REAL));
+    CCTK_REAL *alltables_tmp_h = (CCTK_REAL *)host_arena->alloc(
+        npoints * NTABLES * sizeof(CCTK_REAL));
+    CCTK_REAL *alltables_h = (CCTK_REAL *)host_arena->alloc(
+        npoints * NTABLES * sizeof(CCTK_REAL));
+    CCTK_REAL *energy_shift_h =
+        (CCTK_REAL *)host_arena->alloc(sizeof(CCTK_REAL));
+
+    // Final device/managed storage
     CCTK_REAL *logrho = (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(
         nrho * sizeof(CCTK_REAL));
     CCTK_REAL *logtemp = (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(
         ntemp * sizeof(CCTK_REAL));
     CCTK_REAL *yes =
         (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(nye * sizeof(CCTK_REAL));
-    CCTK_REAL *alltables_tmp = (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(
-        npoints * NTABLES * sizeof(CCTK_REAL));
     CCTK_REAL *alltables = (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(
         npoints * NTABLES * sizeof(CCTK_REAL));
     energy_shift =
@@ -103,13 +119,13 @@ public:
         "Xn",       "Xp",        "Abar",    "Zbar", "gamma"};
 
 #ifdef H5_HAVE_PARALLEL
-    get_hdf5_real_dset(file_id, "logrho", nrho, logrho);
-    get_hdf5_real_dset(file_id, "logtemp", ntemp, logtemp);
-    get_hdf5_real_dset(file_id, "ye", nye, yes);
-    get_hdf5_real_dset(file_id, "energy_shift", 1, energy_shift);
+    get_hdf5_real_dset(file_id, "logrho", nrho, logrho_h);
+    get_hdf5_real_dset(file_id, "logtemp", ntemp, logtemp_h);
+    get_hdf5_real_dset(file_id, "ye", nye, yes_h);
+    get_hdf5_real_dset(file_id, "energy_shift", 1, energy_shift_h);
     for (int iv = 0; iv < NTABLES; iv++) {
       get_hdf5_real_dset(file_id, dnames[iv], npoints,
-                         &alltables_tmp[iv * npoints]);
+                         &alltables_tmp_h[iv * npoints]);
     }
 
     // change ordering of alltables array so that
@@ -120,21 +136,21 @@ public:
           for (int i = 0; i < nrho; i++) {
             int indold = i + nrho * (j + ntemp * (k + nye * iv));
             int indnew = iv + NTABLES * (i + nrho * (j + ntemp * k));
-            alltables[indnew] = alltables_tmp[indold];
+            alltables_h[indnew] = alltables_tmp_h[indold];
           }
-    amrex::The_Managed_Arena()->free(alltables_tmp);
+    host_arena->free(alltables_tmp_h);
 
     CHECK_ERROR(H5Fclose(file_id));
     CHECK_ERROR(H5Pclose(fapl_id));
 #else
     if (rank == 0) {
-      get_hdf5_real_dset(file_id, "logrho", nrho, logrho);
-      get_hdf5_real_dset(file_id, "logtemp", ntemp, logtemp);
-      get_hdf5_real_dset(file_id, "ye", nye, yes);
-      get_hdf5_real_dset(file_id, "energy_shift", 1, energy_shift);
+      get_hdf5_real_dset(file_id, "logrho", nrho, logrho_h);
+      get_hdf5_real_dset(file_id, "logtemp", ntemp, logtemp_h);
+      get_hdf5_real_dset(file_id, "ye", nye, yes_h);
+      get_hdf5_real_dset(file_id, "energy_shift", 1, energy_shift_h);
       for (int iv = 0; iv < NTABLES; iv++) {
         get_hdf5_real_dset(file_id, dnames[iv], npoints,
-                           &alltables_tmp[iv * npoints]);
+                           &alltables_tmp_h[iv * npoints]);
       }
       CHECK_ERROR(H5Fclose(file_id));
 
@@ -146,17 +162,33 @@ public:
             for (int i = 0; i < nrho; i++) {
               int indold = i + nrho * (j + ntemp * (k + nye * iv));
               int indnew = iv + NTABLES * (i + nrho * (j + ntemp * k));
-              alltables[indnew] = alltables_tmp[indold];
+              alltables_h[indnew] = alltables_tmp_h[indold];
             }
     }
-    amrex::The_Managed_Arena()->free(alltables_tmp);
+    host_arena->free(alltables_tmp_h);
 
-    MPI_Bcast(logrho, nrho, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(logtemp, ntemp, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(yes, nye, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(energy_shift, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(alltables, npoints * NTABLES, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(logrho_h, nrho, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(logtemp_h, ntemp, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(yes_h, nye, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(energy_shift_h, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(alltables_h, npoints * NTABLES, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 #endif
+
+    // Copy host -> managed
+    amrex::Gpu::copy(amrex::Gpu::hostToDevice, logrho_h, logrho_h + nrho, logrho);
+    amrex::Gpu::copy(amrex::Gpu::hostToDevice, logtemp_h, logtemp_h + ntemp, logtemp);
+    amrex::Gpu::copy(amrex::Gpu::hostToDevice, yes_h, yes_h + nye, yes);
+    amrex::Gpu::copy(amrex::Gpu::hostToDevice, energy_shift_h, energy_shift_h + 1, energy_shift);
+    amrex::Gpu::copy(amrex::Gpu::hostToDevice, alltables_h,
+                     alltables_h + (size_t)npoints * NTABLES, alltables);
+
+    amrex::Gpu::synchronize();
+
+    host_arena->free(logrho_h);
+    host_arena->free(logtemp_h);
+    host_arena->free(yes_h);
+    host_arena->free(alltables_h);
+    host_arena->free(energy_shift_h);
 
     *energy_shift *= EPSGF;
     const CCTK_REAL ln10 = log(10.0);
@@ -259,7 +291,7 @@ public:
     // bound
     CCTK_REAL r = std::fmin(std::fmax(rho, rgrho.min), rgrho.max);
     CCTK_REAL t = std::fmin(std::fmax(temp, rgtemp.min), rgtemp.max);
-    CCTK_REAL lr = std::log(rho), lt = std::log(temp);
+    CCTK_REAL lr = std::log(r), lt = std::log(t);
     CCTK_REAL v = interptable->interpolate<EV::PRESS>(lr, lt, ye)[0];
     return exp(v);
   }
@@ -399,14 +431,17 @@ public:
     size_t n1 = interptable->num_points[1];
     size_t n2 = interptable->num_points[2];
     size_t total = n0 * n1 * n2;
-    const CCTK_REAL *eps_data = interptable->y + EV::EPS * total;
+
     CCTK_REAL eps_min = std::numeric_limits<CCTK_REAL>::max();
     CCTK_REAL eps_max = std::numeric_limits<CCTK_REAL>::lowest();
+
     for (size_t i = 0; i < total; i++) {
-      CCTK_REAL val = exp(eps_data[i]) - *energy_shift;
+      const CCTK_REAL logeps = interptable->y[EV::EPS + NTABLES * i];
+      CCTK_REAL val = exp(logeps) - *energy_shift;
       eps_min = std::fmin(eps_min, val);
       eps_max = std::fmax(eps_max, val);
     }
+
     eps_min = std::fmax(eps_min, 1e-15); // Force eps positive
     return range{eps_min, eps_max};
   }
@@ -416,3 +451,4 @@ public:
 } // namespace EOSX
 
 #endif // EOS_3P_TABULATED3D_HXX
+
