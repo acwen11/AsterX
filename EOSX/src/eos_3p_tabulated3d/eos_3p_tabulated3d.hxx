@@ -103,8 +103,6 @@ public:
         ntemp * sizeof(CCTK_REAL));
     CCTK_REAL *yes =
         (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(nye * sizeof(CCTK_REAL));
-    // CCTK_REAL *alltables_tmp = (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(
-    //     npoints * NTABLES * sizeof(CCTK_REAL));
     CCTK_REAL *alltables = (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(
         npoints * NTABLES * sizeof(CCTK_REAL));
     energy_shift =
@@ -141,7 +139,6 @@ public:
             int indnew = iv + NTABLES * (i + nrho * (j + ntemp * k));
             alltables_host[indnew] = alltables_tmp[indold];
           }
-    // amrex::The_Managed_Arena()->free(alltables_tmp);
 
     CHECK_ERROR(H5Fclose(file_id));
     CHECK_ERROR(H5Pclose(fapl_id));
@@ -168,7 +165,6 @@ public:
               alltables_host[indnew] = alltables_tmp[indold];
             }
     }
-    // amrex::The_Managed_Arena()->free(alltables_tmp);
 
     MPI_Bcast(logrho_host, nrho, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Bcast(logtemp_host, ntemp, MPI_DOUBLE, 0, MPI_COMM_WORLD);
