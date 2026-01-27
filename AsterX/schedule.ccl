@@ -249,6 +249,7 @@ SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBsta
   WRITES: zvec(everywhere)
   WRITES: svec(everywhere)
   WRITES: cons_vector(everywhere) dB(everywhere)
+  WRITES: w_lorentz(everywhere) volform(everywhere)
 } "Calculate primitive variables from conservative variables"
 
 SCHEDULE AsterX_ApplyOuterBCOnPrim IN AsterX_Con2PrimGroup AFTER AsterX_Con2Prim

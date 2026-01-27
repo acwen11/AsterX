@@ -17,7 +17,7 @@ PUBLIC:
 
 # Note that the prolongation method and order are hard-coded and will
 # supersede parfile choices
-CCTK_REAL cons_vector TYPE=gf CENTERING={ccc} TAGS='rhs="rhs_vector" dependents="HydroBaseX::rho HydroBaseX::eps HydroBaseX::press HydroBaseX::temperature HydroBaseX::Ye HydroBaseX::Bvec HydroBaseX::vel HydroBaseX::entropy TmunuBaseX::eTtt TmunuBaseX::eTti TmunuBaseX::eTij AsterX::flux_x AsterX::flux_y AsterX::flux_z" prolongation_type="minmod" prolongation_order=1' "Conserved quantities during AsterX evolution"
+CCTK_REAL cons_vector TYPE=gf CENTERING={ccc} TAGS='parities={+1 +1 +1    -1 +1 +1    +1 -1 +1    +1 +1 -1    +1 +1 +1    +1 +1 +1    +1 +1 +1} rhs="rhs_vector" dependents="HydroBaseX::rho HydroBaseX::eps HydroBaseX::press HydroBaseX::temperature HydroBaseX::Ye HydroBaseX::Bvec HydroBaseX::vel HydroBaseX::entropy TmunuBaseX::eTtt TmunuBaseX::eTti TmunuBaseX::eTij AsterX::flux_x AsterX::flux_y AsterX::flux_z" prolongation_type="minmod" prolongation_order=1' "Conserved quantities during AsterX evolution"
 {
   dens, momx, momy, momz, tau, DYe, DEnt
 } "Conserved density, momenta, internal energy, electron fraction and entropy"
@@ -87,13 +87,13 @@ CCTK_REAL etac TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Shock detector me
 
 # Note that the prolongation method and order are hard-coded and will
 # supersede parfile choices
-CCTK_REAL Avec_x TYPE=gf CENTERING={cvv} TAGS='rhs="Avec_x_rhs" prolongation_type="hermite" prolongation_order=5' "x-component of vector potential"
-CCTK_REAL Avec_y TYPE=gf CENTERING={vcv} TAGS='rhs="Avec_y_rhs" prolongation_type="hermite" prolongation_order=5' "y-component of vector potential"
-CCTK_REAL Avec_z TYPE=gf CENTERING={vvc} TAGS='rhs="Avec_z_rhs" prolongation_type="hermite" prolongation_order=5' "z-component of vector potential"
+CCTK_REAL Avec_x TYPE=gf CENTERING={cvv} TAGS='parities={-1 +1 +1} rhs="Avec_x_rhs" prolongation_type="hermite" prolongation_order=5' "x-component of vector potential"
+CCTK_REAL Avec_y TYPE=gf CENTERING={vcv} TAGS='parities={+1 -1 +1} rhs="Avec_y_rhs" prolongation_type="hermite" prolongation_order=5' "y-component of vector potential"
+CCTK_REAL Avec_z TYPE=gf CENTERING={vvc} TAGS='parities={+1 +1 -1} rhs="Avec_z_rhs" prolongation_type="hermite" prolongation_order=5' "z-component of vector potential"
 
-CCTK_REAL Avec_x_rhs TYPE=gf CENTERING={cvv} TAGS='checkpoint="no"' "x-component of vector potential RHS"
-CCTK_REAL Avec_y_rhs TYPE=gf CENTERING={vcv} TAGS='checkpoint="no"' "y-component of vector potential RHS"
-CCTK_REAL Avec_z_rhs TYPE=gf CENTERING={vvc} TAGS='checkpoint="no"' "z-component of vector potential RHS"
+CCTK_REAL Avec_x_rhs TYPE=gf CENTERING={cvv} TAGS='parities={-1 +1 +1} checkpoint="no"' "x-component of vector potential RHS"
+CCTK_REAL Avec_y_rhs TYPE=gf CENTERING={vcv} TAGS='parities={+1 -1 +1} checkpoint="no"' "y-component of vector potential RHS"
+CCTK_REAL Avec_z_rhs TYPE=gf CENTERING={vvc} TAGS='parities={+1 +1 -1} checkpoint="no"' "z-component of vector potential RHS"
 
 # ----- cell-centered magnetic field
 
@@ -118,6 +118,9 @@ CCTK_REAL Fbeta TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"'
 {
   Fbetax, Fbetay, Fbetaz
 } "Auxiliary variables which appear in the rhs of Psi"
+
+CCTK_REAL volform TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "sqrt(detg)"
+CCTK_REAL w_lorentz TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Fluid Lorentz factor"
 
 CCTK_REAL G TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"' "Auxiliary variable which appears in the rhs of Avec"
 
@@ -152,12 +155,12 @@ CCTK_REAL saved_prims TYPE=gf CENTERING={ccc}
   saved_Ye
 } "Saved primitive variables as initial guesses for con2prim"
 
-CCTK_REAL zvec TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
+CCTK_REAL zvec TYPE=gf CENTERING={ccc} TAGS='parities={-1 +1 +1    +1 -1 +1    +1 +1 -1} checkpoint="no"'
 {
   zvec_x, zvec_y, zvec_z
 } ""
 
-CCTK_REAL svec TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
+CCTK_REAL svec TYPE=gf CENTERING={ccc} TAGS='parities={-1 +1 +1    +1 -1 +1    +1 +1 -1} checkpoint="no"'
 {
   svec_x, svec_y, svec_z
 } ""
