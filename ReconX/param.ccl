@@ -2,7 +2,7 @@
 
 restricted:
 
-KEYWORD reconstruction_method "Reconstruction method" STEERABLE=never
+KEYWORD reconstruction_method "Reconstruction method" STEERABLE=ALWAYS
 {
   "Godunov" :: ""
   "minmod" :: ""
@@ -13,7 +13,7 @@ KEYWORD reconstruction_method "Reconstruction method" STEERABLE=never
   "mp5" :: ""
 } "Godunov"
 
-KEYWORD loworder_method "Lower-order reconstruction method" STEERABLE=never
+KEYWORD loworder_method "Lower-order reconstruction method" STEERABLE=ALWAYS
 {
   "Godunov" :: ""
   "minmod" :: ""
