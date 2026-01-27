@@ -88,7 +88,7 @@ public:
 
     const int npoints = nrho * ntemp * nye;
 
-    // Read and communicate tables using host memory to avoid UCX mtype paths.
+    // Read and communicate tables using host memory
     auto *host_arena = amrex::The_Pinned_Arena();
 
     CCTK_REAL *logrho_h = (CCTK_REAL *)host_arena->alloc(nrho * sizeof(CCTK_REAL));
