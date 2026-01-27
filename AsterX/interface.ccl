@@ -13,16 +13,17 @@ USES INCLUDE HEADER: aster_fd.hxx aster_interp.hxx aster_utils.hxx
 
 PUBLIC:
 
-CCTK_REAL dens TYPE=gf CENTERING={ccc} TAGS='rhs="densrhs" dependents="HydroBaseX::rho TmunuBaseX::eTtt AsterX::flux_x AsterX::flux_y AsterX::flux_z"' "Conserved rest mass density"
+# ----- evolved state variables
 
-CCTK_REAL mom TYPE=gf CENTERING={ccc} TAGS='rhs="momrhs" dependents="HydroBaseX::vel TmunuBaseX::eTti"'
+CCTK_REAL cons_vector TYPE=gf CENTERING={ccc} TAGS='rhs="rhs_vector" dependents="HydroBaseX::rho HydroBaseX::eps HydroBaseX::press HydroBaseX::temperature HydroBaseX::Ye HydroBaseX::Bvec HydroBaseX::vel HydroBaseX::entropy TmunuBaseX::eTtt TmunuBaseX::eTti TmunuBaseX::eTij AsterX::flux_x AsterX::flux_y AsterX::flux_z"' "Conserved quantities during AsterX evolution"
 {
-  momx, momy, momz
-} "Conserved momentum density"
+  dens, momx, momy, momz, tau, DYe, DEnt
+} "Conserved density, momenta, internal energy, electron fraction and entropy"
 
-CCTK_REAL tau TYPE=gf CENTERING={ccc} TAGS='rhs="taurhs" dependents="HydroBaseX::eps HydroBaseX::press HydroBaseX::temperature HydroBaseX::Ye HydroBaseX::Bvec TmunuBaseX::eTij"' "Conserved internal energy density"
-
-CCTK_REAL DYe TYPE=gf CENTERING={ccc} TAGS='rhs="DYe_rhs" dependents="HydroBaseX::Ye AsterX::flux_x AsterX::flux_y AsterX::flux_z"' "Conserved electron fraction"
+CCTK_REAL rhs_vector TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "RHSs of conserved variables"
+{
+  densrhs, momxrhs, momyrhs, momzrhs, taurhs, DYe_rhs, DEntrhs
+} "Conserved density, momenta, internal energy, electron fraction and entropy RHS"
 
 # DEnt is the conserved "evolved" entropy.
 # The corresponding primitive is stored in HydroBaseX::entropy.
@@ -34,7 +35,8 @@ CCTK_REAL DYe TYPE=gf CENTERING={ccc} TAGS='rhs="DYe_rhs" dependents="HydroBaseX
 # refer to "physical" and "evolved" entropy, respectively. In this 
 # evolution thorn we always refer to DEnt and entropy to describe 
 # the "evolved" quantities. 
-CCTK_REAL DEnt TYPE=gf CENTERING={ccc} TAGS='rhs="DEntrhs" dependents="HydroBaseX::entropy AsterX::flux_x AsterX::flux_y AsterX::flux_z"' "Advected entropy density"
+
+# ----- fluxes
 
 CCTK_REAL flux_x TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'
 {
@@ -66,23 +68,20 @@ CCTK_REAL flux_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
   fzBx fzBy fzBz
 } "Fluxes in z direction"
 
+# ----- flux limiter
+
 CCTK_REAL theta_tot TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "min(thetas) taken over all cell faces"
 
 CCTK_REAL theta_x TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"' "flux limiter in x"
 CCTK_REAL theta_y TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"' "flux limiter in y"
 CCTK_REAL theta_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"' "flux limiter in z"
 
-CCTK_REAL densrhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved rest mass density RHS"
+# ----- shock detector
 
-CCTK_REAL momrhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
-{
-  momxrhs, momyrhs, momzrhs
-} "Conserved momentum density RHS"
+CCTK_REAL LOflag TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Shock detector switch"
+CCTK_REAL etac TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Shock detector measure"
 
-CCTK_REAL taurhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved internal energy density RHS" 
-
-CCTK_REAL DYe_rhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved electron fraction RHS"
-CCTK_REAL DEntrhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Advected entropy density RHS"
+# ----- staggered vector potential (edges)
 
 CCTK_REAL Avec_x TYPE=gf CENTERING={cvv} TAGS='rhs="Avec_x_rhs"' "x-component of vector potential"
 CCTK_REAL Avec_y TYPE=gf CENTERING={vcv} TAGS='rhs="Avec_y_rhs"' "y-component of vector potential"
@@ -92,14 +91,20 @@ CCTK_REAL Avec_x_rhs TYPE=gf CENTERING={cvv} TAGS='checkpoint="no"' "x-component
 CCTK_REAL Avec_y_rhs TYPE=gf CENTERING={vcv} TAGS='checkpoint="no"' "y-component of vector potential RHS"
 CCTK_REAL Avec_z_rhs TYPE=gf CENTERING={vvc} TAGS='checkpoint="no"' "z-component of vector potential RHS"
 
+# ----- cell-centered magnetic field
+
 CCTK_REAL dB TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
 {
   dBx, dBy, dBz
 } "Densitized magnetic field components: sqrt(det(gamma_ij))*B^k"
 
+# ----- staggered magnetic field (faces)
+
 CCTK_REAL dBx_stag TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"' "x-component of staggered densitized magnetic field"
 CCTK_REAL dBy_stag TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"' "y-component of staggered densitized magnetic field"
 CCTK_REAL dBz_stag TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"' "z-component of staggered densitized magnetic field"
+
+# ----- staggered gauge functions
 
 CCTK_REAL Psi TYPE=gf CENTERING={vvv} TAGS='rhs="Psi_rhs"' "t-component of vector potential: sqrt(det(gamma_ij))*Phi"
 
@@ -110,18 +115,19 @@ CCTK_REAL Fbeta TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"'
   Fbetax, Fbetay, Fbetaz
 } "Auxiliary variables which appear in the rhs of Psi"
 
-CCTK_REAL LOflag TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Shock detector switch"
-CCTK_REAL etac TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Shock detector measure"
-
-CCTK_REAL Ex TYPE=gf CENTERING={cvv} TAGS='checkpoint="no"' "x-component of E"
-CCTK_REAL Ey TYPE=gf CENTERING={vcv} TAGS='checkpoint="no"' "y-component of E"
-CCTK_REAL Ez TYPE=gf CENTERING={vvc} TAGS='checkpoint="no"' "z-component of E"
-
 CCTK_REAL G TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"' "Auxiliary variable which appears in the rhs of Avec"
 
 CCTK_REAL Fx_stag TYPE=gf CENTERING={cvv} TAGS='checkpoint="no"' "x-component of F"
 CCTK_REAL Fy_stag TYPE=gf CENTERING={vcv} TAGS='checkpoint="no"' "y-component of F"
 CCTK_REAL Fz_stag TYPE=gf CENTERING={vvc} TAGS='checkpoint="no"' "z-component of F"
+
+# ----- staggered electric fields (edges)
+
+CCTK_REAL Ex TYPE=gf CENTERING={cvv} TAGS='checkpoint="no"' "x-component of E"
+CCTK_REAL Ey TYPE=gf CENTERING={vcv} TAGS='checkpoint="no"' "y-component of E"
+CCTK_REAL Ez TYPE=gf CENTERING={vvc} TAGS='checkpoint="no"' "z-component of E"
+
+# ----- auxiliary variables
 
 CCTK_REAL con2prim_flag TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Flag indicating failure of con2prim"
 
@@ -145,7 +151,7 @@ CCTK_REAL svec TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
   svec_x, svec_y, svec_z
 } ""
 
-#grid functions required for upwindCT computation of electric field
+# ----- grid functions required for upwindCT computation of electric field
 
 CCTK_REAL vbar_xface TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'
 {
