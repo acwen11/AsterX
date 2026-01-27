@@ -10,6 +10,7 @@ KEYWORD reconstruction_method "Reconstruction method" STEERABLE=ALWAYS
   "ppm" :: ""
   "eppm" :: ""
   "wenoz" :: ""
+  "wenozp" :: ""
   "mp5" :: ""
 } "Godunov"
 
@@ -18,11 +19,17 @@ KEYWORD loworder_method "Lower-order reconstruction method" STEERABLE=ALWAYS
   "Godunov" :: ""
   "minmod" :: ""
   "monocentral" :: ""
+  "ppm" :: ""
 } "Godunov"
 
 CCTK_BOOLEAN reconstruct_with_temperature "Whether to reconstruct temperature and derive other EOS quantities from it" STEERABLE=ALWAYS
 {
 } no
+
+CCTK_REAL recon_thresh "Fraction of atmosphere density below which reconstructed values are reset to atmosphere" STEERABLE=always
+{
+  0:* :: "Larger than zero"
+} 0.0
 
 #PPM parameters
 
@@ -80,6 +87,10 @@ CCTK_REAL weno_eps "Epsilon parameter for WENO-Z in order to avoid division by 0
 {
   0.0:* :: "Must be small and positive"
 } 1e-26
+
+CCTK_BOOLEAN weno_mp "Apply monotonicity filter to WENOZ+?" STEERABLE=ALWAYS
+{
+} no
 
 #MP5 parameters
 

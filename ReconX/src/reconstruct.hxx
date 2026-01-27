@@ -12,6 +12,7 @@
 #include "ppm.hxx"
 #include "eppm.hxx"
 #include "wenoz.hxx"
+#include "wenozp.hxx"
 #include "mp5.hxx"
 
 #include <type_traits>
@@ -31,6 +32,7 @@ enum class reconstruction_t {
   ppm,
   eppm,
   wenoz,
+  wenozp,
   mp5
 };
 
@@ -85,6 +87,14 @@ reconstruct(const GF3D2<const CCTK_REAL> &gf_var, const PointDesc &p,
     tmp = wenoz_reconstruct(gf_var(Immm), gf_var(Imm), gf_var(Im), gf_var(Ip),
                              gf_var(Ipp), gf_var(Ippp),
                              reconstruct_params.weno_eps);
+    break;
+  }
+
+  case reconstruction_t::wenozp: {
+		const CCTK_REAL dx = p.DX[dir];
+    tmp = wenozp_reconstruct(gf_var(Immm), gf_var(Imm), gf_var(Im), gf_var(Ip),
+                             gf_var(Ipp), gf_var(Ippp), dx,
+                             reconstruct_params.weno_eps, reconstruct_params.weno_mp);
     break;
   }
 
