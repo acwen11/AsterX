@@ -34,6 +34,22 @@ calc_avg_v2c(const GF3D2<const T> &gf, const PointDesc &p) {
   return gf_avg * T(0.125);
 }
 
+template <typename T>
+CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
+calc_avg_v2c(const GF3D2<const T> &gf, const PointDesc &p,
+             const vect<int, 3> idx) {
+  T gf_avg = 0.0;
+
+  for (int dk = 0; dk < 2; ++dk) {
+    for (int dj = 0; dj < 2; ++dj) {
+      for (int di = 0; di < 2; ++di) {
+        gf_avg += gf(idx + p.DI[0] * di + p.DI[1] * dj + p.DI[2] * dk);
+      }
+    }
+  }
+  return gf_avg * T(0.125);
+}
+
 // Second-order average of edge-centered grid functions to vertex-centered
 template <typename T>
 CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
@@ -65,6 +81,31 @@ calc_avg_e2e(const GF3D2<const T> &gf, const PointDesc &p) {
     }
   }
   return gf_avg * T(0.25);
+}
+
+// 1D average of face-centered grid functions to cell-centered
+template <typename T>
+CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
+calc_avg_f2c(const GF3D2<const T> &gf, const PointDesc &p, const int dir,
+             const int order) {
+  // Fill stencil
+  // This assumes a maximum order/stencil size of 6
+  const vect<int, dim> Im = p.I;
+  array<vect<int, dim>, 6> stencil = {Im, Im, Im,
+                                      Im, Im, Im}; // dummy value for init
+  const int nstencil = (order / 2) - 1;
+  int offset = -nstencil;
+  for (int ii = 2 - nstencil; ii <= 3 + nstencil; ii++) {
+    stencil[ii] = Im + offset * p.DI[dir];
+    offset += 1;
+  }
+
+  return (order == 2) * (0.5 * (gf(stencil[2]) + gf(stencil[3]))) +
+         (order == 4) * (-(1.0 / 16.0) * (gf(stencil[1]) + gf(stencil[4])) +
+                         (9.0 / 16.0) * (gf(stencil[2]) + gf(stencil[3]))) +
+         (order == 6) * ((3.0 / 256.0) * (gf(stencil[0]) + gf(stencil[5])) -
+                         (25.0 / 256.0) * (gf(stencil[1]) + gf(stencil[4])) +
+                         (150.0 / 256.0) * (gf(stencil[2]) + gf(stencil[3])));
 }
 
 // Second-order average of edge-centered grid functions (along dir) to cell

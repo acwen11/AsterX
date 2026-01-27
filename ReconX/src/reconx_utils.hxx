@@ -25,6 +25,7 @@ typedef struct {
   CCTK_REAL enhanced_ppm_C2;
   // WENOZ parameters
   CCTK_REAL weno_eps;
+  bool weno_mp;
   // MP5 parameters
   CCTK_REAL mp5_alpha;
 } reconstruct_params_t;
