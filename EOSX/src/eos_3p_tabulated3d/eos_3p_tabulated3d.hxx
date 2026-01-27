@@ -9,10 +9,6 @@
 #include <mpi.h>
 #include <hdf5.h>
 
-#include <AMReX_Arena.H>
-#include <AMReX_Gpu.H>
-#include <AMReX_GpuUtility.H>
-
 #include "../eos_3p.hxx"
 #include "../utils/eos_brent.hxx" // zero_brent
 #include "../utils/eos_linear_interp_ND.hxx"
@@ -89,7 +85,7 @@ public:
     const int npoints = nrho * ntemp * nye;
 
     // Read and communicate tables using host memory
-    auto *host_arena = amrex::The_Pinned_Arena();
+    auto *host_arena = amrex::The_Arena();
 
     CCTK_REAL *logrho_h = (CCTK_REAL *)host_arena->alloc(nrho * sizeof(CCTK_REAL));
     CCTK_REAL *logtemp_h = (CCTK_REAL *)host_arena->alloc(ntemp * sizeof(CCTK_REAL));
