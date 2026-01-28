@@ -52,14 +52,14 @@ extern "C" void Con2PrimFactory_Test(CCTK_ARGUMENTS) {
 
   // Con2Prim objects
   // (eos_3p_ig, atmo, max_iter, c2p_tol
-  //  alp_thresh, cons_error_limit,
+  //  alp_thresh,
   //  vw_lim, B_lim, rho_BH, eps_BH, vwlim_BH,
   //  Ye_lenient, use_z, use_temperature)
-  c2p_2DNoble c2p_Noble(eos_3p_ig, atmo, 100, 1e-8, alp_thresh, -1., 1, 1,
+  c2p_2DNoble c2p_Noble(eos_3p_ig, atmo, 100, 1e-8, alp_thresh, 1, 1,
                         rho_BH, eps_BH, vwlim_BH, true, false, false, false);
-  c2p_1DPalenzuela c2p_Pal(eos_3p_ig, atmo, 100, 1e-8, alp_thresh, -1., 1, 1,
+  c2p_1DPalenzuela c2p_Pal(eos_3p_ig, atmo, 100, 1e-8, alp_thresh, 1, 1,
                            rho_BH, eps_BH, vwlim_BH, true, false, false, false);
-  c2p_1DEntropy c2p_Ent(eos_3p_ig, atmo, 100, 1e-8, alp_thresh, -1., 1, 1,
+  c2p_1DEntropy c2p_Ent(eos_3p_ig, atmo, 100, 1e-8, alp_thresh, 1, 1,
                         rho_BH, eps_BH, vwlim_BH, true, false, false, false);
 
   // Construct error report object:

@@ -38,7 +38,6 @@ protected:
   CCTK_INT maxIterations;
   CCTK_REAL tolerance;
   CCTK_REAL alp_thresh;
-  CCTK_REAL cons_error;
   CCTK_REAL vw_lim;
   CCTK_REAL w_lim;
   CCTK_REAL v_lim;

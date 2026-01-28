@@ -142,19 +142,19 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
 
     // Construct Noble c2p object:
     c2p_2DNoble c2p_Noble(eos_3p, atmo, max_iter, c2p_tol, alp_thresh,
-                          cons_error_limit, vw_lim, B_lim, rho_BH, eps_BH,
+                          vw_lim, B_lim, rho_BH, eps_BH,
                           vwlim_BH, Ye_lenient, use_z, use_temperature,
                           use_press_atmo);
 
     // Construct Palenzuela c2p object:
     c2p_1DPalenzuela c2p_Pal(eos_3p, atmo, max_iter, c2p_tol, alp_thresh,
-                             cons_error_limit, vw_lim, B_lim, rho_BH, eps_BH,
+                             vw_lim, B_lim, rho_BH, eps_BH,
                              vwlim_BH, Ye_lenient, use_z, use_temperature,
                              use_press_atmo);
 
     // Construct Entropy c2p object:
     c2p_1DEntropy c2p_Ent(eos_3p, atmo, max_iter, c2p_tol, alp_thresh,
-                          cons_error_limit, vw_lim, B_lim, rho_BH, eps_BH,
+                          vw_lim, B_lim, rho_BH, eps_BH,
                           vwlim_BH, Ye_lenient, use_z, use_temperature,
                           use_press_atmo);
 

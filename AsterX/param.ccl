@@ -184,7 +184,6 @@ USES CCTK_REAL alp_thresh
 USES CCTK_REAL rho_BH
 USES CCTK_REAL eps_BH
 USES CCTK_REAL vwlim_BH
-USES CCTK_REAL cons_error_limit
 USES BOOLEAN use_z
 USES BOOLEAN use_temperature
 

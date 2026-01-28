@@ -17,7 +17,7 @@ public:
   template <typename EOSType>
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline c2p_2DNoble(
       const EOSType *eos_3p, const atmosphere &atm, CCTK_INT maxIter,
-      CCTK_REAL tol, CCTK_REAL alp_thresh_in, CCTK_REAL consError,
+      CCTK_REAL tol, CCTK_REAL alp_thresh_in,
       CCTK_REAL vwlim, CCTK_REAL B_lim, CCTK_REAL rho_BH_in,
       CCTK_REAL eps_BH_in, CCTK_REAL vwlim_BH_in, bool ye_len, bool use_z,
       bool use_temperature, bool use_pressure_atmo);
@@ -73,7 +73,7 @@ template <typename EOSType>
 CCTK_HOST
     CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline c2p_2DNoble::c2p_2DNoble(
         const EOSType *eos_3p, const atmosphere &atm, CCTK_INT maxIter,
-        CCTK_REAL tol, CCTK_REAL alp_thresh_in, CCTK_REAL consError,
+        CCTK_REAL tol, CCTK_REAL alp_thresh_in,
         CCTK_REAL vwlim, CCTK_REAL B_lim, CCTK_REAL rho_BH_in,
         CCTK_REAL eps_BH_in, CCTK_REAL vwlim_BH_in, bool ye_len, bool use_z,
         bool use_temperature, bool use_pressure_atmo) {
@@ -83,7 +83,6 @@ CCTK_HOST
   maxIterations = maxIter;
   tolerance = tol;
   alp_thresh = alp_thresh_in;
-  cons_error = consError;
   vw_lim = vwlim;
   w_lim = sqrt(1.0 + vw_lim * vw_lim);
   v_lim = vw_lim / w_lim;
