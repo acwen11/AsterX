@@ -1,115 +1,177 @@
 #ifndef EOS_READTABLE_SCOLLAPSE_HXX
 #define EOS_READTABLE_SCOLLAPSE_HXX
 
-#define NTABLES 19
-
-#include <cctk.h>
+#include <cassert>
 #include <string>
 #include <mpi.h>
 #include <hdf5.h>
-#include "../eos_3p.hxx"
-#include "../utils/eos_linear_interp_ND.hxx"
+
+#include <AMReX_Arena.H>
+#include <AMReX_Gpu.H>
+
+#include "eos_3p_tabulated3d.hxx"
+
+#ifndef NTABLES
+#define NTABLES 19
+#endif
 
 namespace EOSX {
 using namespace std;
 using namespace eos_constants;
 
-CCTK_REAL *energy_shift;
-linear_interp_uniform_ND_t<CCTK_REAL, 3, NTABLES> *interptable;
+CCTK_HOST inline void
+eos_readtable_scollapse(const std::string &filename,
+                        eos_tabulated3d_raw_table_t &tab) {
 
-CCTK_HOST void eos_readtable_scollapse(const string &filename) {
   CCTK_VINFO("Reading Stellar Collapse EOS table '%s'", filename.c_str());
-  CCTK_INT ntemp, nrho, nye;
 
-  int rank_id;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank_id);
-
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   hid_t fapl_id = H5Pcreate(H5P_FILE_ACCESS);
   assert(fapl_id >= 0);
 
+  hid_t file_id = -1;
 #ifdef H5_HAVE_PARALLEL
   CHECK_ERROR(H5Pset_fapl_mpio(fapl_id, MPI_COMM_WORLD, MPI_INFO_NULL));
   CHECK_ERROR(H5Pset_all_coll_metadata_ops(fapl_id, true));
+  file_id = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, fapl_id);
+  assert(file_id >= 0);
+#else
+  if (rank == 0) {
+    file_id = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+    assert(file_id >= 0);
+  }
 #endif
 
-  hid_t file_id = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, fapl_id);
-  assert(file_id >= 0);
-
-  if (rank_id == 0) {
-    get_hdf5_int_dset(file_id, "pointstemp", 1, &ntemp);
+  int nrho, ntemp, nye;
+  if (rank == 0) {
     get_hdf5_int_dset(file_id, "pointsrho", 1, &nrho);
+    get_hdf5_int_dset(file_id, "pointstemp", 1, &ntemp);
     get_hdf5_int_dset(file_id, "pointsye", 1, &nye);
   }
-
-  MPI_Bcast(&ntemp, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&nrho, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&ntemp, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&nye, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-  CCTK_INT npoints = ntemp * nrho * nye;
-  CCTK_VINFO("EOS dimensions: ntemp=%d, nrho=%d, nye=%d", ntemp, nrho, nye);
+  const int npoints = nrho * ntemp * nye;
 
-  energy_shift =
-      (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(sizeof(CCTK_REAL));
-  CCTK_REAL *logrho =
-      (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(nrho * sizeof(CCTK_REAL));
-  CCTK_REAL *logtemp =
-      (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(ntemp * sizeof(CCTK_REAL));
+  // Read and communicate tables using host memory
+  auto *host_arena = amrex::The_Arena();
+
+  CCTK_REAL *logrho_h = (CCTK_REAL *)host_arena->alloc(nrho * sizeof(CCTK_REAL));
+  CCTK_REAL *logtemp_h = (CCTK_REAL *)host_arena->alloc(ntemp * sizeof(CCTK_REAL));
+  CCTK_REAL *yes_h = (CCTK_REAL *)host_arena->alloc(nye * sizeof(CCTK_REAL));
+  CCTK_REAL *alltables_tmp_h = (CCTK_REAL *)host_arena->alloc(
+      npoints * NTABLES * sizeof(CCTK_REAL));
+  CCTK_REAL *alltables_h = (CCTK_REAL *)host_arena->alloc(
+      npoints * NTABLES * sizeof(CCTK_REAL));
+  CCTK_REAL *energy_shift_h =
+      (CCTK_REAL *)host_arena->alloc(sizeof(CCTK_REAL));
+
+  // Final device/managed storage
+  CCTK_REAL *logrho = (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(
+      nrho * sizeof(CCTK_REAL));
+  CCTK_REAL *logtemp = (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(
+      ntemp * sizeof(CCTK_REAL));
   CCTK_REAL *yes =
       (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(nye * sizeof(CCTK_REAL));
   CCTK_REAL *alltables = (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(
       npoints * NTABLES * sizeof(CCTK_REAL));
-  CCTK_REAL *epstable = (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(
-      npoints * sizeof(CCTK_REAL));
+  CCTK_REAL *energy_shift =
+      (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(sizeof(CCTK_REAL));
 
-  if (rank_id == 0) {
-    const char *datasets[NTABLES] = {
-        "logpress", "logenergy", "entropy", "munu", "cs2",  "dedt",
-        "dpdrhoe",  "dpderho",   "muhat",   "mu_e", "mu_p", "mu_n",
-        "Xa",       "Xh",        "Xn",      "Xp",   "Abar", "Zbar"};
+  static const char *dnames[NTABLES] = {
+      "logpress", "logenergy", "entropy", "munu", "cs2",  "dedt", "dpdrhoe",
+      "dpderho",  "muhat",     "mu_e",    "mu_p", "mu_n", "Xa",   "Xh",
+      "Xn",       "Xp",        "Abar",    "Zbar", "gamma"};
 
-    for (int i = 0; i < NTABLES; i++)
-      get_hdf5_real_dset(file_id, datasets[i], npoints,
-                         &alltables[i * npoints]);
-
-    get_hdf5_real_dset(file_id, "logrho", nrho, logrho);
-    get_hdf5_real_dset(file_id, "logtemp", ntemp, logtemp);
-    get_hdf5_real_dset(file_id, "ye", nye, yes);
-    get_hdf5_real_dset(file_id, "energy_shift", 1, energy_shift);
+#ifdef H5_HAVE_PARALLEL
+  get_hdf5_real_dset(file_id, "logrho", nrho, logrho_h);
+  get_hdf5_real_dset(file_id, "logtemp", ntemp, logtemp_h);
+  get_hdf5_real_dset(file_id, "ye", nye, yes_h);
+  get_hdf5_real_dset(file_id, "energy_shift", 1, energy_shift_h);
+  for (int iv = 0; iv < NTABLES; iv++) {
+    get_hdf5_real_dset(file_id, dnames[iv], npoints,
+                       &alltables_tmp_h[iv * npoints]);
   }
 
-  MPI_Bcast(alltables, npoints * NTABLES, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-  MPI_Bcast(logrho, nrho, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-  MPI_Bcast(logtemp, ntemp, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-  MPI_Bcast(yes, nye, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-  MPI_Bcast(energy_shift, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+  // change ordering of alltables array so that
+  // the table kind is the fastest changing index
+  for (int iv = 0; iv < NTABLES; iv++)
+    for (int k = 0; k < nye; k++)
+      for (int j = 0; j < ntemp; j++)
+        for (int i = 0; i < nrho; i++) {
+          int indold = i + nrho * (j + ntemp * (k + nye * iv));
+          int indnew = iv + NTABLES * (i + nrho * (j + ntemp * k));
+          alltables_h[indnew] = alltables_tmp_h[indold];
+        }
+  host_arena->free(alltables_tmp_h);
 
-  H5Fclose(file_id);
-  H5Pclose(fapl_id);
+  CHECK_ERROR(H5Fclose(file_id));
+  CHECK_ERROR(H5Pclose(fapl_id));
+#else
+  if (rank == 0) {
+    get_hdf5_real_dset(file_id, "logrho", nrho, logrho_h);
+    get_hdf5_real_dset(file_id, "logtemp", ntemp, logtemp_h);
+    get_hdf5_real_dset(file_id, "ye", nye, yes_h);
+    get_hdf5_real_dset(file_id, "energy_shift", 1, energy_shift_h);
+    for (int iv = 0; iv < NTABLES; iv++) {
+      get_hdf5_real_dset(file_id, dnames[iv], npoints,
+                         &alltables_tmp_h[iv * npoints]);
+    }
+    CHECK_ERROR(H5Fclose(file_id));
 
-  *energy_shift *= EPSGF;
-  const CCTK_REAL ln10 = log(10.0);
-  const CCTK_REAL inv_time2 = 1 / (TIMEGF * TIMEGF);
-
-  for (int i = 0; i < nrho; i++)
-    logrho[i] = logrho[i] * ln10 + log(RHOGF);
-
-  for (int i = 0; i < ntemp; i++)
-    logtemp[i] *= ln10;
-
-  for (int i = 0; i < npoints; i++) {
-    alltables[i] = alltables[i] * ln10 + log(PRESSGF); // PRESS
-    alltables[npoints + i] = alltables[npoints + i] * ln10 + log(EPSGF); // EPS
-    epstable[i] = exp(alltables[i]);                                     // EPS
-    alltables[4 * npoints + i] *= LENGTHGF * LENGTHGF * inv_time2;       // CS2
-    alltables[5 * npoints + i] *= EPSGF;                                 // DEDT
-    alltables[6 * npoints + i] *= PRESSGF / RHOGF; // DPDRHOE
-    alltables[7 * npoints + i] *= PRESSGF / EPSGF; // DPDERHO
+    // change ordering of alltables array so that
+    // the table kind is the fastest changing index
+    for (int iv = 0; iv < NTABLES; iv++)
+      for (int k = 0; k < nye; k++)
+        for (int j = 0; j < ntemp; j++)
+          for (int i = 0; i < nrho; i++) {
+            int indold = i + nrho * (j + ntemp * (k + nye * iv));
+            int indnew = iv + NTABLES * (i + nrho * (j + ntemp * k));
+            alltables_h[indnew] = alltables_tmp_h[indold];
+          }
   }
+  host_arena->free(alltables_tmp_h);
 
-  interptable = new (amrex::The_Managed_Arena()->alloc(sizeof(*interptable)))
-      linear_interp_uniform_ND_t<CCTK_REAL, 3, NTABLES>(
-          alltables, {(size_t)nrho, (size_t)ntemp, (size_t)nye}, logrho,
-          logtemp, yes);
-}
-} // namespace EOSX
+  MPI_Bcast(logrho_h, nrho, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+  MPI_Bcast(logtemp_h, ntemp, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+  MPI_Bcast(yes_h, nye, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+  MPI_Bcast(energy_shift_h, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+  MPI_Bcast(alltables_h, npoints * NTABLES, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 #endif
+
+  // Copy host -> managed
+  amrex::Gpu::copy(amrex::Gpu::hostToDevice, logrho_h, logrho_h + nrho, logrho);
+  amrex::Gpu::copy(amrex::Gpu::hostToDevice, logtemp_h, logtemp_h + ntemp, logtemp);
+  amrex::Gpu::copy(amrex::Gpu::hostToDevice, yes_h, yes_h + nye, yes);
+  amrex::Gpu::copy(amrex::Gpu::hostToDevice, energy_shift_h, energy_shift_h + 1, energy_shift);
+  amrex::Gpu::copy(amrex::Gpu::hostToDevice, alltables_h,
+                   alltables_h + (size_t)npoints * NTABLES, alltables);
+
+  amrex::Gpu::synchronize();
+
+  host_arena->free(logrho_h);
+  host_arena->free(logtemp_h);
+  host_arena->free(yes_h);
+  host_arena->free(alltables_h);
+  host_arena->free(energy_shift_h);
+
+  tab.nrho = nrho;
+  tab.ntemp = ntemp;
+  tab.nye = nye;
+  tab.npoints = npoints;
+
+  tab.logrho = logrho;
+  tab.logtemp = logtemp;
+  tab.yes = yes;
+  tab.alltables = alltables;
+  tab.energy_shift = energy_shift;
+
+  return;
+}
+
+} // namespace EOSX
+
+#endif // EOS_READTABLE_SCOLLAPSE_HXX
+

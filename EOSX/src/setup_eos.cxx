@@ -6,6 +6,12 @@
 
 #include <setup_eos.hxx>
 
+#include <mpi.h>
+#include <hdf5.h>
+
+#include "eos_3p_tabulated3d/eos_readtable_scollapse.hxx"
+#include "eos_3p_tabulated3d/eos_readtable_compose.hxx"
+
 namespace EOSX {
 
 using namespace amrex;
@@ -20,6 +26,69 @@ eos_1p_polytropic *global_eos_1p_poly = nullptr;
 eos_3p_idealgas *global_eos_3p_ig = nullptr;
 eos_3p_hybrid *global_eos_3p_hyb = nullptr;
 eos_3p_tabulated3d *global_eos_3p_tab3d = nullptr;
+
+enum class eos_table_format { StellarCollapse = 0, Compose = 1 };
+
+static inline eos_table_format detect_table_format_rank0(const std::string &filename) {
+  hid_t file_id = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+  assert(file_id >= 0);
+
+  // StellarCollapse "signature"
+  const bool has_pointsrho  = (H5Lexists(file_id, "pointsrho",  H5P_DEFAULT) > 0);
+  const bool has_pointstemp = (H5Lexists(file_id, "pointstemp", H5P_DEFAULT) > 0);
+  const bool has_pointsye   = (H5Lexists(file_id, "pointsye",   H5P_DEFAULT) > 0);
+
+  // CompOSE "signature"
+  const bool has_parameters = (H5Lexists(file_id, "/Parameters", H5P_DEFAULT) > 0);
+  const bool has_thermo     = (H5Lexists(file_id, "/Thermo_qty", H5P_DEFAULT) > 0);
+
+  H5Fclose(file_id);
+
+  if (has_pointsrho && has_pointstemp && has_pointsye) return eos_table_format::StellarCollapse;
+  if (has_parameters && has_thermo) return eos_table_format::Compose;
+
+  CCTK_ERROR("Could not auto-detect EOS table format. "
+             "Set EOSX::EOSTable_format to \"StellarCollapse\" or \"Compose\".");
+  return eos_table_format::StellarCollapse;
+}
+
+CCTK_HOST void eos_readtable(const std::string &filename,
+                             eos_tabulated3d_raw_table_t &tab) {
+  DECLARE_CCTK_PARAMETERS;
+
+  eos_table_format fmt;
+
+  if (CCTK_EQUALS(EOSTable_format, "StellarCollapse")) {
+    fmt = eos_table_format::StellarCollapse;
+  } else if (CCTK_EQUALS(EOSTable_format, "Compose")) {
+    fmt = eos_table_format::Compose;
+  } else if (CCTK_EQUALS(EOSTable_format, "Auto")) {
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    int ifmt = 0;
+    if (rank == 0) {
+      fmt = detect_table_format_rank0(filename);
+      ifmt = (int)fmt;
+    }
+    MPI_Bcast(&ifmt, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    fmt = (eos_table_format)ifmt;
+  } else {
+    CCTK_ERROR("Unknown value for parameter \"EOSTable_format\"");
+    fmt = eos_table_format::StellarCollapse;
+  }
+
+  switch (fmt) {
+  case eos_table_format::StellarCollapse:
+    eos_readtable_scollapse(filename, tab);
+    break;
+  case eos_table_format::Compose:
+    eos_readtable_compose(filename, tab);
+    break;
+  default:
+    assert(false);
+  }
+}
 
 extern "C" void EOSX_Setup_EOSID(CCTK_ARGUMENTS) {
   DECLARE_CCTK_PARAMETERS;
@@ -102,3 +171,4 @@ extern "C" void EOSX_Setup_EOS(CCTK_ARGUMENTS) {
 }
 
 } // namespace EOSX
+
