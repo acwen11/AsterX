@@ -61,7 +61,7 @@ public:
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  csnd_from_valid_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL eps,
+  csnd_from_valid_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
                               const CCTK_REAL ye) const {
     CCTK_REAL eps = eps_from_valid_rho_temp_ye(rho, temp, ye);
     return csnd_from_valid_rho_eps_ye(rho, eps, ye);
