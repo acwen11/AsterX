@@ -29,26 +29,32 @@ eos_3p_tabulated3d *global_eos_3p_tab3d = nullptr;
 
 enum class eos_table_format { StellarCollapse = 0, Compose = 1 };
 
-static inline eos_table_format detect_table_format_rank0(const std::string &filename) {
+static inline eos_table_format
+detect_table_format_rank0(const std::string &filename) {
   hid_t file_id = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
   assert(file_id >= 0);
 
   // StellarCollapse "signature"
-  const bool has_pointsrho  = (H5Lexists(file_id, "pointsrho",  H5P_DEFAULT) > 0);
-  const bool has_pointstemp = (H5Lexists(file_id, "pointstemp", H5P_DEFAULT) > 0);
-  const bool has_pointsye   = (H5Lexists(file_id, "pointsye",   H5P_DEFAULT) > 0);
+  const bool has_pointsrho = (H5Lexists(file_id, "pointsrho", H5P_DEFAULT) > 0);
+  const bool has_pointstemp =
+      (H5Lexists(file_id, "pointstemp", H5P_DEFAULT) > 0);
+  const bool has_pointsye = (H5Lexists(file_id, "pointsye", H5P_DEFAULT) > 0);
 
   // CompOSE "signature"
-  const bool has_parameters = (H5Lexists(file_id, "/Parameters", H5P_DEFAULT) > 0);
-  const bool has_thermo     = (H5Lexists(file_id, "/Thermo_qty", H5P_DEFAULT) > 0);
+  const bool has_parameters =
+      (H5Lexists(file_id, "/Parameters", H5P_DEFAULT) > 0);
+  const bool has_thermo = (H5Lexists(file_id, "/Thermo_qty", H5P_DEFAULT) > 0);
 
   H5Fclose(file_id);
 
-  if (has_pointsrho && has_pointstemp && has_pointsye) return eos_table_format::StellarCollapse;
-  if (has_parameters && has_thermo) return eos_table_format::Compose;
+  if (has_pointsrho && has_pointstemp && has_pointsye)
+    return eos_table_format::StellarCollapse;
+  if (has_parameters && has_thermo)
+    return eos_table_format::Compose;
 
-  CCTK_ERROR("Could not auto-detect EOS table format. "
-             "Set EOSX::EOSTable_format to \"StellarCollapse\" or \"Compose\".");
+  CCTK_ERROR(
+      "Could not auto-detect EOS table format. "
+      "Set EOSX::EOSTable_format to \"StellarCollapse\" or \"Compose\".");
   return eos_table_format::StellarCollapse;
 }
 
@@ -171,4 +177,3 @@ extern "C" void EOSX_Setup_EOS(CCTK_ARGUMENTS) {
 }
 
 } // namespace EOSX
-

@@ -33,124 +33,100 @@ public:
   init(CCTK_REAL poly_gamma_, ///< Adiabatic index \f$ n \f$
        CCTK_REAL poly_k_,     ///< Density scale \f$ K \f$
        CCTK_REAL rho_max_     ///< Max valid density
-  );
+  ) {
+    poly_k = poly_k_;
+    poly_gamma = poly_gamma_;
+    assert(poly_gamma_ > 1.0);
+    n = 1.0 / (poly_gamma - 1.0);
+    np1 = n + 1;
+    invn = 1.0 / n;
+    rho_p = pow(poly_k, -n);
+    // set_ranges(range(0, rho_max_));
+  }
 
   CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  gm1_from_valid_rho(const CCTK_REAL rho) const;
+  gm1_from_valid_rho(const CCTK_REAL rho) const {
+    return np1 * pow(rho / rho_p, invn);
+  }
+
+  /**
+  \return \f$ g-1 = h-1 = (n+1) \left(\frac{P}{\rho_p} \right)^\frac{1}{n+1} \f$
+  */
   CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  gm1_from_valid_p(const CCTK_REAL p) const;
+  gm1_from_valid_p(const CCTK_REAL p) const {
+    return np1 * pow(p / rho_p, 1.0 / np1);
+  }
+
+  /**
+  \return Specific internal energy \f$ \epsilon = \frac{g-1}{\Gamma} \f$
+  */
   CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  sed_from_valid_gm1(const CCTK_REAL gm1) const;
+  sed_from_valid_gm1(const CCTK_REAL gm1 ///< \f$ g-1 \f$
+  ) const {
+    return gm1 / poly_gamma;
+  }
+
+  /**
+  \return Internal energy density
+  \f$ \rho_I = n \rho_p \left(\frac{g-1}{n+1}\right)^{n+1} \f$
+  */
   CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  ied_from_valid_gm1(const CCTK_REAL gm1) const;
+  ied_from_valid_gm1(const CCTK_REAL gm1 ///< \f$ g-1 \f$
+  ) const {
+    // return sed_from_gm1(gm1)*rho_from_gm1(gm1);
+    return n * rho_p * pow(gm1 / np1, np1);
+  }
+
+  /**
+  \return Pressure \f$ P = \rho_p \left( \frac{g-1}{1+n} \right)^{1+n} \f$
+  */
   CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  p_from_valid_gm1(const CCTK_REAL gm1) const;
+  p_from_valid_gm1(const CCTK_REAL gm1 ///< \f$ g-1 \f$
+  ) const {
+    return rho_p * pow(gm1 / np1, np1);
+  }
+
+  /**
+  \return Rest mass density \f$ \rho = \rho_p \left( \frac{g-1}{1+n} \right)^n
+  \f$
+  */
   CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  rho_from_valid_gm1(const CCTK_REAL gm1) const;
+  rho_from_valid_gm1(const CCTK_REAL gm1 ///< \f$ g-1 \f$
+  ) const {
+    return rho_p * pow(gm1 / np1, n);
+  }
+
+  /**
+  \return specific enthalpy \f$ h-1 = g-1 \f$
+  */
   CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  hm1_from_valid_gm1(const CCTK_REAL gm1) const;
+  hm1_from_valid_gm1(const CCTK_REAL gm1 ///< \f$ g-1 \f$
+  ) const {
+    return gm1;
+  }
+
+  /**
+  \return Soundspeed squared \f$ c_s^2 = \frac{g-1}{ng} \f$
+  */
   CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  csnd2_from_valid_gm1(const CCTK_REAL gm1) const;
+  csnd2_from_valid_gm1(const CCTK_REAL gm1) const {
+    return gm1 / (n * (gm1 + 1));
+  }
+
+  // ───────────────────────────────────────────────────────────────────────
+  // Temperature for a 1-parameter polytrope, assuming an ideal-gas closure
+  //
+  //  • gm1  … already known “g-1 = h-1” (passed in)
+  //  • mu   … mean molecular weight in units of m_p (default = 1)
+  // ----------------------------------------------------------------------
+
   CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  temp_from_valid_gm1(const CCTK_REAL gm1) const;
+  temp_from_valid_gm1(const CCTK_REAL gm1) const {
+    // For a pure polytrope P/ρ = (g-1)/(n+1)  ⇒  theta = μ·P/ρ = μ·(g-1)/(n+1)
+    CCTK_REAL mu = 1.0;    // considering mean molecular wt = 1
+    return mu * gm1 / np1; // geometric-units T
+  }
 };
-
-CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
-eos_1p_polytropic::init(CCTK_REAL poly_gamma_, CCTK_REAL poly_k_,
-                        CCTK_REAL rho_max_) {
-  poly_k = poly_k_;
-  poly_gamma = poly_gamma_;
-  assert(poly_gamma_ > 1.0);
-  n = 1.0 / (poly_gamma - 1.0);
-  np1 = n + 1;
-  invn = 1.0 / n;
-  rho_p = pow(poly_k, -n);
-  // set_ranges(range(0, rho_max_));
-}
-
-CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-eos_1p_polytropic::gm1_from_valid_rho(const CCTK_REAL rho) const {
-  return np1 * pow(rho / rho_p, invn);
-}
-
-/**
-\return \f$ g-1 = h-1 = (n+1) \left(\frac{P}{\rho_p} \right)^\frac{1}{n+1} \f$
-*/
-CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-eos_1p_polytropic::gm1_from_valid_p(const CCTK_REAL p) const {
-  return np1 * pow(p / rho_p, 1.0 / np1);
-}
-
-/**
-\return Specific internal energy \f$ \epsilon = \frac{g-1}{\Gamma} \f$
-*/
-CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-eos_1p_polytropic::sed_from_valid_gm1(const CCTK_REAL gm1 ///< \f$ g-1 \f$
-                                      ) const {
-  return gm1 / poly_gamma;
-}
-
-/**
-\return Internal energy density
-\f$ \rho_I = n \rho_p \left(\frac{g-1}{n+1}\right)^{n+1} \f$
-*/
-CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-eos_1p_polytropic::ied_from_valid_gm1(const CCTK_REAL gm1 ///< \f$ g-1 \f$
-                                      ) const {
-  // return sed_from_gm1(gm1)*rho_from_gm1(gm1);
-  return n * rho_p * pow(gm1 / np1, np1);
-}
-
-/**
-\return Pressure \f$ P = \rho_p \left( \frac{g-1}{1+n} \right)^{1+n} \f$
-*/
-CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-eos_1p_polytropic::p_from_valid_gm1(const CCTK_REAL gm1 ///< \f$ g-1 \f$
-                                    ) const {
-  return rho_p * pow(gm1 / np1, np1);
-}
-
-/**
-\return Rest mass density \f$ \rho = \rho_p \left( \frac{g-1}{1+n} \right)^n \f$
-*/
-CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-eos_1p_polytropic::rho_from_valid_gm1(const CCTK_REAL gm1 ///< \f$ g-1 \f$
-                                      ) const {
-  return rho_p * pow(gm1 / np1, n);
-}
-
-/**
-\return specific enthalpy \f$ h-1 = g-1 \f$
-*/
-CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-eos_1p_polytropic::hm1_from_valid_gm1(const CCTK_REAL gm1 ///< \f$ g-1 \f$
-                                      ) const {
-  return gm1;
-}
-
-/**
-\return Soundspeed squared \f$ c_s^2 = \frac{g-1}{ng} \f$
-*/
-CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-eos_1p_polytropic::csnd2_from_valid_gm1(const CCTK_REAL gm1) const {
-  return gm1 / (n * (gm1 + 1));
-}
-
-// ───────────────────────────────────────────────────────────────────────
-// Temperature for a 1‑parameter polytrope, assuming an ideal‑gas closure
-//
-//  • gm1  … already known “g‑1 = h‑1” (passed in)
-//  • mu   … mean molecular weight in units of m_p (default = 1)
-// ----------------------------------------------------------------------
-
-CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-eos_1p_polytropic::temp_from_valid_gm1(const CCTK_REAL gm1) const
-{
-  // For a pure polytrope P/ρ = (g‑1)/(n+1)  ⇒  theta = μ·P/ρ = μ·(g‑1)/(n+1)
-  CCTK_REAL mu = 1.0; // considering mean molecular wt = 1
-  return mu * gm1 / np1;          // geometric‑units T
-}
-
 
 } // namespace EOSX
 
