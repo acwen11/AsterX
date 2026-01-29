@@ -24,6 +24,18 @@ eos_readtable_scollapse(const std::string &filename,
 
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  // Pick the right MPI datatype for CCTK_REAL
+  MPI_Datatype mpi_real = MPI_DOUBLE;
+  if (sizeof(CCTK_REAL) == sizeof(float)) {
+    mpi_real = MPI_FLOAT;
+  } else if (sizeof(CCTK_REAL) == sizeof(double)) {
+    mpi_real = MPI_DOUBLE;
+  } else {
+    // Unusual build: refuse silently-bad behavior
+    assert(false && "Unsupported CCTK_REAL size for MPI_Bcast");
+  }
+
   hid_t fapl_id = H5Pcreate(H5P_FILE_ACCESS);
   assert(fapl_id >= 0);
 
@@ -41,6 +53,12 @@ eos_readtable_scollapse(const std::string &filename,
 #endif
 
   int nrho, ntemp, nye;
+
+#ifdef H5_HAVE_PARALLEL
+  get_hdf5_int_dset(file_id, "pointsrho", 1, &nrho);
+  get_hdf5_int_dset(file_id, "pointstemp", 1, &ntemp);
+  get_hdf5_int_dset(file_id, "pointsye", 1, &nye);
+#else
   if (rank == 0) {
     get_hdf5_int_dset(file_id, "pointsrho", 1, &nrho);
     get_hdf5_int_dset(file_id, "pointstemp", 1, &ntemp);
@@ -49,19 +67,20 @@ eos_readtable_scollapse(const std::string &filename,
   MPI_Bcast(&nrho, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&ntemp, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&nye, 1, MPI_INT, 0, MPI_COMM_WORLD);
+#endif
 
   const int npoints = nrho * ntemp * nye;
 
   // Read and communicate tables using host memory
-  auto *host_arena = amrex::The_Arena();
+  auto *host_arena = amrex::The_Pinned_Arena();
 
   CCTK_REAL *logrho_h = (CCTK_REAL *)host_arena->alloc(nrho * sizeof(CCTK_REAL));
   CCTK_REAL *logtemp_h = (CCTK_REAL *)host_arena->alloc(ntemp * sizeof(CCTK_REAL));
   CCTK_REAL *yes_h = (CCTK_REAL *)host_arena->alloc(nye * sizeof(CCTK_REAL));
   CCTK_REAL *alltables_tmp_h = (CCTK_REAL *)host_arena->alloc(
-      npoints * NTABLES * sizeof(CCTK_REAL));
+      (size_t)npoints * NTABLES * sizeof(CCTK_REAL));
   CCTK_REAL *alltables_h = (CCTK_REAL *)host_arena->alloc(
-      npoints * NTABLES * sizeof(CCTK_REAL));
+      (size_t)npoints * NTABLES * sizeof(CCTK_REAL));
   CCTK_REAL *energy_shift_h =
       (CCTK_REAL *)host_arena->alloc(sizeof(CCTK_REAL));
 
@@ -73,7 +92,7 @@ eos_readtable_scollapse(const std::string &filename,
   CCTK_REAL *yes =
       (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(nye * sizeof(CCTK_REAL));
   CCTK_REAL *alltables = (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(
-      npoints * NTABLES * sizeof(CCTK_REAL));
+      (size_t)npoints * NTABLES * sizeof(CCTK_REAL));
   CCTK_REAL *energy_shift =
       (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(sizeof(CCTK_REAL));
 
@@ -83,13 +102,14 @@ eos_readtable_scollapse(const std::string &filename,
       "Xn",       "Xp",        "Abar",    "Zbar", "gamma"};
 
 #ifdef H5_HAVE_PARALLEL
+  // ALL ranks participate in reads in the same order
   get_hdf5_real_dset(file_id, "logrho", nrho, logrho_h);
   get_hdf5_real_dset(file_id, "logtemp", ntemp, logtemp_h);
   get_hdf5_real_dset(file_id, "ye", nye, yes_h);
   get_hdf5_real_dset(file_id, "energy_shift", 1, energy_shift_h);
   for (int iv = 0; iv < NTABLES; iv++) {
     get_hdf5_real_dset(file_id, dnames[iv], npoints,
-                       &alltables_tmp_h[iv * npoints]);
+                       &alltables_tmp_h[(size_t)iv * npoints]);
   }
 
   // change ordering of alltables array so that
@@ -114,7 +134,7 @@ eos_readtable_scollapse(const std::string &filename,
     get_hdf5_real_dset(file_id, "energy_shift", 1, energy_shift_h);
     for (int iv = 0; iv < NTABLES; iv++) {
       get_hdf5_real_dset(file_id, dnames[iv], npoints,
-                         &alltables_tmp_h[iv * npoints]);
+                         &alltables_tmp_h[(size_t)iv * npoints]);
     }
     CHECK_ERROR(H5Fclose(file_id));
 
@@ -131,11 +151,11 @@ eos_readtable_scollapse(const std::string &filename,
   }
   host_arena->free(alltables_tmp_h);
 
-  MPI_Bcast(logrho_h, nrho, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-  MPI_Bcast(logtemp_h, ntemp, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-  MPI_Bcast(yes_h, nye, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-  MPI_Bcast(energy_shift_h, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-  MPI_Bcast(alltables_h, npoints * NTABLES, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+  MPI_Bcast(logrho_h, nrho, mpi_real, 0, MPI_COMM_WORLD);
+  MPI_Bcast(logtemp_h, ntemp, mpi_real, 0, MPI_COMM_WORLD);
+  MPI_Bcast(yes_h, nye, mpi_real, 0, MPI_COMM_WORLD);
+  MPI_Bcast(energy_shift_h, 1, mpi_real, 0, MPI_COMM_WORLD);
+  MPI_Bcast(alltables_h, npoints * NTABLES, mpi_real, 0, MPI_COMM_WORLD);
 #endif
 
   // Copy host -> managed
