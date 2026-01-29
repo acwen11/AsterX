@@ -189,6 +189,101 @@ extern "C" void Tests2D_Initialize(CCTK_ARGUMENTS) {
                                                  });
   }
 
+  else if (CCTK_EQUALS(test_case, "KHI")) {
+    grid.loop_all_device<1, 1, 1>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const Loop::PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+          // set velocities in opposite directions in x along the slip surface
+          // set slightly different densities along the slip surface
+          // location of slip surfaces hardcoded at (abs(p.y) = 0.25)
+          using std::abs;
+          if (abs(p.y) >= 0.25) {
+            rho(p.I) = rhoUp;
+            velx(p.I) = vxUp;
+          } else {
+            rho(p.I) = rhoLow;
+            velx(p.I) = vxLow;
+          }
+          // excite the instability by peturbing v^y
+          using std::exp, std::pow, std::sin;
+          vely(p.I) = w0 * sin(4 * M_PI * p.x) *
+                      (exp(-pow(p.y - 0.25, 2) / (2 * pow(sigma, 2))) +
+                       exp(-pow(p.y + 0.25, 2) / (2 * pow(sigma, 2))));
+
+          velz(p.I) = 0.0;
+
+          // set constant initial pressure throughout the domain
+          press(p.I) = p_val;
+          eps(p.I) = eos_3p_ig->eps_from_valid_rho_press_ye(
+              rho(p.I), press(p.I), dummy_ye);
+        });
+
+    grid.loop_all_device<1, 0, 0>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p)
+            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_x(p.I) = 0.0; });
+
+    grid.loop_all_device<0, 1, 0>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p)
+            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_y(p.I) = 0.0; });
+
+    grid.loop_all_device<0, 0, 1>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p)
+            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_z(p.I) = 0.0; });
+  }
+
+  else if (CCTK_EQUALS(test_case, "magKHI")) {
+
+    // paper: Kiuchi+ 2022, https://arxiv.org/abs/2205.04487
+    const CCTK_REAL a = 0.02;   // shear layer thickness (Eq. 4.8)
+    const CCTK_REAL vsh = 0.25; // shear amplitude (Eq. 4.8)
+    const CCTK_REAL pr = 20.0;  // uniform gas pressure
+    const CCTK_REAL rho0 = 1.0; // uniform density
+
+    const CCTK_REAL sigma_pol = 0.01;
+    const CCTK_REAL Bx0 =
+        sqrt(2.0 * sigma_pol *
+             pr); // Eq. (4.9): (Bx,By,Bz) = (sqrt(2*sigma_pol*P), 0, 0)
+
+    grid.loop_all_device<1, 1, 1>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const Loop::PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+          // Eq. (4.8)
+          const CCTK_REAL vx = -vsh * tanh(p.y / a);
+
+          // Eq. (4.10)
+          const CCTK_REAL vy =
+              (1.0 / 40000.0) * sin(2.0 * M_PI * p.x) * exp(-100.0 * p.y * p.y);
+
+          rho(p.I) = rho0;
+          press(p.I) = pr;
+
+          velx(p.I) = vx;
+          vely(p.I) = vy;
+          velz(p.I) = 0.0;
+
+          eps(p.I) = eos_3p_ig->eps_from_valid_rho_press_ye(
+              rho(p.I), press(p.I), dummy_ye);
+        });
+
+    grid.loop_all_device<1, 0, 0>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p)
+            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_x(p.I) = 0.0; });
+
+    grid.loop_all_device<0, 1, 0>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p)
+            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_y(p.I) = 0.0; });
+
+    grid.loop_all_device<0, 0, 1>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p)
+            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_z(p.I) = Bx0 * p.y; });
+  }
+
   else {
     CCTK_ERROR("Test case not defined");
   }

@@ -47,12 +47,36 @@ SCHEDULE AsterX_ComputedBstagFromA IN AsterX_InitialGroup
   WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
 } "Calculate dBstag from curl of A"
 
+if(prolongate_dbstag)
+{
+  SCHEDULE AsterX_ProlongatedBstag IN AsterX_InitialGroup AFTER AsterX_ComputedBstagFromA BEFORE AsterX_ComputedBFromdBstag
+  {
+    LANG: C
+    OPTIONS: global
+  } "Prolongate dBstag only"
+}
+
 SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_InitialGroup AFTER AsterX_ComputedBstagFromA
 {
   LANG: C
   READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
   WRITES: dB(everywhere)
 } "Calculate centered dB from dBstag"
+
+# Extra interprocessor syncs only for higher order stencils
+if (mag_correction_order > 2) {
+  SCHEDULE AsterX_CommdBstag IN AsterX_InitialGroup AFTER AsterX_ComputedBstagFromA BEFORE AsterX_ProlongatedBstag 
+  {
+    LANG: C
+    OPTIONS: global
+  } "Communicate dBstag between processes"
+
+  SCHEDULE AsterX_CommdB IN AsterX_InitialGroup AFTER AsterX_ComputedBFromdBstag BEFORE AsterX_ComputeBFromdB 
+  {
+    LANG: C
+    OPTIONS: global
+  } "Communicate cell centered dB between processes"
+}
 
 SCHEDULE AsterX_ComputeBFromdB IN AsterX_InitialGroup AFTER AsterX_ComputedBFromdBstag
 {
@@ -165,12 +189,36 @@ SCHEDULE AsterX_ComputedBstagFromA IN AsterX_Con2PrimGroup
   WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
 } "Calculate dBstag from curl of A"
 
+if(prolongate_dbstag)
+{
+  SCHEDULE AsterX_ProlongatedBstag IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBstagFromA BEFORE AsterX_ComputedBFromdBstag
+  {
+    LANG: C
+    OPTIONS: global
+  } "Prolongate dBstag only"
+}
+
 SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBstagFromA
 {
   LANG: C
   READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
   WRITES: dB(everywhere)
 } "Calculate centered dB from dBstag"
+
+# Extra interprocessor syncs only for higher order stencils
+if (mag_correction_order > 2) {
+  SCHEDULE AsterX_CommdBstag IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBstagFromA BEFORE AsterX_ProlongatedBstag 
+  {
+    LANG: C
+    OPTIONS: global
+  } "Communicate dBstag between processes"
+
+  SCHEDULE AsterX_CommdB IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBstag BEFORE AsterX_Con2Prim 
+  {
+    LANG: C
+    OPTIONS: global
+  } "Communicate cell centered dB between processes"
+}
 
 SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBstag
 {
@@ -197,8 +245,23 @@ SCHEDULE AsterX_ApplyOuterBCOnPrim IN AsterX_Con2PrimGroup AFTER AsterX_Con2Prim
   OPTIONS: global
 } "Apply CarpetX boundary conditions on primitive variables"
 
+SCHEDULE AsterX_InitLOFlag IN CCTK_PRESTEP 
+{
+	LANG: C
+	WRITES: LOflag(everywhere)
+} "Init this flag to 0"
 
-
+if (use_deriv_shock_detector)
+{
+  SCHEDULE AsterX_SetLOFlag IN CCTK_PRESTEP AFTER AsterX_InitLOFlag 
+  {
+    LANG: C
+    READS: ADMBaseX::metric(interior)
+    READS: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::temperature(interior) HydroBaseX::Ye(interior) HydroBaseX::Bvec(interior)
+    WRITES: etac(interior) LOflag(interior)
+    SYNC: LOflag
+  } "Detect shocks, flag for low-order recon fallback"
+}
 
 SCHEDULE GROUP AsterX_RHSGroup IN ODESolvers_RHS
 {
@@ -218,12 +281,15 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   READS: zvec_x(everywhere) zvec_y(everywhere) zvec_z(everywhere)
   READS: svec_x(everywhere) svec_y(everywhere) svec_z(everywhere)
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere) Psi(everywhere)
+  READS: dens(everywhere) DYe(everywhere)
+  READS: LOflag(everywhere)
   WRITES: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
+  WRITES: theta_x(everywhere) theta_y(everywhere) theta_z(everywhere)
   WRITES: vbar_xface(everywhere) vbar_yface(everywhere) vbar_zface(everywhere)
   WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
 } "Calculate the hydro fluxes"
 
-SCHEDULE AsterX_ApplyOuterBCOnFluxes IN AsterX_RHSGroup AFTER AsterX_Fluxes BEFORE AsterX_RHS
+SCHEDULE AsterX_RestrictFluxes IN AsterX_RHSGroup AFTER AsterX_Fluxes BEFORE AsterX_RHS
 {
   LANG: C
   OPTIONS: global
@@ -236,11 +302,23 @@ SCHEDULE AsterX_CalcAuxTermsForAvecPsiRHS IN AsterX_RHSGroup AFTER AsterX_Fluxes
   READS: ADMBaseX::lapse(everywhere)
   READS: ADMBaseX::shift(everywhere)
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere) Psi(everywhere)
+  READS: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
+  READS: HydroBaseX::vel(everywhere) HydroBaseX::press(everywhere)
+  READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
+  READS: vbar_xface(everywhere) vbar_yface(everywhere) vbar_zface(everywhere)
+  READS: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
   READS: Fx_stag(everywhere) Fy_stag(everywhere) Fz_stag(everywhere)
-  WRITES: G(interior)
+  WRITES: Ex(interior) Ey(interior) Ez(interior)
+  WRITES: G(everywhere)
   WRITES: Fbeta(everywhere)
   WRITES: Fx_stag(everywhere) Fy_stag(everywhere) Fz_stag(everywhere)
 } "Calculate the auxiliary terms for the rhs of Avec and Psi"
+
+SCHEDULE AsterX_RestrictAuxTermsForAvecPsiRHS IN AsterX_RHSGroup AFTER AsterX_CalcAuxTermsForAvecPsiRHS BEFORE AsterX_SourceTerms
+{
+  LANG: C
+  OPTIONS: global
+} "Restrict the auxiliary terms for the rhs of Avec and Psi"
 
 SCHEDULE AsterX_SourceTerms IN AsterX_RHSGroup AFTER AsterX_Fluxes
 {
@@ -261,17 +339,17 @@ SCHEDULE AsterX_RHS IN AsterX_RHSGroup AFTER AsterX_SourceTerms
 {
   LANG: C
   READS: ADMBaseX::metric(everywhere) ADMBaseX::lapse(everywhere) ADMBaseX::shift(everywhere)
-  READS: HydroBaseX::vel(everywhere) HydroBaseX::press(everywhere)
   READS: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
   READS: densrhs(interior) taurhs(interior) momrhs(interior) DEntrhs(interior) DYe_rhs(interior)
   READS: Psi(everywhere)
-  READS: G(interior)
+  READS: Ex(interior) Ey(interior) Ez(interior)
+  READS: G(everywhere)
   READS: Fbeta(everywhere)
   READS: Fx_stag(everywhere) Fy_stag(everywhere) Fz_stag(everywhere)
-  READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
-  READS: vbar_xface(everywhere) vbar_yface(everywhere) vbar_zface(everywhere)
-  READS: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
+  READS: theta_x(everywhere) theta_y(everywhere) theta_z(everywhere)
+  READS: LOflag(everywhere) 
   WRITES: densrhs(interior) taurhs(interior) momrhs(interior) DEntrhs(interior) DYe_rhs(interior)
+  WRITES: theta_tot(interior)
   WRITES: Avec_x_rhs(interior) Avec_y_rhs(interior) Avec_z_rhs(interior) Psi_rhs(interior)
 } "Update the RHS of the hydro equations with the flux contributions"
 
@@ -312,4 +390,16 @@ if(update_tmunu){
     WRITES: TmunuBaseX::eTtt(interior) TmunuBaseX::eTti(interior) TmunuBaseX::eTij(interior)
     SYNC: TmunuBaseX::eTtt TmunuBaseX::eTti TmunuBaseX::eTij
   } "Compute the energy-momentum tensor"
+}
+
+if(add_dissipation)
+{
+  SCHEDULE AsterX_Add_Dissipation_AvecPsi IN AsterX_RHSGroup \
+     AFTER AsterX_RHS
+  {
+    LANG: C
+    READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere) Psi(everywhere)
+    READS: Avec_x_rhs(everywhere) Avec_y_rhs(everywhere) Avec_z_rhs(everywhere) Psi_rhs(everywhere)
+    WRITES: Avec_x_rhs(interior) Avec_y_rhs(interior) Avec_z_rhs(interior) Psi_rhs(interior)
+  } "Add KO dissipation"
 }

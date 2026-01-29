@@ -66,6 +66,12 @@ CCTK_REAL flux_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
   fzBx fzBy fzBz
 } "Fluxes in z direction"
 
+CCTK_REAL theta_tot TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "min(thetas) taken over all cell faces"
+
+CCTK_REAL theta_x TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"' "flux limiter in x"
+CCTK_REAL theta_y TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"' "flux limiter in y"
+CCTK_REAL theta_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"' "flux limiter in z"
+
 CCTK_REAL densrhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved rest mass density RHS"
 
 CCTK_REAL momrhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
@@ -103,6 +109,13 @@ CCTK_REAL Fbeta TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"'
 {
   Fbetax, Fbetay, Fbetaz
 } "Auxiliary variables which appear in the rhs of Psi"
+
+CCTK_REAL LOflag TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Shock detector switch"
+CCTK_REAL etac TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Shock detector measure"
+
+CCTK_REAL Ex TYPE=gf CENTERING={cvv} TAGS='checkpoint="no"' "x-component of E"
+CCTK_REAL Ey TYPE=gf CENTERING={vcv} TAGS='checkpoint="no"' "y-component of E"
+CCTK_REAL Ez TYPE=gf CENTERING={vvc} TAGS='checkpoint="no"' "z-component of E"
 
 CCTK_REAL G TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"' "Auxiliary variable which appears in the rhs of Avec"
 

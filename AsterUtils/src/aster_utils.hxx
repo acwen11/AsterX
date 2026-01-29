@@ -204,6 +204,32 @@ hll_upwind(T uL, T uR, T fL, T fR, T ap, T am) noexcept {
   return (ap * fL + am * fR - ap * am * (uR - uL)) / s;
 }
 
+template <typename T>
+CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
+KO_dissipation(const PointDesc &p, const GF3D2<const T> &gf) {
+  // KO dissipation of order 5
+  const auto i = p.I;
+  const auto im1x = i - 1 * p.DI[0], ip1x = i + 1 * p.DI[0];
+  const auto im2x = i - 2 * p.DI[0], ip2x = i + 2 * p.DI[0];
+  const auto im3x = i - 3 * p.DI[0], ip3x = i + 3 * p.DI[0];
+  const auto im1y = i - 1 * p.DI[1], ip1y = i + 1 * p.DI[1];
+  const auto im2y = i - 2 * p.DI[1], ip2y = i + 2 * p.DI[1];
+  const auto im3y = i - 3 * p.DI[1], ip3y = i + 3 * p.DI[1];
+  const auto im1z = i - 1 * p.DI[2], ip1z = i + 1 * p.DI[2];
+  const auto im2z = i - 2 * p.DI[2], ip2z = i + 2 * p.DI[2];
+  const auto im3z = i - 3 * p.DI[2], ip3z = i + 3 * p.DI[2];
+  return (1.0 / 64.0) *
+         ((gf(im3x) - 6.0 * gf(im2x) + 15.0 * gf(im1x) - 20.0 * gf(i) +
+           15.0 * gf(ip1x) - 6.0 * gf(ip2x) + gf(ip3x)) /
+              p.DX[0] +
+          (gf(im3y) - 6.0 * gf(im2y) + 15.0 * gf(im1y) - 20.0 * gf(i) +
+           15.0 * gf(ip1y) - 6.0 * gf(ip2y) + gf(ip3y)) /
+              p.DX[1] +
+          (gf(im3z) - 6.0 * gf(im2z) + 15.0 * gf(im1z) - 20.0 * gf(i) +
+           15.0 * gf(ip1z) - 6.0 * gf(ip2z) + gf(ip3z)) /
+              p.DX[2]);
+}
+
 } // namespace AsterUtils
 
 #endif // ASTER_UTILS_HXX
