@@ -8,9 +8,6 @@
 #include <mpi.h>
 #include <hdf5.h>
 
-#include <AMReX_Arena.H>
-#include <AMReX_Gpu.H>
-
 #include "eos_3p_tabulated3d.hxx"
 
 #ifndef NTABLES
