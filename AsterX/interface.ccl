@@ -15,7 +15,7 @@ PUBLIC:
 
 # ----- evolved state variables
 
-CCTK_REAL cons_vector TYPE=gf CENTERING={ccc} TAGS='rhs="rhs_vector" dependents="HydroBaseX::rho HydroBaseX::eps HydroBaseX::press HydroBaseX::temperature HydroBaseX::Ye HydroBaseX::Bvec HydroBaseX::vel HydroBaseX::entropy TmunuBaseX::eTtt TmunuBaseX::eTti TmunuBaseX::eTij AsterX::flux_x AsterX::flux_y AsterX::flux_z"' "Conserved quantities during AsterX evolution"
+CCTK_REAL cons_vector TYPE=gf CENTERING={ccc} TAGS='rhs="rhs_vector" dependents="HydroBaseX::rho HydroBaseX::eps HydroBaseX::press HydroBaseX::temperature HydroBaseX::Ye HydroBaseX::Bvec HydroBaseX::vel HydroBaseX::entropy TmunuBaseX::eTtt TmunuBaseX::eTti TmunuBaseX::eTij AsterX::flux_x AsterX::flux_y AsterX::flux_z" prolongation_type="minmod" prolongation_order=1' "Conserved quantities during AsterX evolution"
 {
   dens, momx, momy, momz, tau, DYe, DEnt
 } "Conserved density, momenta, internal energy, electron fraction and entropy"
@@ -83,9 +83,9 @@ CCTK_REAL etac TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Shock detector me
 
 # ----- staggered vector potential (edges)
 
-CCTK_REAL Avec_x TYPE=gf CENTERING={cvv} TAGS='rhs="Avec_x_rhs"' "x-component of vector potential"
-CCTK_REAL Avec_y TYPE=gf CENTERING={vcv} TAGS='rhs="Avec_y_rhs"' "y-component of vector potential"
-CCTK_REAL Avec_z TYPE=gf CENTERING={vvc} TAGS='rhs="Avec_z_rhs"' "z-component of vector potential"
+CCTK_REAL Avec_x TYPE=gf CENTERING={cvv} TAGS='rhs="Avec_x_rhs" prolongation_type="hermite" prolongation_order=5' "x-component of vector potential"
+CCTK_REAL Avec_y TYPE=gf CENTERING={vcv} TAGS='rhs="Avec_y_rhs" prolongation_type="hermite" prolongation_order=5' "y-component of vector potential"
+CCTK_REAL Avec_z TYPE=gf CENTERING={vvc} TAGS='rhs="Avec_z_rhs" prolongation_type="hermite" prolongation_order=5' "z-component of vector potential"
 
 CCTK_REAL Avec_x_rhs TYPE=gf CENTERING={cvv} TAGS='checkpoint="no"' "x-component of vector potential RHS"
 CCTK_REAL Avec_y_rhs TYPE=gf CENTERING={vcv} TAGS='checkpoint="no"' "y-component of vector potential RHS"
@@ -100,13 +100,13 @@ CCTK_REAL dB TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
 
 # ----- staggered magnetic field (faces)
 
-CCTK_REAL dBx_stag TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"' "x-component of staggered densitized magnetic field"
-CCTK_REAL dBy_stag TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"' "y-component of staggered densitized magnetic field"
-CCTK_REAL dBz_stag TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"' "z-component of staggered densitized magnetic field"
+CCTK_REAL dBx_stag TYPE=gf CENTERING={vcc} TAGS='checkpoint="no" prolongation_type="poly-cons3lfb" prolongation_order=3' "x-component of staggered densitized magnetic field"
+CCTK_REAL dBy_stag TYPE=gf CENTERING={cvc} TAGS='checkpoint="no" prolongation_type="poly-cons3lfb" prolongation_order=3' "y-component of staggered densitized magnetic field"
+CCTK_REAL dBz_stag TYPE=gf CENTERING={ccv} TAGS='checkpoint="no" prolongation_type="poly-cons3lfb" prolongation_order=3' "z-component of staggered densitized magnetic field"
 
 # ----- staggered gauge functions
 
-CCTK_REAL Psi TYPE=gf CENTERING={vvv} TAGS='rhs="Psi_rhs"' "t-component of vector potential: sqrt(det(gamma_ij))*Phi"
+CCTK_REAL Psi TYPE=gf CENTERING={vvv} TAGS='rhs="Psi_rhs" prolongation_type="hermite" prolongation_order=5' "t-component of vector potential: sqrt(det(gamma_ij))*Phi"
 
 CCTK_REAL Psi_rhs TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"' "t-component of vector potential RHS"
 
