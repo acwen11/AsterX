@@ -1,16 +1,21 @@
 #ifndef EOS_1P_PIECEWISE_POLYTROPIC_HXX
 #define EOS_1P_PIECEWISE_POLYTROPIC_HXX
 
-#include "../eos_1p.hxx"
-
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <cstdio>
 #include <stdexcept>
 #include <string>
-#include <vector>
+
+#include "../eos_1p.hxx"
 
 namespace EOSX {
+
+#ifndef EOSX_PWPOLY_MAX_SEGM
+#define EOSX_PWPOLY_MAX_SEGM 64
+#endif
+
 /// This implements the "cold" part used by the hybrid EOS:
 ///   P = P_cold(rho),  eps = eps_cold(rho), etc.
 ///
@@ -100,61 +105,62 @@ public:
     }
   };
 
-  std::vector<eos_poly_piece> segments;
+  eos_poly_piece segments[EOSX_PWPOLY_MAX_SEGM];
+  CCTK_INT nsegm = 0;
   CCTK_REAL rho_max;
 
   // Initialize from:
   //  - rho_p0: first segment polytropic density scale
-  //  - segm_bound: boundary densities (must start at 0), size = nseg
-  //  - segm_gamma: segment gammas, size = nseg
+  //  - nsegm_: number of segments
+  //  - segm_bound: boundary densities (must start at 0), length = nsegm_
+  //  - segm_gamma: segment gammas, length = nsegm_
   //  - rho_max_: EOS validity max density
   //
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void init(
-      CCTK_REAL rho_p0, const std::vector<CCTK_REAL> &segm_bound,
-      const std::vector<CCTK_REAL> &segm_gamma, CCTK_REAL rho_max_) {
-    if (segm_bound.size() != segm_gamma.size()) {
-      printf("eos_1p_piecewise_polytropic: vector sizes mismatch.");
+      CCTK_REAL rho_p0, const CCTK_INT nsegm_,
+      const CCTK_REAL *segm_bound, const CCTK_REAL *segm_gamma,
+      CCTK_REAL rho_max_) {
+
+    if (nsegm_ <= 0) {
+      printf("eos_1p_piecewise_polytropic: need at least one segment.\n");
       assert(false);
     }
-    if (segm_bound.size() == 0) {
-      printf("eos_1p_piecewise_polytropic: need at least one segment.");
+    if (nsegm_ > EOSX_PWPOLY_MAX_SEGM) {
+      printf("eos_1p_piecewise_polytropic: nsegm exceeds EOSX_PWPOLY_MAX_SEGM.\n");
       assert(false);
     }
     if (segm_bound[0] != CCTK_REAL(0.0)) {
-      printf("eos_1p_piecewise_polytropic: first segment must start at rho=0.");
+      printf("eos_1p_piecewise_polytropic: first segment must start at rho=0.\n");
       assert(false);
     }
 
+    nsegm = nsegm_;
     rho_max = rho_max_;
 
-    segments.clear();
-    segments.reserve(segm_bound.size());
-
     // First segment anchored at rho=0 with sed0=0
-    segments.push_back(eos_poly_piece(CCTK_REAL(0.0), CCTK_REAL(0.0),
-                                      segm_gamma[0], rho_p0));
+    segments[0] = eos_poly_piece(CCTK_REAL(0.0), CCTK_REAL(0.0),
+                                segm_gamma[0], rho_p0);
 
     // Build subsequent segments enforcing continuity of sed at each boundary
-    for (size_t i = 1; i < segm_bound.size(); ++i) {
+    for (CCTK_INT i = 1; i < nsegm; ++i) {
       const CCTK_REAL rho_b = segm_bound[i];
       const CCTK_REAL gamma_i = segm_gamma[i];
 
-      const eos_poly_piece &lseg = segments.back();
+      const eos_poly_piece &lseg = segments[i - 1];
       if (lseg.rho0 >= rho_b) {
-        printf("eos_1p_piecewise_polytropic: boundaries not strictly increasing.");
-	assert(false);
+        printf("eos_1p_piecewise_polytropic: boundaries not strictly increasing.\n");
+        assert(false);
       }
 
       // sed at boundary from previous segment
       const CCTK_REAL sedc = lseg.sed_from_gm1(lseg.gm1_from_rho(rho_b));
 
       // Compute rho_p for the new segment so pressure is continuous.
-      //   np = 1/(gamma_i-1), et = np/lseg.n, rho_p = lseg.rho_p^et * rho_b^(1-et)
       const CCTK_REAL np = CCTK_REAL(1.0) / (gamma_i - CCTK_REAL(1.0));
       const CCTK_REAL et = np / lseg.n;
       const CCTK_REAL rho_p = pow(lseg.rho_p, et) * pow(rho_b, CCTK_REAL(1.0) - et);
 
-      segments.push_back(eos_poly_piece(rho_b, sedc, gamma_i, rho_p));
+      segments[i] = eos_poly_piece(rho_b, sedc, gamma_i, rho_p);
     }
 
     // If your eos_1p base has range-setting, this is where it would go.
@@ -165,7 +171,7 @@ public:
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline const eos_poly_piece &
   segment_for_rho(const CCTK_REAL rho) const {
     // Find last segment with rho0 <= rho
-    for (size_t idx = segments.size(); idx-- > 0;) {
+    for (CCTK_INT idx = nsegm - 1; idx >= 0; --idx) {
       if (segments[idx].rho0 <= rho) return segments[idx];
     }
     return segments[0];
@@ -174,7 +180,7 @@ public:
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline const eos_poly_piece &
   segment_for_p(const CCTK_REAL p) const {
     // Find last segment with p0 <= p
-    for (size_t idx = segments.size(); idx-- > 0;) {
+    for (CCTK_INT idx = nsegm - 1; idx >= 0; --idx) {
       if (segments[idx].p0 <= p) return segments[idx];
     }
     return segments[0];
@@ -183,7 +189,7 @@ public:
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline const eos_poly_piece &
   segment_for_gm1(const CCTK_REAL gm1) const {
     // Find last segment with gm10 <= gm1
-    for (size_t idx = segments.size(); idx-- > 0;) {
+    for (CCTK_INT idx = nsegm - 1; idx >= 0; --idx) {
       if (segments[idx].gm10 <= gm1) return segments[idx];
     }
     return segments[0];
@@ -191,47 +197,47 @@ public:
 
   // Required cold EOS API (EOSX naming)
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  gm1_from_valid_rho(const CCTK_REAL rho) const {
+  gm1_from_rho(const CCTK_REAL rho) const {
     return segment_for_rho(rho).gm1_from_rho(rho);
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  gm1_from_valid_p(const CCTK_REAL p) const {
+  gm1_from_p(const CCTK_REAL p) const {
     return segment_for_p(p).gm1_from_p(p);
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  sed_from_valid_gm1(const CCTK_REAL gm1) const {
+  sed_from_gm1(const CCTK_REAL gm1) const {
     return segment_for_gm1(gm1).sed_from_gm1(gm1);
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  ied_from_valid_gm1(const CCTK_REAL gm1) const {
+  ied_from_gm1(const CCTK_REAL gm1) const {
     return segment_for_gm1(gm1).ied_from_gm1(gm1);
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  p_from_valid_gm1(const CCTK_REAL gm1) const {
+  p_from_gm1(const CCTK_REAL gm1) const {
     return segment_for_gm1(gm1).p_from_gm1(gm1);
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  rho_from_valid_gm1(const CCTK_REAL gm1) const {
+  rho_from_gm1(const CCTK_REAL gm1) const {
     return segment_for_gm1(gm1).rho_from_gm1(gm1);
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  hm1_from_valid_gm1(const CCTK_REAL gm1) const {
+  hm1_from_gm1(const CCTK_REAL gm1) const {
     return gm1;
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  csnd2_from_valid_gm1(const CCTK_REAL gm1) const {
+  csnd2_from_gm1(const CCTK_REAL gm1) const {
     return segment_for_gm1(gm1).csnd2_from_gm1(gm1);
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  temp_from_valid_gm1(const CCTK_REAL gm1) const {
+  temp_from_gm1(const CCTK_REAL gm1) const {
     // Not implemented for cold EOS
     assert(false);
     return CCTK_REAL(0.0);

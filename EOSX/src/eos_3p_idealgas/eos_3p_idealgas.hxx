@@ -34,7 +34,7 @@ public:
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  press_from_valid_rho_eps_ye(
+  press_from_rho_eps_ye(
       const CCTK_REAL rho, ///< Rest mass density  \f$ \rho \f$
       CCTK_REAL &eps,      ///< Specific internal energy \f$ \epsilon \f$
       const CCTK_REAL ye   ///< Electron fraction \f$ Y_e \f$
@@ -43,7 +43,7 @@ public:
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  eps_from_valid_rho_press_ye(
+  eps_from_rho_press_ye(
       const CCTK_REAL rho,   ///< Rest mass density  \f$ \rho \f$
       const CCTK_REAL press, ///< Pressure \f$ P \f$
       const CCTK_REAL ye     ///< Electron fraction \f$ Y_e \f$
@@ -52,7 +52,7 @@ public:
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  csnd_from_valid_rho_eps_ye(
+  csnd_from_rho_eps_ye(
       const CCTK_REAL rho, ///< Rest mass density  \f$ \rho \f$
       CCTK_REAL &eps,      ///< Specific internal energy \f$ \epsilon \f$
       const CCTK_REAL ye   ///< Electron fraction \f$ Y_e \f$
@@ -61,14 +61,14 @@ public:
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  csnd_from_valid_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
+  csnd_from_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
                               const CCTK_REAL ye) const {
-    CCTK_REAL eps = eps_from_valid_rho_temp_ye(rho, temp, ye);
-    return csnd_from_valid_rho_eps_ye(rho, eps, ye);
+    CCTK_REAL eps = eps_from_rho_temp_ye(rho, temp, ye);
+    return csnd_from_rho_eps_ye(rho, eps, ye);
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  temp_from_valid_rho_eps_ye(
+  temp_from_rho_eps_ye(
       const CCTK_REAL rho, ///< Rest mass density  \f$ \rho \f$
       CCTK_REAL &eps,      ///< Specific internal energy \f$ \epsilon \f$
       const CCTK_REAL ye   ///< Electron fraction \f$ Y_e \f$
@@ -77,7 +77,7 @@ public:
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
-  press_derivs_from_valid_rho_eps_ye(
+  press_derivs_from_rho_eps_ye(
       CCTK_REAL &press,  ///< Pressure \f$ P \f$
       CCTK_REAL &dpdrho, ///< Partial derivative \f$ \frac{\partial P}{\partial
                          ///< \rho} \f$
@@ -93,7 +93,7 @@ public:
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  entropy_from_valid_rho_temp_ye(
+  entropy_from_rho_temp_ye(
       const CCTK_REAL rho,  ///< Rest mass density  \f$ \rho \f$
       const CCTK_REAL temp, ///< Temperature \f$ T \f$
       const CCTK_REAL ye    ///< Electron fraction \f$ Y_e \f$
@@ -102,7 +102,7 @@ public:
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  entropy_from_valid_rho_eps_ye(
+  entropy_from_rho_eps_ye(
       const CCTK_REAL rho, ///< Rest mass density  \f$ \rho \f$
       const CCTK_REAL eps, ///< Specific internal energy \f$ \epsilon \f$
       const CCTK_REAL ye   ///< Electron fraction \f$ Y_e \f$
@@ -111,7 +111,7 @@ public:
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  eps_from_valid_rho_temp_ye(
+  eps_from_rho_temp_ye(
       const CCTK_REAL rho,  ///< Rest mass density  \f$ \rho \f$
       const CCTK_REAL temp, ///< Temperature \f$ T \f$ in MeV
       const CCTK_REAL ye    ///< Electron fraction \f$ Y_e \f$
@@ -120,24 +120,24 @@ public:
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  press_from_valid_rho_temp_ye(
+  press_from_rho_temp_ye(
       const CCTK_REAL rho,  ///< Rest mass density  \f$ \rho \f$
       const CCTK_REAL temp, ///< Temperature \f$ T \f$ in MeV
       const CCTK_REAL ye    ///< Electron fraction \f$ Y_e \f$
   ) const {
-    CCTK_REAL eps = eps_from_valid_rho_temp_ye(rho, temp, ye);
-    return press_from_valid_rho_eps_ye(rho, eps, ye);
+    CCTK_REAL eps = eps_from_rho_temp_ye(rho, temp, ye);
+    return press_from_rho_eps_ye(rho, eps, ye);
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  press_from_valid_rho_kappa_ye(const CCTK_REAL rho,
+  press_from_rho_kappa_ye(const CCTK_REAL rho,
                                 const CCTK_REAL kappa, // p/rho^gamma
                                 const CCTK_REAL ye) const {
     return kappa * pow(rho, gamma);
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  eps_from_valid_rho_kappa_ye(const CCTK_REAL rho,
+  eps_from_rho_kappa_ye(const CCTK_REAL rho,
                               const CCTK_REAL kappa, // p/rho^gamma
                               const CCTK_REAL ye) const {
     return kappa * pow(rho, gamma - 1.0) / (gamma - 1.0);
@@ -151,13 +151,13 @@ public:
   // EOS, e.g. for the ideal gas EOS we have kappa = p * (rho)^(-gamma), where
   // gamma is the adiabatic index.
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  kappa_from_valid_rho_eps_ye(const CCTK_REAL rho, CCTK_REAL &eps,
+  kappa_from_rho_eps_ye(const CCTK_REAL rho, CCTK_REAL &eps,
                               const CCTK_REAL ye) const {
     return (gamma - 1.0) * eps * pow(rho, 1.0 - gamma);
   };
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline range
-  range_eps_from_valid_rho_ye(
+  range_eps_from_rho_ye(
       const CCTK_REAL rho, ///< Rest mass density  \f$ \rho \f$
       const CCTK_REAL ye   ///< Electron fraction \f$ Y_e \f$
   ) const {
@@ -167,7 +167,7 @@ public:
   // Note that the function below do not apply for ideal gas EOS
   // They are used for testing nuX with toy problems
   CCTK_HOST CCTK_DEVICE inline CCTK_REAL
-  mu_lepton_from_valid_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
+  mu_lepton_from_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
                                    const CCTK_REAL ye) const {
     return 0.0;
   }

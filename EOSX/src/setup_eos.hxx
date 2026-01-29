@@ -24,7 +24,13 @@ extern eos_1p_piecewise_polytropic *global_eos_1p_pwpoly;
 
 // evolution EOS
 extern eos_3p_idealgas *global_eos_3p_ig;
-extern eos_3p_hybrid *global_eos_3p_hyb;
+
+using eos_3p_hybrid_poly   = eos_3p_hybrid<eos_1p_polytropic>;
+using eos_3p_hybrid_pwpoly = eos_3p_hybrid<eos_1p_piecewise_polytropic>;
+
+extern eos_3p_hybrid_poly   *global_eos_3p_hyb_poly;
+extern eos_3p_hybrid_pwpoly *global_eos_3p_hyb_pwpoly;
+
 extern eos_3p_tabulated3d *global_eos_3p_tab3d;
 
 } // namespace EOSX

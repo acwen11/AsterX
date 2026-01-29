@@ -37,7 +37,7 @@ extern "C" void Atmosphere_Initialize(CCTK_ARGUMENTS) {
         vely(p.I) = 0.;
         velz(p.I) = 0.;
         press(p.I) = press_atmosphere;
-        eps(p.I) = eos_3p_ig->eps_from_valid_rho_press_ye(rho(p.I), press(p.I),
+        eps(p.I) = eos_3p_ig->eps_from_rho_press_ye(rho(p.I), press(p.I),
                                                           dummy_ye);
       });
 

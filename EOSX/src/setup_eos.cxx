@@ -25,7 +25,8 @@ eos_1p_piecewise_polytropic *global_eos_1p_pwpoly = nullptr;
 
 // evolution EOS
 eos_3p_idealgas *global_eos_3p_ig = nullptr;
-eos_3p_hybrid *global_eos_3p_hyb = nullptr;
+eos_3p_hybrid_poly *global_eos_3p_hyb_poly = nullptr;
+eos_3p_hybrid_pwpoly *global_eos_3p_hyb_pwpoly = nullptr;
 eos_3p_tabulated3d *global_eos_3p_tab3d = nullptr;
 
 enum class eos_table_format { StellarCollapse = 0, Compose = 1 };
@@ -126,13 +127,11 @@ extern "C" void EOSX_Setup_EOSID(CCTK_ARGUMENTS) {
             sizeof *global_eos_1p_pwpoly);
     assert(global_eos_1p_pwpoly);
     new (global_eos_1p_pwpoly) eos_1p_piecewise_polytropic;
- 
-    EOSX::validate_pwpoly_params(pwpoly_nsegm, pwpoly_segm_bound, pwpoly_segm_gamma);
-    const std::vector<CCTK_REAL8> bounds(pwpoly_segm_bound,
-                                       pwpoly_segm_bound + pwpoly_nsegm);
-    const std::vector<CCTK_REAL8> gammas(pwpoly_segm_gamma,
-                                       pwpoly_segm_gamma + pwpoly_nsegm);
-    global_eos_1p_pwpoly->init(pwpoly_rho_p0, bounds, gammas, rho_max);
+
+    EOSX::validate_pwpoly_params(pwpoly_nsegm, pwpoly_segm_bound,
+                                 pwpoly_segm_gamma);
+    global_eos_1p_pwpoly->init(pwpoly_rho_p0, pwpoly_nsegm, pwpoly_segm_bound,
+                               pwpoly_segm_gamma, rho_max);
     break;
   }
   default:
@@ -168,16 +167,22 @@ extern "C" void EOSX_Setup_EOS(CCTK_ARGUMENTS) {
   }
   case eos_3param::Hybrid: {
     CCTK_INFO("Setting evolution EOS to Hybrid");
-    global_eos_3p_hyb =
-        (eos_3p_hybrid *)The_Managed_Arena()->alloc(sizeof *global_eos_3p_hyb);
-    assert(global_eos_3p_hyb);
 
-    eos_1p *cold = nullptr;
-    if (global_eos_1p_pwpoly)
-      cold = global_eos_1p_pwpoly;
-    else
-      cold = global_eos_1p_poly;
-    new (global_eos_3p_hyb) eos_3p_hybrid(cold, gamma_th, rgeps, rgrho, rgye);
+    if (global_eos_1p_pwpoly) {
+      global_eos_3p_hyb_pwpoly =
+          (eos_3p_hybrid_pwpoly *)The_Managed_Arena()->alloc(
+              sizeof *global_eos_3p_hyb_pwpoly);
+      assert(global_eos_3p_hyb_pwpoly);
+      new (global_eos_3p_hyb_pwpoly) eos_3p_hybrid_pwpoly(
+          global_eos_1p_pwpoly, gamma_th, rgeps, rgrho, rgye);
+    } else {
+      global_eos_3p_hyb_poly = (eos_3p_hybrid_poly *)The_Managed_Arena()->alloc(
+          sizeof *global_eos_3p_hyb_poly);
+      assert(global_eos_3p_hyb_poly);
+      new (global_eos_3p_hyb_poly)
+          eos_3p_hybrid_poly(global_eos_1p_poly, gamma_th, rgeps, rgrho, rgye);
+    }
+
     break;
   }
   case eos_3param::Tabulated: {

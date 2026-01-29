@@ -136,7 +136,7 @@ public:
   //// Table inversions
   template<size_t var>
   CCTK_HOST CCTK_DEVICE inline CCTK_REAL
-  logtemp_from_valid_rho_var_ye(const CCTK_REAL rho, CCTK_REAL &invar,
+  logtemp_from_rho_var_ye(const CCTK_REAL rho, CCTK_REAL &invar,
                                 const CCTK_REAL ye) const {
     // bound inputs
     CCTK_REAL r = std::fmin(std::fmax(rho, rgrho.min), rgrho.max);
@@ -168,32 +168,32 @@ public:
   }
 
   CCTK_HOST CCTK_DEVICE inline CCTK_REAL
-  logtemp_from_valid_rho_eps_ye(const CCTK_REAL rho, CCTK_REAL &eps,
+  logtemp_from_rho_eps_ye(const CCTK_REAL rho, CCTK_REAL &eps,
                                 const CCTK_REAL ye) const {
     // bound inputs
     eps = std::fmax(eps, rgeps.min);
     CCTK_REAL leps = std::log(eps + *energy_shift);
-    CCTK_REAL lt = logtemp_from_valid_rho_var_ye<EV::EPS>(rho, leps, ye);
+    CCTK_REAL lt = logtemp_from_rho_var_ye<EV::EPS>(rho, leps, ye);
     eps = exp(leps) - *energy_shift;
     return lt;
   }
 
   CCTK_HOST CCTK_DEVICE inline CCTK_REAL
-  temp_from_valid_rho_eps_ye(const CCTK_REAL rho, CCTK_REAL &eps,
+  temp_from_rho_eps_ye(const CCTK_REAL rho, CCTK_REAL &eps,
                                 const CCTK_REAL ye) const {
-    CCTK_REAL lt = logtemp_from_valid_rho_eps_ye(rho, eps, ye);
+    CCTK_REAL lt = logtemp_from_rho_eps_ye(rho, eps, ye);
     return exp(lt);
   }
 
   CCTK_HOST CCTK_DEVICE inline CCTK_REAL
-  temp_from_valid_rho_entropy_ye(const CCTK_REAL rho, CCTK_REAL &ent,
+  temp_from_rho_entropy_ye(const CCTK_REAL rho, CCTK_REAL &ent,
                                 const CCTK_REAL ye) const {
-    CCTK_REAL lt = logtemp_from_valid_rho_var_ye<EV::S>(rho, ent, ye);
+    CCTK_REAL lt = logtemp_from_rho_var_ye<EV::S>(rho, ent, ye);
     return exp(lt);
   }
 
   CCTK_HOST CCTK_DEVICE inline CCTK_REAL
-  press_from_valid_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
+  press_from_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
                                const CCTK_REAL ye) const {
     // bound
     CCTK_REAL r = std::fmin(std::fmax(rho, rgrho.min), rgrho.max);
@@ -204,16 +204,16 @@ public:
   }
 
   CCTK_HOST CCTK_DEVICE inline CCTK_REAL
-  press_from_valid_rho_eps_ye(const CCTK_REAL rho, CCTK_REAL &eps,
+  press_from_rho_eps_ye(const CCTK_REAL rho, CCTK_REAL &eps,
                               const CCTK_REAL ye) const {
     CCTK_REAL lr = std::log(std::fmin(std::fmax(rho, rgrho.min), rgrho.max));
-    CCTK_REAL lt = logtemp_from_valid_rho_eps_ye(rho, eps, ye);
+    CCTK_REAL lt = logtemp_from_rho_eps_ye(rho, eps, ye);
     CCTK_REAL v = interptable->interpolate<EV::PRESS>(lr, lt, ye)[0];
     return exp(v);
   }
 
   CCTK_HOST CCTK_DEVICE inline CCTK_REAL
-  eps_from_valid_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
+  eps_from_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
                              const CCTK_REAL ye) const {
     CCTK_REAL lr = std::log(std::fmin(std::fmax(rho, rgrho.min), rgrho.max));
     CCTK_REAL lt = std::log(std::fmin(std::fmax(temp, rgtemp.min), rgtemp.max));
@@ -222,7 +222,7 @@ public:
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  eps_from_valid_rho_press_ye(const CCTK_REAL rho, const CCTK_REAL press,
+  eps_from_rho_press_ye(const CCTK_REAL rho, const CCTK_REAL press,
                               const CCTK_REAL ye) const {
 
     printf(
@@ -234,7 +234,7 @@ public:
   }
 
   CCTK_HOST CCTK_DEVICE inline CCTK_REAL
-  csnd_from_valid_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
+  csnd_from_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
                               const CCTK_REAL ye) const {
     CCTK_REAL lr = std::log(std::fmin(std::fmax(rho, rgrho.min), rgrho.max));
     CCTK_REAL lt = std::log(std::fmin(std::fmax(temp, rgtemp.min), rgtemp.max));
@@ -248,10 +248,10 @@ public:
   }
 
   CCTK_HOST CCTK_DEVICE inline CCTK_REAL
-  csnd_from_valid_rho_eps_ye(const CCTK_REAL rho, CCTK_REAL &eps,
+  csnd_from_rho_eps_ye(const CCTK_REAL rho, CCTK_REAL &eps,
                              const CCTK_REAL ye) const {
     CCTK_REAL lr = std::log(std::fmin(std::fmax(rho, rgrho.min), rgrho.max));
-    CCTK_REAL lt = logtemp_from_valid_rho_eps_ye(rho, eps, ye);
+    CCTK_REAL lt = logtemp_from_rho_eps_ye(rho, eps, ye);
     CCTK_REAL v = interptable->interpolate<EV::CS2>(lr, lt, ye)[0];
     // assert(v >= 0);
     if (v < 0){
@@ -262,16 +262,16 @@ public:
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
-  press_derivs_from_valid_rho_eps_ye(CCTK_REAL &press, CCTK_REAL &dpdrho,
+  press_derivs_from_rho_eps_ye(CCTK_REAL &press, CCTK_REAL &dpdrho,
                                      CCTK_REAL &dpdeps, const CCTK_REAL rho,
                                      const CCTK_REAL eps,
                                      const CCTK_REAL ye) const {
-    printf("press_derivs_from_valid_rho_eps_ye is not supported for now! \n");
+    printf("press_derivs_from_rho_eps_ye is not supported for now! \n");
     assert(false);
   }
 
   CCTK_HOST CCTK_DEVICE inline CCTK_REAL
-  entropy_from_valid_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
+  entropy_from_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
                                  const CCTK_REAL ye) const {
     CCTK_REAL lr = std::log(std::fmin(std::fmax(rho, rgrho.min), rgrho.max));
     CCTK_REAL lt = std::log(std::fmin(std::fmax(temp, rgtemp.min), rgtemp.max));
@@ -279,7 +279,7 @@ public:
   }
 
   CCTK_HOST CCTK_DEVICE inline void
-  mu_pne_from_valid_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
+  mu_pne_from_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
                                  const CCTK_REAL ye, CCTK_REAL &mup, CCTK_REAL &mun, CCTK_REAL &mue) const {
     CCTK_REAL lr = std::log(std::fmin(std::fmax(rho, rgrho.min), rgrho.max));
     CCTK_REAL lt = std::log(std::fmin(std::fmax(temp, rgtemp.min), rgtemp.max));
@@ -289,42 +289,42 @@ public:
   }
 
   CCTK_HOST CCTK_DEVICE inline CCTK_REAL
-  mu_lepton_from_valid_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
+  mu_lepton_from_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
                                  const CCTK_REAL ye) const {
     CCTK_REAL mup, mun, mue;
-    mu_pne_from_valid_rho_temp_ye(rho, temp, ye, mup, mun, mue);
+    mu_pne_from_rho_temp_ye(rho, temp, ye, mup, mun, mue);
     return mue + mup - mun;
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  press_from_valid_rho_kappa_ye(const CCTK_REAL rho,
+  press_from_rho_kappa_ye(const CCTK_REAL rho,
                                 const CCTK_REAL kappa, // kappa=entropy
                                 const CCTK_REAL ye) const {
     printf(
-        "press_from_valid_rho_kappa_ye is not supported for tabulated EOS! \n");
+        "press_from_rho_kappa_ye is not supported for tabulated EOS! \n");
     assert(false);
     return 0.0;
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  eps_from_valid_rho_kappa_ye(const CCTK_REAL rho,
+  eps_from_rho_kappa_ye(const CCTK_REAL rho,
                               const CCTK_REAL kappa, // kappa=entropy
                               const CCTK_REAL ye) const {
     printf(
-        "eps_from_valid_rho_kappa_ye is not supported for tabulated EOS! \n");
+        "eps_from_rho_kappa_ye is not supported for tabulated EOS! \n");
     assert(false);
     return 0.0;
   };
 
   CCTK_HOST CCTK_DEVICE inline CCTK_REAL
-  kappa_from_valid_rho_eps_ye(const CCTK_REAL rho, CCTK_REAL &eps,
+  kappa_from_rho_eps_ye(const CCTK_REAL rho, CCTK_REAL &eps,
                               const CCTK_REAL ye) const {
-    return entropy_from_valid_rho_temp_ye(
-        rho, temp_from_valid_rho_eps_ye(rho, eps, ye), ye);
+    return entropy_from_rho_temp_ye(
+        rho, temp_from_rho_eps_ye(rho, eps, ye), ye);
   }
 
   CCTK_HOST CCTK_DEVICE inline range
-  range_eps_from_valid_rho_ye(const CCTK_REAL rho, const CCTK_REAL ye) const {
+  range_eps_from_rho_ye(const CCTK_REAL rho, const CCTK_REAL ye) const {
     CCTK_REAL lr = std::log(std::fmin(std::fmax(rho, rgrho.min), rgrho.max));
     CCTK_REAL vmin =
         interptable->interpolate<EV::EPS>(lr, interptable->xmin<1>(), ye)[0];

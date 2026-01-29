@@ -97,23 +97,19 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
         press_atm = (radial_distance > r_atmo)
                         ? (p_atmo * pow(r_atmo / radial_distance, n_press_atmo))
                         : p_atmo;
-        press_atm = std::max(eos_3p->press_from_valid_rho_temp_ye(
+        press_atm = std::max(eos_3p->press_from_rho_temp_ye(
                                  rho_atm, eos_3p->rgtemp.min, Ye_atmo),
                              press_atm);
-        eps_atm =
-            eos_3p->eps_from_valid_rho_press_ye(rho_atm, press_atm, Ye_atmo);
-        temp_atm =
-            eos_3p->temp_from_valid_rho_eps_ye(rho_atm, eps_atm, Ye_atmo);
+        eps_atm = eos_3p->eps_from_rho_press_ye(rho_atm, press_atm, Ye_atmo);
+        temp_atm = eos_3p->temp_from_rho_eps_ye(rho_atm, eps_atm, Ye_atmo);
       } else {
         temp_atm = (radial_distance > r_atmo)
                        ? (t_atmo * pow(r_atmo / radial_distance, n_temp_atmo))
                        : t_atmo;
         temp_atm = std::max(eos_3p->rgtemp.min, temp_atm);
         // temp_atm = max(temp_atm, eos_3p->interptable->xmin<1>());
-        press_atm =
-            eos_3p->press_from_valid_rho_temp_ye(rho_atm, temp_atm, Ye_atmo);
-        eps_atm =
-            eos_3p->eps_from_valid_rho_temp_ye(rho_atm, temp_atm, Ye_atmo);
+        press_atm = eos_3p->press_from_rho_temp_ye(rho_atm, temp_atm, Ye_atmo);
+        eps_atm = eos_3p->eps_from_rho_temp_ye(rho_atm, temp_atm, Ye_atmo);
         // eps_atm should be kept consistent with temp_atm, so we do not use
         // the setting below
         // eps_atm =
@@ -121,19 +117,18 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
       }
 
     } else {
-      const CCTK_REAL gm1 = eos_1p->gm1_from_valid_rho(rho_atm);
-      temp_atm = eos_1p->temp_from_valid_gm1(gm1);
+      const CCTK_REAL gm1 = eos_1p->gm1_from_rho(rho_atm);
+      temp_atm = eos_1p->temp_from_gm1(gm1);
       temp_atm = std::max(eos_3p->rgtemp.min, temp_atm);
-      eps_atm = eos_3p->eps_from_valid_rho_temp_ye(rho_atm, temp_atm, Ye_atmo);
+      eps_atm = eos_3p->eps_from_rho_temp_ye(rho_atm, temp_atm, Ye_atmo);
       // eps_atm should be kept consistent with temp_atm, so we do not use
       // the setting below
       // eps_atm =
       //    std::min(std::max(eos_3p->rgeps.min, eps_atm), eos_3p->rgeps.max);
-      press_atm =
-          eos_3p->press_from_valid_rho_eps_ye(rho_atm, eps_atm, Ye_atmo);
+      press_atm = eos_3p->press_from_rho_eps_ye(rho_atm, eps_atm, Ye_atmo);
     }
     CCTK_REAL entropy_atm =
-        eos_3p->kappa_from_valid_rho_eps_ye(rho_atm, eps_atm, Ye_atmo);
+        eos_3p->kappa_from_rho_eps_ye(rho_atm, eps_atm, Ye_atmo);
     const CCTK_REAL rho_atmo_cut = rho_atm * (1 + atmo_tol);
     atmosphere atmo(rho_atm, eps_atm, Ye_atmo, press_atm, temp_atm, entropy_atm,
                     rho_atmo_cut);
@@ -208,10 +203,10 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     prim_vars pv_seeds{saved_rho(p.I),
                        saved_eps(p.I),
                        saved_Ye(p.I),
-                       eos_3p->press_from_valid_rho_eps_ye(
+                       eos_3p->press_from_rho_eps_ye(
                            saved_rho(p.I), saved_eps(p.I), saved_Ye(p.I)),
                        temperature(p.I),
-                       eos_3p->kappa_from_valid_rho_eps_ye(
+                       eos_3p->kappa_from_rho_eps_ye(
                            saved_rho(p.I), saved_eps(p.I), saved_Ye(p.I)),
                        v_up,
                        wlor,
@@ -494,11 +489,33 @@ extern "C" void AsterX_Con2Prim(CCTK_ARGUMENTS) {
     break;
   }
   case eos_3param::Hybrid: {
-    // Get local eos objects
-    auto eos_1p_poly = global_eos_1p_poly;
-    auto eos_3p_hyb = global_eos_3p_hyb;
+    if (global_eos_3p_hyb_pwpoly) {
+      // pwpoly cold + pwpoly-hybrid
+      auto eos_cold = global_eos_1p_pwpoly;
+      auto eos_3p_hyb = global_eos_3p_hyb_pwpoly;
 
-    AsterX_Con2Prim_typeEoS(CCTK_PASS_CTOC, eos_1p_poly, eos_3p_hyb);
+      if (!eos_cold) {
+        CCTK_ERROR("Hybrid(PWPolytropic) selected but no pwpoly cold EOS was "
+                   "initialized");
+      }
+      AsterX_Con2Prim_typeEoS(CCTK_PASS_CTOC, eos_cold, eos_3p_hyb);
+
+    } else if (global_eos_3p_hyb_poly) {
+      // poly cold + poly-hybrid
+      auto eos_cold = global_eos_1p_poly;
+      auto eos_3p_hyb = global_eos_3p_hyb_poly;
+
+      if (!eos_cold) {
+        CCTK_ERROR("Hybrid(Polytropic) selected but no polytropic cold EOS was "
+                   "initialized");
+      }
+      AsterX_Con2Prim_typeEoS(CCTK_PASS_CTOC, eos_cold, eos_3p_hyb);
+
+    } else {
+      CCTK_ERROR(
+          "Hybrid EOS selected but no hybrid EOS object was initialized");
+    }
+
     break;
   }
   case eos_3param::Tabulated: {

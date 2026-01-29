@@ -45,7 +45,7 @@ public:
   }
 
   CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  gm1_from_valid_rho(const CCTK_REAL rho) const {
+  gm1_from_rho(const CCTK_REAL rho) const {
     return np1 * pow(rho / rho_p, invn);
   }
 
@@ -53,7 +53,7 @@ public:
   \return \f$ g-1 = h-1 = (n+1) \left(\frac{P}{\rho_p} \right)^\frac{1}{n+1} \f$
   */
   CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  gm1_from_valid_p(const CCTK_REAL p) const {
+  gm1_from_p(const CCTK_REAL p) const {
     return np1 * pow(p / rho_p, 1.0 / np1);
   }
 
@@ -61,7 +61,7 @@ public:
   \return Specific internal energy \f$ \epsilon = \frac{g-1}{\Gamma} \f$
   */
   CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  sed_from_valid_gm1(const CCTK_REAL gm1 ///< \f$ g-1 \f$
+  sed_from_gm1(const CCTK_REAL gm1 ///< \f$ g-1 \f$
   ) const {
     return gm1 / poly_gamma;
   }
@@ -71,7 +71,7 @@ public:
   \f$ \rho_I = n \rho_p \left(\frac{g-1}{n+1}\right)^{n+1} \f$
   */
   CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  ied_from_valid_gm1(const CCTK_REAL gm1 ///< \f$ g-1 \f$
+  ied_from_gm1(const CCTK_REAL gm1 ///< \f$ g-1 \f$
   ) const {
     // return sed_from_gm1(gm1)*rho_from_gm1(gm1);
     return n * rho_p * pow(gm1 / np1, np1);
@@ -81,7 +81,7 @@ public:
   \return Pressure \f$ P = \rho_p \left( \frac{g-1}{1+n} \right)^{1+n} \f$
   */
   CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  p_from_valid_gm1(const CCTK_REAL gm1 ///< \f$ g-1 \f$
+  p_from_gm1(const CCTK_REAL gm1 ///< \f$ g-1 \f$
   ) const {
     return rho_p * pow(gm1 / np1, np1);
   }
@@ -91,7 +91,7 @@ public:
   \f$
   */
   CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  rho_from_valid_gm1(const CCTK_REAL gm1 ///< \f$ g-1 \f$
+  rho_from_gm1(const CCTK_REAL gm1 ///< \f$ g-1 \f$
   ) const {
     return rho_p * pow(gm1 / np1, n);
   }
@@ -100,7 +100,7 @@ public:
   \return specific enthalpy \f$ h-1 = g-1 \f$
   */
   CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  hm1_from_valid_gm1(const CCTK_REAL gm1 ///< \f$ g-1 \f$
+  hm1_from_gm1(const CCTK_REAL gm1 ///< \f$ g-1 \f$
   ) const {
     return gm1;
   }
@@ -109,7 +109,7 @@ public:
   \return Soundspeed squared \f$ c_s^2 = \frac{g-1}{ng} \f$
   */
   CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  csnd2_from_valid_gm1(const CCTK_REAL gm1) const {
+  csnd2_from_gm1(const CCTK_REAL gm1) const {
     return gm1 / (n * (gm1 + 1));
   }
 
@@ -121,7 +121,7 @@ public:
   // ----------------------------------------------------------------------
 
   CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  temp_from_valid_gm1(const CCTK_REAL gm1) const {
+  temp_from_gm1(const CCTK_REAL gm1) const {
     // For a pure polytrope P/ρ = (g-1)/(n+1)  ⇒  theta = μ·P/ρ = μ·(g-1)/(n+1)
     CCTK_REAL mu = 1.0;    // considering mean molecular wt = 1
     return mu * gm1 / np1; // geometric-units T
