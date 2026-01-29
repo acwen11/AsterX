@@ -21,6 +21,7 @@ enum class eos_3param { IdealGas, Hybrid, Tabulated };
 
 // initial data EOS
 eos_1p_polytropic *global_eos_1p_poly = nullptr;
+eos_1p_piecewise_polytropic *global_eos_1p_pwpoly = nullptr;
 
 // evolution EOS
 eos_3p_idealgas *global_eos_3p_ig = nullptr;
@@ -118,7 +119,20 @@ extern "C" void EOSX_Setup_EOSID(CCTK_ARGUMENTS) {
     break;
   }
   case eos_1param::PWPolytropic: {
-    CCTK_ERROR("Piecewise Polytrope EOS is not supported yet!");
+    CCTK_INFO("Setting initial data EOS to Piecewise Polytropic");
+
+    global_eos_1p_pwpoly =
+        (eos_1p_piecewise_polytropic *)The_Managed_Arena()->alloc(
+            sizeof *global_eos_1p_pwpoly);
+    assert(global_eos_1p_pwpoly);
+    new (global_eos_1p_pwpoly) eos_1p_piecewise_polytropic;
+ 
+    EOSX::validate_pwpoly_params(pwpoly_nsegm, pwpoly_segm_bound, pwpoly_segm_gamma);
+    const std::vector<CCTK_REAL8> bounds(pwpoly_segm_bound,
+                                       pwpoly_segm_bound + pwpoly_nsegm);
+    const std::vector<CCTK_REAL8> gammas(pwpoly_segm_gamma,
+                                       pwpoly_segm_gamma + pwpoly_nsegm);
+    global_eos_1p_pwpoly->init(pwpoly_rho_p0, bounds, gammas, rho_max);
     break;
   }
   default:
@@ -157,8 +171,13 @@ extern "C" void EOSX_Setup_EOS(CCTK_ARGUMENTS) {
     global_eos_3p_hyb =
         (eos_3p_hybrid *)The_Managed_Arena()->alloc(sizeof *global_eos_3p_hyb);
     assert(global_eos_3p_hyb);
-    new (global_eos_3p_hyb)
-        eos_3p_hybrid(global_eos_1p_poly, gamma_th, rgeps, rgrho, rgye);
+
+    eos_1p *cold = nullptr;
+    if (global_eos_1p_pwpoly)
+      cold = global_eos_1p_pwpoly;
+    else
+      cold = global_eos_1p_poly;
+    new (global_eos_3p_hyb) eos_3p_hybrid(cold, gamma_th, rgeps, rgrho, rgye);
     break;
   }
   case eos_3param::Tabulated: {

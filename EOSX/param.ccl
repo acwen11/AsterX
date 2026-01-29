@@ -29,6 +29,30 @@ CCTK_REAL poly_k "Polytropic constant in c=G=Msun=1"  STEERABLE=RECOVER
  : :: ""
 } 100.0
 
+#parameters for Piecewise-Polytropic EOS
+
+CCTK_INT pwpoly_nsegm "Number of piecewise-polytrope segments to use"
+{
+  1:* :: ""
+} 1
+
+CCTK_REAL pwpoly_rho_p0 "Polytropic density scale rho_p0 for first segment"
+{
+  (0:* :: ""
+} 1.0
+
+CCTK_REAL pwpoly_segm_bound[20] "Segment boundary densities (first must be 0; strictly increasing). Unused entries = -1."
+{
+  -1 :: "unused"
+  (0:* :: ""
+} -1.0
+
+CCTK_REAL pwpoly_segm_gamma[20] "Segment gammas (must be > 1). Unused entries = -1."
+{
+  -1 :: "unused"
+  (1:* :: ""
+} -1.0
+
 #parameters for Ideal Gas EOS
 
 CCTK_REAL gl_gamma "Adiabatic index for ideal gas EOS"

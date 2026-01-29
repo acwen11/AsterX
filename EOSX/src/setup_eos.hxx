@@ -9,6 +9,7 @@
 
 #include "eos_1p.hxx"
 #include "eos_1p_polytropic/eos_1p_polytropic.hxx"
+#include "eos_1p_polytropic/eos_1p_piecewise_polytropic.hxx"
 
 #include "eos_3p.hxx"
 #include "eos_3p_idealgas/eos_3p_idealgas.hxx"
@@ -19,6 +20,7 @@ namespace EOSX {
 
 // initial data EOS
 extern eos_1p_polytropic *global_eos_1p_poly;
+extern eos_1p_piecewise_polytropic *global_eos_1p_pwpoly;
 
 // evolution EOS
 extern eos_3p_idealgas *global_eos_3p_ig;
