@@ -106,6 +106,10 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
 
   static_assert(dir_i >= 0 && dir_i < 3, "");
 
+  // Velocity limit from Con2PrimFactory parameters
+  const CCTK_REAL w_lim = sqrt(1.0 + vw_lim * vw_lim);
+  const CCTK_REAL v_lim = vw_lim / w_lim;
+
   // Prebind the velocity slice for this direction once
   const auto gf_vel_dir_i = gf_vels(dir_i);
 
@@ -431,7 +435,39 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
 
       /* co-velocity measured by Eulerian observer: v_j */
       vlows_rc = calc_contraction(g_avg, vels_rc);
-      const auto v2_rc = calc_contraction(vlows_rc, vels_rc);
+      auto v2_rc = calc_contraction(vlows_rc, vels_rc);
+
+      /* Lower-order if superluminal */
+      constexpr CCTK_REAL ONEMINUSEPS = CCTK_REAL(1.0) - CCTK_REAL(1e-12);
+      if (!(useLO) && (v2_rc(0) >= ONEMINUSEPS || v2_rc(1) >= ONEMINUSEPS)) {
+
+        for (int i = 0; i <= 2; ++i) { // loop over components
+          vels_rc(i) = reconstruct_loworder(gf_vels(i), p, false, false);
+        }
+
+        vlows_rc = calc_contraction(g_avg, vels_rc);
+        v2_rc = calc_contraction(vlows_rc, vels_rc);
+      }
+
+      /* Last resort if lower-order is also superluminal: 
+       * Rescale */
+      if (v2_rc(0) >= ONEMINUSEPS) {
+        CCTK_REAL f = v_lim / sqrt(v2_rc(0));
+        for (int i = 0; i <= 2; ++i) {
+          vels_rc(i)(0)  *= f;
+	  vlows_rc(i)(0) *= f;
+        }
+        v2_rc(0) = v_lim*v_lim;
+      }
+
+      if (v2_rc(1) >= ONEMINUSEPS) {
+        CCTK_REAL f = v_lim / sqrt(v2_rc(1));
+        for (int i = 0; i <= 2; ++i) {
+          vels_rc(i)(1)  *= f;
+	  vlows_rc(i)(1) *= f;
+        }
+        v2_rc(1) = v_lim*v_lim;
+      }
 
       /* Lorentz factor: W = 1 / sqrt(1 - v^2) */
       w_lorentz_rc(0) = 1 / sqrt(1 - v2_rc(0));
