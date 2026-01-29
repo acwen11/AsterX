@@ -348,11 +348,12 @@ c2p::cons_floors_and_ceilings(const EOSType *eos_3p, cons_vars &cv,
   // Compute Bsq
   vec<CCTK_REAL, 3> B_low  = calc_contraction(glo, cv.dBvec);
   const CCTK_REAL BsqL = calc_contraction(B_low, cv.dBvec);
-  const CCTK_REAL tauF_atmo = std::max(cv.dens*atmo.eps_atmo,sqrt_detg*tauFluid_atmo);
+  //const CCTK_REAL tauF_atmo = std::max(cv.dens*atmo.eps_atmo,sqrt_detg*tauFluid_atmo);
   const CCTK_REAL tau_lim = 0.5*BsqL/sqrt_detg;
 
   if (cv.tau <= tau_lim) {
-    cv.tau = tau_lim + tauF_atmo;
+  //  cv.tau = tau_lim + tauF_atmo;
+    cv.tau = tau_lim + sqrt_detg*tauFluid_atmo;
   }
 
   // Dominant energy condition 
