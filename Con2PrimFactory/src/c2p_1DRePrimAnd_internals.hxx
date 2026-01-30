@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <limits>
+
 #include "prims.hxx"
 #include "cons.hxx"
 #include "c2p_1DRePrimAnd_intervals.hxx"
@@ -88,7 +89,7 @@ public:
     last.ye    = valid_ye;
     last.calls = 0;
 
-    // Build h0 from EOS min bounds (no minimal_h() in EOSX)
+    // Build h0 from EOS min bounds
     const CCTK_REAL rhomin = eos->rgrho.min;
     CCTK_REAL epsmin = eos->rgeps.min;
     CCTK_REAL ye_tmp = valid_ye; // EOS expects non-const lvalue ref for Ye
@@ -120,7 +121,6 @@ public:
     c.eps_raw = get_eps_raw(mu, qf, rfsqr, c.w);
     c.eps     = fmin(fmax(eos->rgeps.min, c.eps_raw), eos->rgeps.max);
 
-    // EOS again may take Ye by non-const ref; pass a local
     CCTK_REAL ye_tmp = c.ye;
     c.press   = eos->press_from_valid_rho_eps_ye(c.rho, c.eps, ye_tmp);
     ++c.calls;
@@ -143,6 +143,7 @@ public:
       RePrimAnd::f_upper g(h0, rsqr, rbsqr, bsqr);
       ROOTSTAT status{};
       mu_max = findroot_using_deriv(g, status, ndigits2, ndigits2 + 4);
+      if (status != ROOTSTAT::SUCCESS || !std::isfinite(mu_max)) mu_max = CCTK_REAL(1) / h0;
     }
     const CCTK_REAL margin = std::ldexp(CCTK_REAL(1), 3 - 36);
     mu_max *= (CCTK_REAL(1) + margin);
@@ -150,6 +151,7 @@ public:
     return { mu_min, mu_max };
   }
 
+  // Public parameters accessed by rarecase/f_rare
   CCTK_REAL h0{1}, d{0}, qtot{0}, rsqr{0}, rbsqr{0}, bsqr{0}, brosqr{0};
   CCTK_REAL winf{1}, vsqrinf{0};
 
@@ -157,23 +159,29 @@ private:
   const EOSType* eos;
   cache &last;
 
-  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_REAL x_from_mu(CCTK_REAL mu) const {
+  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE
+  CCTK_REAL x_from_mu(CCTK_REAL mu) const {
     return CCTK_REAL(1) / (CCTK_REAL(1) + mu * bsqr);
   }
-  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_REAL rfsqr_from_mu_x(CCTK_REAL mu, CCTK_REAL x) const {
+
+  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE
+  CCTK_REAL rfsqr_from_mu_x(CCTK_REAL mu, CCTK_REAL x) const {
     return x * (rsqr * x + mu * (x + CCTK_REAL(1)) * rbsqr);
   }
-  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_REAL qf_from_mu_x(CCTK_REAL mu, CCTK_REAL x) const {
+
+  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE
+  CCTK_REAL qf_from_mu_x(CCTK_REAL mu, CCTK_REAL x) const {
     const CCTK_REAL mux = mu * x;
     return qtot - (bsqr + mux * mux * brosqr) * CCTK_REAL(0.5);
   }
+
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE
   static CCTK_REAL get_eps_raw(CCTK_REAL mu, CCTK_REAL qf, CCTK_REAL rfsqr, CCTK_REAL w) {
     return w * (qf - mu * rfsqr * (CCTK_REAL(1) - mu * w / (CCTK_REAL(1) + w)));
   }
 };
 
-// -------------------- f_rare and rarecase unchanged -------------------
+// -------------------- f_rare and rarecase -------------------
 
 template <typename EOSType>
 class f_rare {
@@ -183,7 +191,8 @@ public:
   using value_t = CCTK_REAL;
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE
-  f_rare(CCTK_REAL wtarg, const froot<EOSType> &f_) : v2targ(CCTK_REAL(1) - CCTK_REAL(1)/(wtarg*wtarg)), f(f_) {}
+  f_rare(CCTK_REAL wtarg, const froot<EOSType> &f_)
+    : v2targ(CCTK_REAL(1) - CCTK_REAL(1)/(wtarg*wtarg)), f(f_) {}
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE
   auto operator()(CCTK_REAL mu) const -> std::pair<CCTK_REAL, CCTK_REAL> {
@@ -221,7 +230,8 @@ public:
         else if (g(muc0).first < CCTK_REAL(0)) {
           ROOTSTAT status{};
           CCTK_REAL mucc = findroot_using_deriv(g, ibracket, status, ndigits, ndigits + 2);
-          if (status == ROOTSTAT::SUCCESS) { muc0 = fmax(muc0, mucc); rho_big = true; } else { rho_too_big = true; }
+          if (status == ROOTSTAT::SUCCESS) { muc0 = fmax(muc0, mucc); rho_big = true; }
+          else { rho_too_big = true; }
         }
       }
     }
@@ -235,7 +245,8 @@ public:
         else if (g(muc1).first > CCTK_REAL(0)) {
           ROOTSTAT status{};
           CCTK_REAL mucc = findroot_using_deriv(g, ibracket, status, ndigits, ndigits + 2);
-          if (status == ROOTSTAT::SUCCESS) { muc1 = fmin(muc1, mucc); rho_small = true; } else { rho_too_small = true; }
+          if (status == ROOTSTAT::SUCCESS) { muc1 = fmin(muc1, mucc); rho_small = true; }
+          else { rho_too_small = true; }
         }
       }
     }

@@ -1,6 +1,9 @@
 #ifndef C2P_1DREPRIMAND_HXX
 #define C2P_1DREPRIMAND_HXX
 
+#include <algorithm>
+#include <cmath>
+
 #include "c2p.hxx"
 #include "c2p_report.hxx"
 #include "prims.hxx"
@@ -131,9 +134,7 @@ public:
     if (fn(mu_br.min()) * fn(mu_br.max()) > 0) {
       const CCTK_REAL qtot = cv.tau / cv.dens;
       const CCTK_REAL sPal = Bsq / cv.dens;
-      // widen upper bound like Palenzuela’s fallback
       CCTK_REAL new_hi = CCTK_REAL(3.0) + CCTK_REAL(3.0) * qtot - CCTK_REAL(1.5) * sPal;
-      // interval might present mutators; if not, rebuild:
       mu_br = interval<CCTK_REAL>{mu_br.min(), new_hi};
     }
 
@@ -148,48 +149,54 @@ public:
       (std::abs(fa) < std::abs(fb)) ? a_root :
       CCTK_REAL(0.5) * (a_root + b_root);
 
-    // RePrimAnd recovery
-    const CCTK_REAL rhomin = eos_3p->rgrho.min;
-    CCTK_REAL epsmin = eos_3p->rgeps.min;
-    CCTK_REAL Ye_tmp = Ye; // EOS may want non-const Ye
-    const CCTK_REAL pmin   = eos_3p->press_from_valid_rho_eps_ye(rhomin, epsmin, Ye_tmp);
-    const CCTK_REAL h0     = CCTK_REAL(1) + epsmin + pmin / rhomin;
+    // ------------------------------------------------------------------
+    // IMPORTANT: ensure cache corresponds to the final chosen mu
+    // ------------------------------------------------------------------
+    (void)f(mu);
 
-    const CCTK_REAL bsqr = Bsq / cv.dens;
-    const CCTK_REAL x    = CCTK_REAL(1) / (CCTK_REAL(1) + mu * bsqr);
-    const CCTK_REAL rsqr = Ssq / (cv.dens * cv.dens);
-    const CCTK_REAL rbsq = (BiSi * BiSi) / (cv.dens * cv.dens * cv.dens);
-    const CCTK_REAL rfsq = x * (rsqr * x + mu * (x + CCTK_REAL(1)) * rbsq);
-    const CCTK_REAL W    = std::sqrt(h0*h0 + rfsq) / h0;
+    // ------------------------------------------------------------------
+    // Use the EOS-consistent RePrimAnd cached primitives
+    // ------------------------------------------------------------------
+    pv.rho   = cache.rho;
+    pv.Ye    = Ye;
+    pv.eps   = cache.eps;
+    pv.press = cache.press;
+    pv.w_lor = cache.w;
 
-    pv.rho = cv.dens / (W + 1e-300);
-    pv.Ye  = Ye;
-
-    CCTK_REAL eps_guess = cv.tau / cv.dens;
-    eps_guess = fmin(fmax(eos_3p->rgeps.min, eps_guess), eos_3p->rgeps.max);
-    pv.eps = eps_guess;
-
-    CCTK_REAL Ye_tmp2 = pv.Ye;
-    pv.press       = eos_3p->press_from_valid_rho_eps_ye(pv.rho, pv.eps, Ye_tmp2);
     CCTK_REAL Ye_tmp3 = pv.Ye;
     pv.temperature = eos_3p->temp_from_valid_rho_eps_ye(pv.rho, pv.eps, Ye_tmp3);
     CCTK_REAL Ye_tmp4 = pv.Ye;
     pv.entropy     = eos_3p->kappa_from_valid_rho_eps_ye(pv.rho, pv.eps, Ye_tmp4);
 
+    // ------------------------------------------------------------------
+    // Velocity: RePrimAnd magnetic-aware reconstruction
+    //   v^i = mu * x * ( r^i + (r.b) * mu * b^i )
+    // where r^i = S^i / D, b^i = B^i / sqrt(D), (r.b) = (B^i S_i)/(D^(3/2)).
+    // ------------------------------------------------------------------
     if (use_zprim) {
       const vec<CCTK_REAL,3> mom_up = calc_contraction(gup, cv.mom);
-      const CCTK_REAL mom2 = calc_contraction(mom_up, calc_contraction(glo, mom_up));
-      if (mom2 > 0) {
-        const CCTK_REAL vsq_target = (W*W - 1.0) / (W*W);
-        const CCTK_REAL vm  = std::sqrt(fmax(CCTK_REAL(0), vsq_target));
-        pv.vel = mom_up * (vm / (std::sqrt(mom2) + 1e-300));
-      } else {
-        pv.vel = vec<CCTK_REAL,3>{0,0,0};
-      }
-      pv.w_lor = W;
+
+      const CCTK_REAL D = cv.dens;
+      const CCTK_REAL sqD = std::sqrt(D + CCTK_REAL(0));
+
+      const vec<CCTK_REAL,3> r_u = mom_up * (CCTK_REAL(1) / (D + CCTK_REAL(1e-300)));
+      const vec<CCTK_REAL,3> b_u = cv.dBvec * (CCTK_REAL(1) / (sqD + CCTK_REAL(1e-300)));
+      const CCTK_REAL rb = BiSi / ((D + CCTK_REAL(1e-300)) * (sqD + CCTK_REAL(1e-300)));
+
+      pv.vel = (mu * cache.x) * (r_u + (rb * mu) * b_u);
+      pv.w_lor = cache.w;
     } else {
-      pv.vel   = vec<CCTK_REAL,3>{0,0,0};
-      pv.w_lor = W;
+      const vec<CCTK_REAL,3> mom_up = calc_contraction(gup, cv.mom);
+
+      const CCTK_REAL D = cv.dens;
+      const CCTK_REAL sqD = std::sqrt(D + CCTK_REAL(0));
+
+      const vec<CCTK_REAL,3> r_u = mom_up * (CCTK_REAL(1) / (D + CCTK_REAL(1e-300)));
+      const vec<CCTK_REAL,3> b_u = cv.dBvec * (CCTK_REAL(1) / (sqD + CCTK_REAL(1e-300)));
+      const CCTK_REAL rb = BiSi / ((D + CCTK_REAL(1e-300)) * (sqD + CCTK_REAL(1e-300)));
+
+      pv.vel = (mu * cache.x) * (r_u + (rb * mu) * b_u);
+      pv.w_lor = cache.w;
     }
 
     vec<CCTK_REAL,3> v_low = calc_contraction(glo, pv.vel);
