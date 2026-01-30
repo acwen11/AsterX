@@ -402,7 +402,7 @@ c2p_2DNoble::solve(const EOSType *eos_3p, prim_vars &pv, prim_vars &pv_seeds,
   /* Start Recovery with 2D NR Solver */
   constexpr CCTK_INT n = 2;
   constexpr CCTK_REAL dv = (1. - 1.e-10);
-  //constexpr CCTK_REAL dw = 1. / (1. - dv);
+  // constexpr CCTK_REAL dw = 1. / (1. - dv);
 
   CCTK_REAL dx[n];
   CCTK_REAL fjac[n][n];
@@ -424,7 +424,7 @@ c2p_2DNoble::solve(const EOSType *eos_3p, prim_vars &pv, prim_vars &pv_seeds,
   }
 
   if (x[0] <= 0.0) {
-    x[0] = fabs(x[0])+Zmin;
+    x[0] = fabs(x[0]) + Zmin;
   } else {
     if (x[0] > 1e20) {
       x[0] = x_old[0];
@@ -490,7 +490,7 @@ c2p_2DNoble::solve(const EOSType *eos_3p, prim_vars &pv, prim_vars &pv_seeds,
     }
 
     if (x[0] <= 0.0) {
-      x[0] = fabs(x[0])+Zmin;
+      x[0] = fabs(x[0]) + Zmin;
     } else {
       if (x[0] > 1e20) {
         x[0] = x_old[0];

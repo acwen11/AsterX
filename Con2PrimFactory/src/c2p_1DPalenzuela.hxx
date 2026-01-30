@@ -173,11 +173,11 @@ c2p_1DPalenzuela::xPalenzuelaToPrim(CCTK_REAL xPalenzuela_Sol, CCTK_REAL Ssq,
                     sPalenzuela / (2.0 * W_sol * W_sol));
 
   // TODO: Using this check here can lead to corrections of negative eps
-  //       which could be accepted in certain cases. Thus, these cases will 
-  //       not be marked as failure after the solving for the root. Move 
-  //       the check to the tabulated EOS framework later. 
+  //       which could be accepted in certain cases. Thus, these cases will
+  //       not be marked as failure after the solving for the root. Move
+  //       the check to the tabulated EOS framework later.
   if (use_temp) {
-    pv.eps = std::max(pv.eps, atmo.eps_atmo); // check on lower bound
+    pv.eps = std::max(pv.eps, atmo.eps_atmo);     // check on lower bound
     pv.eps = std::min(pv.eps, eos_3p->rgeps.max); // check on upper bound
   }
 
@@ -288,11 +288,11 @@ c2p_1DPalenzuela::funcRoot_1DPalenzuela(CCTK_REAL Ssq, CCTK_REAL Bsq,
                                sPalenzuela / (2 * W_loc * W_loc));
 
   // TODO: Using this check here can lead to corrections of negative eps
-  //       which could be accepted in certain cases. Thus, these cases will 
-  //       not be marked as failure after the solving for the root. Move 
-  //       the check to the tabulated EOS framework later. 
+  //       which could be accepted in certain cases. Thus, these cases will
+  //       not be marked as failure after the solving for the root. Move
+  //       the check to the tabulated EOS framework later.
   if (use_temp) {
-    eps_loc = std::max(eps_loc, atmo.eps_atmo); // check on lower bound
+    eps_loc = std::max(eps_loc, atmo.eps_atmo);     // check on lower bound
     eps_loc = std::min(eps_loc, eos_3p->rgeps.max); // check on upper bound
   }
 
@@ -408,13 +408,14 @@ c2p_1DPalenzuela::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
 
   // Dominant energy check
   if (fn(a) * fn(b) > 0) {
-    //printf("for fn(a)*fn(b)>0, fa, fb: %26.16e, %26.16e \n\n", fn(a), fn(b));
+    // printf("for fn(a)*fn(b)>0, fa, fb: %26.16e, %26.16e \n\n", fn(a), fn(b));
     b = 3.0 + 3.0 * qPalenzuela - 1.5 * sPalenzuela;
-    //if (fn(a) * fn(b) < 0) {
-    //  printf("for fn(a)*fn(b)<0, fa, fb: %26.16e, %26.16e \n\n", fn(a), fn(b));
-    //  printf(
-    //      "Palenzuela C2P: dominant energy condition has been violated!\n\n");
-    //}
+    // if (fn(a) * fn(b) < 0) {
+    //   printf("for fn(a)*fn(b)<0, fa, fb: %26.16e, %26.16e \n\n", fn(a),
+    //   fn(b)); printf(
+    //       "Palenzuela C2P: dominant energy condition has been
+    //       violated!\n\n");
+    // }
   }
 
   auto result = Algo::brent(fn, a, b, minbits, maxiters, rep.iters);

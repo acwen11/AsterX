@@ -446,8 +446,9 @@ c2p_1DEntropy::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
     // Computing b^mu b_mu
     const CCTK_REAL bs2 = (Bsq + bst * bst) / (pv.w_lor * pv.w_lor);
     // Recompute tau
-    cv.tau = sqrt_detg * (pv.w_lor * pv.w_lor * (pv.rho * (1.0 + pv.eps) + pv.press + bs2) -
-              (pv.press + 0.5 * bs2) - bst * bst) -
+    cv.tau = sqrt_detg * (pv.w_lor * pv.w_lor *
+                              (pv.rho * (1.0 + pv.eps) + pv.press + bs2) -
+                          (pv.press + 0.5 * bs2) - bst * bst) -
              cv.dens;
   }
 }
