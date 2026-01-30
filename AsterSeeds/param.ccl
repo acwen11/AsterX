@@ -165,6 +165,7 @@ KEYWORD Afield_config "Definition of the initial vector potential"
   "none"             :: "Nothing set here"
   "internal dipole"  :: "Dipole field according to Ciolfi+2017"
   "external dipole"  :: "Dipole field according to Moesta+2020"
+  "external dipole Shibata 2011"  :: "Dipole field according to Shibata+2011"
 } "none"
 
 # parameters for internal dipolar magnetic field
@@ -218,7 +219,14 @@ REAL dipole_z[2] "z-coordinate of the dipole center" STEERABLE=ALWAYS
   *:*     :: "Anything"
 } 0.0
 
+BOOLEAN initial_beta "Pad pressure to set initial plasma beta floor?"
+{
+} "no"
 
+REAL initial_beta_min "Initial plasma beta floor"
+{
+  0:*     :: "Positive"
+} 0.0
 # ---------------------------------------
 
 
@@ -311,3 +319,7 @@ USES KEYWORD evolution_eos
 
 SHARES: Con2PrimFactory
 USES CCTK_REAL Ye_atmo
+USES CCTK_REAL rho_abs_min
+USES CCTK_REAL atmo_tol
+USES CCTK_REAL r_atmo
+USES CCTK_REAL n_rho_atmo

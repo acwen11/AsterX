@@ -240,11 +240,13 @@ c2p::prims_floors_and_ceilings(const EOSType *eos_3p, prim_vars &pv,
   if (bsq > sigma_max * pv.rho) {
     pv.rho = bsq / sigma_max;
     mag_ceiling = true;
+    sigma_ceiling = true;
   }
 
   if (bsq > 2.0 * inv_beta_max * pv.press) {
     pv.press = 0.5 * bsq / inv_beta_max;
     mag_ceiling = true;
+    inv_beta_ceiling = true;
   }
 
   if (mag_ceiling) {

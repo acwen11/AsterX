@@ -103,6 +103,16 @@ if (CCTK_Equals(test_type, "3DTest")) {
     "Set up initial conditions for the vector potential"
   }
 
+  if (initial_beta) {
+    SCHEDULE AsterSeeds_SetInitialBetaFloor AT initial IN AsterX_InitialGroup AFTER AsterX_ComputeBFromdB BEFORE AsterX_CheckPrims {
+      LANG: C
+      READS: HydroBaseX::vel(everywhere) HydroBaseX::Bvec(everywhere) HydroBaseX::press(everywhere) HydroBaseX::temperature(everywhere) HydroBaseX::Ye(everywhere)
+      READS: ADMBaseX::metric(everywhere)
+      WRITES: HydrobaseX::rho(everywhere) HydroBaseX::press(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::entropy(everywhere) 
+    }
+    "Enforce initial minimum plasma beta"
+  }
+
 }
 
 #Initial conditions for TabEOS tests
