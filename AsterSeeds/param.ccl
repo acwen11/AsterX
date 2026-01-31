@@ -227,6 +227,11 @@ REAL initial_beta_min "Initial plasma beta floor"
 {
   0:*     :: "Positive"
 } 0.0
+
+REAL initial_beta_rhocut "Pad pressure below this density"
+{
+  0:*     :: "Positive"
+} 0.0
 # ---------------------------------------
 
 

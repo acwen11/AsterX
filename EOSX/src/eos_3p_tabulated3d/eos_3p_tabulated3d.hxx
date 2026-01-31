@@ -50,7 +50,7 @@ public:
   // must match order of HDF5 datasets below
   enum EV {
     PRESS = 0,   // "logpress"
-    EPS = 1,     // "logenergy"
+    EPSS = 1,     // "logenergy"
     S = 2,       // "entropy"
     MUNU = 3,    // "munu"
     CS2 = 4,     // "cs2"
@@ -385,7 +385,7 @@ public:
                        const CCTK_REAL ye) const {
     CCTK_REAL lr = std::log(std::fmin(std::fmax(rho, rgrho.min), rgrho.max));
     CCTK_REAL lt = std::log(std::fmin(std::fmax(temp, rgtemp.min), rgtemp.max));
-    CCTK_REAL v = interptable->interpolate<EV::EPS>(lr, lt, ye)[0];
+    CCTK_REAL v = interptable->interpolate<EV::EPSS>(lr, lt, ye)[0];
     return exp(v) - *energy_shift;
   }
 
@@ -493,9 +493,9 @@ public:
   range_eps_from_rho_ye(const CCTK_REAL rho, const CCTK_REAL ye) const {
     CCTK_REAL lr = std::log(std::fmin(std::fmax(rho, rgrho.min), rgrho.max));
     CCTK_REAL vmin =
-        interptable->interpolate<EV::EPS>(lr, interptable->xmin<1>(), ye)[0];
+        interptable->interpolate<EV::EPSS>(lr, interptable->xmin<1>(), ye)[0];
     CCTK_REAL vmax =
-        interptable->interpolate<EV::EPS>(lr, interptable->xmax<1>(), ye)[0];
+        interptable->interpolate<EV::EPSS>(lr, interptable->xmax<1>(), ye)[0];
     return range{exp(vmin) - *energy_shift, exp(vmax) - *energy_shift};
   }
 

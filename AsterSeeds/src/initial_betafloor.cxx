@@ -41,10 +41,10 @@ extern "C" void AsterSeeds_SetInitialBetaFloor(CCTK_ARGUMENTS) {
 
         const CCTK_REAL radial_distance = sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
         // Grading rho
-        CCTK_REAL rho_atm = (radial_distance > r_atmo)
-            ? (rho_abs_min * pow((r_atmo / radial_distance), n_rho_atmo))
-            : rho_abs_min;
-        const CCTK_REAL rho_atmo_cut = rho_atm * (1 + atmo_tol);
+        // CCTK_REAL rho_atm = (radial_distance > r_atmo)
+        //     ? (rho_abs_min * pow((r_atmo / radial_distance), n_rho_atmo))
+        //     : rho_abs_min;
+        // const CCTK_REAL rho_atmo_cut = rho_atm * (1 + atmo_tol);
 
         // Compute b^2
         /* Get covariant metric */
@@ -66,7 +66,7 @@ extern "C" void AsterSeeds_SetInitialBetaFloor(CCTK_ARGUMENTS) {
         // Increase P if necessary
         CCTK_REAL press_lim = initial_beta_min * bsq * 0.5;
 
-        if ((pressL >= press_lim) || (rhoL > rho_atmo_cut)) {
+        if ((pressL >= press_lim) || (rhoL > initial_beta_rhocut)) {
           press(p.I) = pressL;
           
           rho(p.I) = rhoL;
