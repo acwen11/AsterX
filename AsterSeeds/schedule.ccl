@@ -109,6 +109,7 @@ if (CCTK_Equals(test_type, "3DTest")) {
       READS: HydroBaseX::vel(everywhere) HydroBaseX::Bvec(everywhere) HydroBaseX::press(everywhere) HydroBaseX::temperature(everywhere) HydroBaseX::Ye(everywhere)
       READS: ADMBaseX::metric(everywhere)
       WRITES: HydrobaseX::rho(everywhere) HydroBaseX::press(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::entropy(everywhere) 
+      WRITES: AsterX::Avec_x(everywhere) AsterX::Avec_y(everywhere) AsterX::Avec_z(everywhere)
     }
     "Enforce initial minimum plasma beta"
   }

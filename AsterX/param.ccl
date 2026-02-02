@@ -210,3 +210,6 @@ USES CCTK_REAL mp5_alpha
 
 SHARES: Driver
 USES BOOLEAN use_subcycling_wip
+
+SHARES: AsterSeeds
+USES BOOLEAN unmagnetized_test

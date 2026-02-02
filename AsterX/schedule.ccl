@@ -97,6 +97,43 @@ SCHEDULE AsterX_ComputeBFromdB IN AsterX_InitialGroup AFTER AsterX_ComputedBFrom
   WRITES: HydroBaseX::Bvec(everywhere)
 } "Calculate centered B from densitized B"
 
+if (unmagnetized_test) {
+  SCHEDULE GROUP Reset_Mag_Hack AT initial IN AsterX_InitialGroup AFTER AsterSeeds_SetInitialBetaFloor BEFORE AsterX_CheckPrims
+  {
+  } "Initialize conservative variables"
+
+  SCHEDULE AsterX_ComputedBstagFromA IN Reset_Mag_Hack 
+  {
+    LANG: C
+    READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
+    WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
+  } "Calculate dBstag from curl of A"
+
+  if(prolongate_dbstag)
+  {
+    SCHEDULE AsterX_ProlongatedBstag IN Reset_Mag_Hack AFTER AsterX_ComputedBstagFromA BEFORE AsterX_ComputedBFromdBstag
+    {
+      LANG: C
+      OPTIONS: global
+    } "Prolongate dBstag only"
+  }
+
+  SCHEDULE AsterX_ComputedBFromdBstag IN Reset_Mag_Hack AFTER AsterX_ComputedBstagFromA
+  {
+    LANG: C
+    READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
+    WRITES: dB(everywhere)
+  } "Calculate centered dB from dBstag"
+
+  SCHEDULE AsterX_ComputeBFromdB IN Reset_Mag_Hack AFTER AsterX_ComputedBFromdBstag
+  {
+    LANG: C
+    READS: dB(everywhere) ADMBaseX::metric(everywhere)
+    WRITES: HydroBaseX::Bvec(everywhere)
+  } "Calculate centered B from densitized B"
+
+}
+
 SCHEDULE AsterX_CheckPrims IN AsterX_InitialGroup AFTER AsterX_ComputeBFromdB
 {
   LANG: C

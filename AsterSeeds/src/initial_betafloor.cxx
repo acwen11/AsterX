@@ -83,6 +83,28 @@ extern "C" void AsterSeeds_SetInitialBetaFloor(CCTK_ARGUMENTS) {
         
       });
 
+  if (unmagnetized_test)
+  {
+    // Reset everything to 0 again
+    grid.loop_int<1, 0, 0>(grid.nghostzones,
+                           [=] CCTK_HOST(const Loop::PointDesc &p)
+                               CCTK_ATTRIBUTE_ALWAYS_INLINE {
+                                 Avec_x(p.I) = 0.0;
+                               });
+
+    grid.loop_int<0, 1, 0>(grid.nghostzones,
+                           [=] CCTK_HOST(const Loop::PointDesc &p)
+                               CCTK_ATTRIBUTE_ALWAYS_INLINE {
+                                 Avec_y(p.I) = 0.0;
+                               });
+
+    grid.loop_int<0, 0, 1>(grid.nghostzones,
+                           [=] CCTK_HOST(const Loop::PointDesc &p)
+                               CCTK_ATTRIBUTE_ALWAYS_INLINE {
+                                 Avec_z(p.I) = 0.0;
+                               });
+  }
+
 }
 
 } // namespace AsterSeeds
