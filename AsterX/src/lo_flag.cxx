@@ -51,12 +51,12 @@ template <typename EOSType> void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_SetLOFlag;
   DECLARE_CCTK_PARAMETERS;
 
-  const smat<GF3D2<const CCTK_REAL>, dim> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
-  const vec<GF3D2<const CCTK_REAL>, dim> gf_vels{velx, vely, velz};
-  const vec<GF3D2<const CCTK_REAL>, dim> gf_Bvecs{Bvecx, Bvecy, Bvecz};
+  // const smat<GF3D2<const CCTK_REAL>, dim> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
+  // const vec<GF3D2<const CCTK_REAL>, dim> gf_vels{velx, vely, velz};
+  // const vec<GF3D2<const CCTK_REAL>, dim> gf_Bvecs{Bvecx, Bvecy, Bvecz};
 
   // Loop over the grid
-  grid.loop_int_device<1, 1, 1>(
+  grid.loop_all_device<1, 1, 1>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         if (rho(p.I) < loworder_rho_thresh) {
@@ -64,69 +64,69 @@ template <typename EOSType> void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p) {
           return;
         }
 
-        // Store largest etac as diagnostic. Note that this is only truly the
-        // largest if all checks pass.
-        CCTK_REAL etac_tot = 0.0;
+        // // Store largest etac as diagnostic. Note that this is only truly the
+        // // largest if all checks pass.
+        // CCTK_REAL etac_tot = 0.0;
 
-        // Check density
-        CCTK_REAL etacL = LOFlagVar(rho, rho(p.I), p);
-        if (etacL > etac_tot)
-          etac_tot = etacL;
-        if (etacL > eta_thresh) {
-          etac(p.I) = etac_tot;
-          LOflag(p.I) = 1.0;
-          return;
-        }
+        // // Check density
+        // CCTK_REAL etacL = LOFlagVar(rho, rho(p.I), p);
+        // if (etacL > etac_tot)
+        //   etac_tot = etacL;
+        // if (etacL > eta_thresh) {
+        //   etac(p.I) = etac_tot;
+        //   LOflag(p.I) = 1.0;
+        //   return;
+        // }
 
-        // Check pressure
-        etacL = LOFlagVar(press, press(p.I), p);
-        if (etacL > etac_tot)
-          etac_tot = etacL;
-        if (etacL > eta_thresh) {
-          etac(p.I) = etac_tot;
-          LOflag(p.I) = 1.0;
-          return;
-        }
+        // // Check pressure
+        // etacL = LOFlagVar(press, press(p.I), p);
+        // if (etacL > etac_tot)
+        //   etac_tot = etacL;
+        // if (etacL > eta_thresh) {
+        //   etac(p.I) = etac_tot;
+        //   LOflag(p.I) = 1.0;
+        //   return;
+        // }
 
-        // Calculate c_sound
-        const CCTK_REAL cs =
-            eos_3p->csnd_from_rho_temp_ye(rho(p.I), temperature(p.I), Ye(p.I));
+        // // Calculate c_sound
+        // const CCTK_REAL cs = eos_3p->csnd_from_rho_temp_ye(
+        //     rho(p.I), temperature(p.I), Ye(p.I));
 
-        // Check velocity
-        for (int dir = 0; dir < 3; dir++) {
-          etacL = LOFlagVar(gf_vels(dir), cs, p);
-          if (etacL > etac_tot)
-            etac_tot = etacL;
-          if (etacL > eta_thresh) {
-            etac(p.I) = etac_tot;
-            LOflag(p.I) = 1.0;
-            return;
-          }
-        }
+        // // Check velocity
+        // for (int dir = 0; dir < 3; dir++) {
+        //   etacL = LOFlagVar(gf_vels(dir), cs, p);
+        //   if (etacL > etac_tot)
+        //     etac_tot = etacL;
+        //   if (etacL > eta_thresh) {
+        //     etac(p.I) = etac_tot;
+        //     LOflag(p.I) = 1.0;
+        //     return;
+        //   }
+        // }
 
-        /* Disable this for now
-        // Calculate |B|
-        const vec<CCTK_REAL, 3> BvecsL{Bvecx(p.I), Bvecy(p.I), Bvecz(p.I)};
-        const smat<CCTK_REAL, 3> g_avg([&](int i, int j) ARITH_INLINE {
-          return calc_avg_v2c(gf_g(i, j), p);
-        });
-        const CCTK_REAL normBL = calc_norm(BvecsL, g_avg);
+        // /* Disable this for now
+        // // Calculate |B|
+        // const vec<CCTK_REAL, 3> BvecsL{Bvecx(p.I), Bvecy(p.I), Bvecz(p.I)};
+        // const smat<CCTK_REAL, 3> g_avg([&](int i, int j) ARITH_INLINE {
+        //   return calc_avg_v2c(gf_g(i, j), p);
+        // });
+        // const CCTK_REAL normBL = calc_norm(BvecsL, g_avg);
 
-        // Check B^i's
-        for (int dir=0; dir<3; dir++) {
-          etacL = LOFlagVar(gf_Bvecs(dir), normBL, p);
-          if (etacL > etac_tot)
-            etac_tot = etacL;
-          if (etacL > eta_thresh){
-            etac(p.I) = etac_tot;
-            LOflag(p.I) = 0.0;
-            return;
-          }
-        }
-        */
+        // // Check B^i's
+        // for (int dir=0; dir<3; dir++) {
+        //   etacL = LOFlagVar(gf_Bvecs(dir), normBL, p);
+        //   if (etacL > etac_tot)
+        //     etac_tot = etacL;
+        //   if (etacL > eta_thresh){
+        //     etac(p.I) = etac_tot;
+        //     LOflag(p.I) = 0.0;
+        //     return;
+        //   }
+        // }
+        // */
 
         // All checks pass
-        etac(p.I) = etac_tot;
+        // etac(p.I) = etac_tot;
         LOflag(p.I) = 0.0;
       });
 }

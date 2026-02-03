@@ -305,13 +305,20 @@ SCHEDULE AsterX_InitLOFlag IN CCTK_PRESTEP
 
 if (use_deriv_shock_detector)
 {
+  # SCHEDULE AsterX_SetLOFlag IN CCTK_PRESTEP AFTER AsterX_InitLOFlag 
+  # {
+  #   LANG: C
+  #   READS: ADMBaseX::metric(interior)
+  #   READS: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::temperature(interior) HydroBaseX::Ye(interior) HydroBaseX::Bvec(interior)
+  #   WRITES: etac(interior) LOflag(interior)
+  #   SYNC: LOflag
+  # } "Detect shocks, flag for low-order recon fallback"
+  
   SCHEDULE AsterX_SetLOFlag IN CCTK_PRESTEP AFTER AsterX_InitLOFlag 
   {
     LANG: C
-    READS: ADMBaseX::metric(interior)
-    READS: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::temperature(interior) HydroBaseX::Ye(interior) HydroBaseX::Bvec(interior)
-    WRITES: etac(interior) LOflag(interior)
-    SYNC: LOflag
+    READS: HydroBaseX::rho(everywhere)
+    WRITES: LOflag(everywhere)
   } "Detect shocks, flag for low-order recon fallback"
 }
 
