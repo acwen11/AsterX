@@ -151,7 +151,7 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     // Construct RePrimAnd c2p object:
     c2p_1DRePrimAnd c2p_RPA(eos_3p, atmo, max_iter, c2p_tol, alp_thresh,
                              cons_error_limit, vw_lim, B_lim, rho_BH, eps_BH,
-                             vwlim_BH, Ye_lenient, use_z, use_temperature,
+                             vwlim_BH, sigma_max, inv_beta_max, Ye_lenient, use_z, use_temperature,
                              use_press_atmo);
 
     // Construct Palenzuela c2p object:
@@ -282,7 +282,7 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
         break;
       }
       case c2p_first_t::RePrimAnd: {
-        c2p_RPA.solve(eos_3p, pv, cv, glo, rep_first);
+        c2p_RPA.solve(eos_3p, pv, cv, alp_avg, beta_avg, glo, rep_first);
         break;
       }			       
       case c2p_first_t::Palenzuela: {
@@ -318,7 +318,7 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
           break;
         }
 	case c2p_second_t::RePrimAnd: {
-          c2p_RPA.solve(eos_3p, pv, cv, glo, rep_second);
+          c2p_RPA.solve(eos_3p, pv, cv, alp_avg, beta_avg, glo, rep_second);
           break;
         }			  
         case c2p_second_t::Palenzuela: {
