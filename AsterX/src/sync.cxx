@@ -96,4 +96,18 @@ extern "C" void AsterX_ProlongatedBstag(CCTK_ARGUMENTS) {
   SyncGroupsByDirIProlongateOnly(cctkGH, groups.size(), groups.data(), nullptr);
 }
 
+extern "C" void AsterX_CommdBstag(CCTK_ARGUMENTS) {
+  static const std::vector<int> groups = {CCTK_GroupIndex("AsterX::dBx_stag"),
+                                          CCTK_GroupIndex("AsterX::dBy_stag"),
+                                          CCTK_GroupIndex("AsterX::dBz_stag")};
+
+  SyncGroupsByDirIGhostOnly(cctkGH, groups.size(), groups.data(), nullptr);
+}
+
+extern "C" void AsterX_CommdB(CCTK_ARGUMENTS) {
+  static const std::vector<int> groups = {CCTK_GroupIndex("AsterX::dB")};
+
+  SyncGroupsByDirIGhostOnly(cctkGH, groups.size(), groups.data(), nullptr);
+}
+
 } // namespace AsterX

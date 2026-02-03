@@ -14,7 +14,7 @@ using namespace AsterUtils;
 enum class vector_potential_gauge_t { algebraic, generalized_lorenz };
 
 template <int i, vector_potential_gauge_t gauge>
-void CalcRHSofAvec_impl(CCTK_ARGUMENTS) {
+void CalcRHSofAvec_impl(CCTK_ARGUMENTS, const int order) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_RHS;
 
   const vec<GF3D2<const CCTK_REAL>, dim> gf_E{Ex, Ey, Ez};
@@ -34,7 +34,8 @@ void CalcRHSofAvec_impl(CCTK_ARGUMENTS) {
     grid.loop_int_device<i == 0, i == 1, i == 2>(
         grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-          gf_Avec_rhs(i)(p.I) = -gf_E(i)(p.I) - calc_fd2_v2e<i>(G, p);
+          gf_Avec_rhs(i)(p.I) =
+              -gf_E(i)(p.I) - calc_fd_forward_midpoint<i>(G, p, order);
         });
   }
 }
@@ -58,7 +59,7 @@ void CalcRHSofPsi_impl(CCTK_ARGUMENTS, const CCTK_REAL damp_fac) {
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
           CCTK_REAL dF = 0.0;
           for (int i = 0; i < dim; i++) {
-            dF += calc_fd2_e2v(gf_Fstag(i), p, i) -
+            dF += calc_fd2_backward_midpoint(gf_Fstag(i), p, i) -
                   (gf_beta(i)(p.I) < 0
                        ? calc_fd2_v2v_oneside<-1>(gf_Fbeta(i), p, i)
                        : calc_fd2_v2v_oneside<+1>(gf_Fbeta(i), p, i));
@@ -69,15 +70,17 @@ void CalcRHSofPsi_impl(CCTK_ARGUMENTS, const CCTK_REAL damp_fac) {
 }
 
 template <int i>
-void CalcRHSofAvec(CCTK_ARGUMENTS, const vector_potential_gauge_t gauge) {
+void CalcRHSofAvec(CCTK_ARGUMENTS, const vector_potential_gauge_t gauge,
+                   const int order) {
   switch (gauge) {
   case vector_potential_gauge_t::algebraic: {
-    CalcRHSofAvec_impl<i, vector_potential_gauge_t::algebraic>(CCTK_PASS_CTOC);
+    CalcRHSofAvec_impl<i, vector_potential_gauge_t::algebraic>(CCTK_PASS_CTOC,
+                                                               order);
     break;
   }
   case vector_potential_gauge_t::generalized_lorenz: {
     CalcRHSofAvec_impl<i, vector_potential_gauge_t::generalized_lorenz>(
-        CCTK_PASS_CTOC);
+        CCTK_PASS_CTOC, order);
     break;
   }
   default:
@@ -114,10 +117,6 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
   else
     CCTK_ERROR("Unknown value for parameter \"vector_potential_gauge\"");
 
-  const vec<CCTK_REAL, dim> idx{1 / CCTK_DELTA_SPACE(0),
-                                1 / CCTK_DELTA_SPACE(1),
-                                1 / CCTK_DELTA_SPACE(2)};
-
   const vec<GF3D2<const CCTK_REAL>, dim> gf_fdens{fxdens, fydens, fzdens};
   const vec<GF3D2<const CCTK_REAL>, dim> gf_fDEnt{fxDEnt, fyDEnt, fzDEnt};
   const vec<GF3D2<const CCTK_REAL>, dim> gf_fmomx{fxmomx, fymomx, fzmomx};
@@ -129,10 +128,13 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
   const auto calcupdate_hydro =
       [=] CCTK_DEVICE(const vec<GF3D2<const CCTK_REAL>, dim> &gf_fluxes,
                       const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        vec<CCTK_REAL, 3> dfluxes([&](int i) ARITH_INLINE {
-          return gf_fluxes(i)(p.I + p.DI[i]) - gf_fluxes(i)(p.I);
-        });
-        return -calc_contraction(idx, dfluxes);
+        vec<CCTK_REAL, 3> dfluxes{calc_fd_forward_midpoint<0>(
+                                      gf_fluxes(0), p, hydro_correction_order),
+                                  calc_fd_forward_midpoint<1>(
+                                      gf_fluxes(1), p, hydro_correction_order),
+                                  calc_fd_forward_midpoint<2>(
+                                      gf_fluxes(2), p, hydro_correction_order)};
+        return -(dfluxes(0) + dfluxes(1) + dfluxes(2));
       };
 
   grid.loop_int_device<1, 1, 1>(
@@ -146,6 +148,14 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
         taurhs(p.I) += calcupdate_hydro(gf_ftau, p);
         DYe_rhs(p.I) += calcupdate_hydro(gf_fDYe, p);
 
+        // Diagnostic only, save min(theta)
+        theta_tot(p.I) = 1.0;
+        for (int ii = 0; ii < 3; ii++)
+          theta_tot(p.I) =
+              min({theta_tot(p.I), theta_x(p.I), theta_x(p.I + p.DI[ii]),
+                   theta_y(p.I), theta_y(p.I + p.DI[ii]), theta_z(p.I),
+                   theta_z(p.I + p.DI[ii])});
+
 #ifdef CCTK_DEBUG
         if (isnan(densrhs(p.I))) {
           printf("calcupdate = %f, ", calcupdate_hydro(gf_fdens, p));
@@ -158,9 +168,9 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
 #endif
       });
 
-  CalcRHSofAvec<0>(CCTK_PASS_CTOC, gauge);
-  CalcRHSofAvec<1>(CCTK_PASS_CTOC, gauge);
-  CalcRHSofAvec<2>(CCTK_PASS_CTOC, gauge);
+  CalcRHSofAvec<0>(CCTK_PASS_CTOC, gauge, mag_correction_order);
+  CalcRHSofAvec<1>(CCTK_PASS_CTOC, gauge, mag_correction_order);
+  CalcRHSofAvec<2>(CCTK_PASS_CTOC, gauge, mag_correction_order);
 
   CalcRHSofPsi(CCTK_PASS_CTOC, gauge, lorenz_damp_fac);
 }
