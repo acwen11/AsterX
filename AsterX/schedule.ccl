@@ -15,6 +15,10 @@ if(use_subcycling_wip) {
   STORAGE: densk2 momk2 tauk2 DYe_k2 DEntk2 Avec_x_k2 Avec_y_k2 Avec_z_k2 Psi_k2
   STORAGE: densk3 momk3 tauk3 DYe_k3 DEntk3 Avec_x_k3 Avec_y_k3 Avec_z_k3 Psi_k3
   STORAGE: densk4 momk4 tauk4 DYe_k4 DEntk4 Avec_x_k4 Avec_y_k4 Avec_z_k4 Psi_k4
+
+  SCHEDULE GROUP AsterX_Con2PrimGroup IN ODESolvers_PostSubStep BEFORE TmunuBaseX_SetTmunuVars AFTER ADMBaseX_SetADMVars
+  {
+  } "Compute primitive variables"
 }
 
 STORAGE: Ex Ey Ez
@@ -59,7 +63,7 @@ SCHEDULE AsterX_ComputedBstagFromA IN AsterX_InitialGroup
   WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
 } "Calculate dBstag from curl of A"
 
-if(prolongate_dbstag)
+if(!use_subcycling_wip && prolongate_dbstag)
 {
   SCHEDULE AsterX_ProlongatedBstag IN AsterX_InitialGroup AFTER AsterX_ComputedBstagFromA BEFORE AsterX_ComputedBFromdBstag
   {
@@ -109,7 +113,7 @@ if (unmagnetized_test) {
     WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
   } "Calculate dBstag from curl of A"
 
-  if(prolongate_dbstag)
+  if(!use_subcycling_wip && prolongate_dbstag)
   {
     SCHEDULE AsterX_ProlongatedBstag IN Reset_Mag_Hack AFTER AsterX_ComputedBstagFromA BEFORE AsterX_ComputedBFromdBstag
     {
@@ -238,7 +242,7 @@ SCHEDULE AsterX_ComputedBstagFromA IN AsterX_Con2PrimGroup
   WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
 } "Calculate dBstag from curl of A"
 
-if(prolongate_dbstag)
+if(!use_subcycling_wip && prolongate_dbstag)
 {
   SCHEDULE AsterX_ProlongatedBstag IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBstagFromA BEFORE AsterX_ComputedBFromdBstag
   {
@@ -451,7 +455,7 @@ if(update_tmunu){
     READS: HydroBaseX::Bvec(everywhere)
     READS: TmunuBaseX::eTtt(interior) TmunuBaseX::eTti(interior) TmunuBaseX::eTij(interior)
     WRITES: TmunuBaseX::eTtt(interior) TmunuBaseX::eTti(interior) TmunuBaseX::eTij(interior)
-    SYNC: TmunuBaseX::eTtt TmunuBaseX::eTti TmunuBaseX::eTij
+    #SYNC: TmunuBaseX::eTtt TmunuBaseX::eTti TmunuBaseX::eTij
   } "Compute the energy-momentum tensor"
 }
 
