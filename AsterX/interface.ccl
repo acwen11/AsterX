@@ -104,9 +104,9 @@ CCTK_REAL dB TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
 
 # ----- staggered magnetic field (faces)
 
-CCTK_REAL dBx_stag TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"' "x-component of staggered densitized magnetic field"
-CCTK_REAL dBy_stag TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"' "y-component of staggered densitized magnetic field"
-CCTK_REAL dBz_stag TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"' "z-component of staggered densitized magnetic field"
+CCTK_REAL dBx_stag TYPE=gf CENTERING={vcc} TAGS='parities={+1 -1 -1} checkpoint="no"' "x-component of staggered densitized magnetic field"
+CCTK_REAL dBy_stag TYPE=gf CENTERING={cvc} TAGS='parities={-1 +1 -1} checkpoint="no"' "y-component of staggered densitized magnetic field"
+CCTK_REAL dBz_stag TYPE=gf CENTERING={ccv} TAGS='parities={-1 -1 +1} checkpoint="no"' "z-component of staggered densitized magnetic field"
 
 # ----- staggered gauge functions
 
