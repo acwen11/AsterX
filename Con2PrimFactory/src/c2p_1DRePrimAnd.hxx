@@ -21,13 +21,12 @@ public:
   CCTK_REAL GammaIdealFluid;
 
   template <typename EOSType>
-  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline
-  c2p_1DRePrimAnd(const EOSType *eos_3p, const atmosphere &atm_in,
-                  CCTK_INT maxIter, CCTK_REAL tol, CCTK_REAL alp_thresh_in,
-                  CCTK_REAL consError, CCTK_REAL vwlim, CCTK_REAL B_lim,
-                  CCTK_REAL rho_BH_in, CCTK_REAL eps_BH_in,
-                  CCTK_REAL vwlim_BH_in, bool ye_len, bool use_z,
-                  bool use_temperature, bool use_pressure_atmo) {
+  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline c2p_1DRePrimAnd(
+      const EOSType *eos_3p, const atmosphere &atm_in, CCTK_INT maxIter,
+      CCTK_REAL tol, CCTK_REAL alp_thresh_in, CCTK_REAL consError,
+      CCTK_REAL vwlim, CCTK_REAL B_lim, CCTK_REAL rho_BH_in,
+      CCTK_REAL eps_BH_in, CCTK_REAL vwlim_BH_in, bool ye_len, bool use_z,
+      bool use_temperature, bool use_pressure_atmo) {
 
     atmo = atm_in;
     maxIterations = maxIter;
@@ -57,11 +56,8 @@ public:
 
   template <typename EOSType>
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
-  solve(const EOSType* eos_3p,
-        prim_vars& pv, cons_vars& cv,
-        const smat<CCTK_REAL,3>& glo,
-        c2p_report& rep) const
-  {
+  solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
+        const smat<CCTK_REAL, 3> &glo, c2p_report &rep) const {
     rep.iters = 0;
     rep.adjust_cons = false;
     rep.set_atmo = false;
@@ -69,8 +65,8 @@ public:
 
     const CCTK_REAL spatial_detg = calc_det(glo);
     const CCTK_REAL sqrt_detg = sqrt(spatial_detg);
-    const bool minor1{glo(X,X) > 0.0};
-    const bool minor2{glo(X,X)*glo(Y,Y) - glo(X,Y)*glo(X,Y) > 0.0};
+    const bool minor1{glo(X, X) > 0.0};
+    const bool minor2{glo(X, X) * glo(Y, Y) - glo(X, Y) * glo(X, Y) > 0.0};
     const bool minor3{spatial_detg > 0.0};
     if (!(minor1 && minor2 && minor3)) {
       rep.set_invalid_detg(sqrt_detg);
@@ -78,20 +74,23 @@ public:
       return;
     }
 
-    const smat<CCTK_REAL,3> gup = calc_inv(glo, spatial_detg);
+    const smat<CCTK_REAL, 3> gup = calc_inv(glo, spatial_detg);
 
     const cons_vars cv_const = cv;
 
-    cv.dens  /= sqrt_detg;
-    cv.tau   /= sqrt_detg;
-    cv.mom   /= sqrt_detg;
+    cv.dens /= sqrt_detg;
+    cv.tau /= sqrt_detg;
+    cv.mom /= sqrt_detg;
     cv.dBvec /= sqrt_detg;
-    cv.DYe   /= sqrt_detg;
-    cv.DEnt  /= sqrt_detg;
+    cv.DYe /= sqrt_detg;
+    cv.DEnt /= sqrt_detg;
 
-    const CCTK_REAL Ssq  = calc_contraction(calc_contraction(gup, cv.mom), cv.mom);
-    const CCTK_REAL Bsq  = calc_contraction(calc_contraction(glo, cv.dBvec), cv.dBvec);
-    const CCTK_REAL BiSi = cv.dBvec(X)*cv.mom(X) + cv.dBvec(Y)*cv.mom(Y) + cv.dBvec(Z)*cv.mom(Z);
+    const CCTK_REAL Ssq =
+        calc_contraction(calc_contraction(gup, cv.mom), cv.mom);
+    const CCTK_REAL Bsq =
+        calc_contraction(calc_contraction(glo, cv.dBvec), cv.dBvec);
+    const CCTK_REAL BiSi = cv.dBvec(X) * cv.mom(X) + cv.dBvec(Y) * cv.mom(Y) +
+                           cv.dBvec(Z) * cv.mom(Z);
 
     if ((!isfinite(cv.dens)) || (!isfinite(Ssq)) || (!isfinite(Bsq)) ||
         (!isfinite(BiSi)) || (!isfinite(cv.DYe)) || (!isfinite(cv.DEnt))) {
@@ -108,16 +107,12 @@ public:
 
     // Ye needs to be a non-const lvalue for EOS calls
     CCTK_REAL Ye_raw = cv.DYe / cv.dens;
-    CCTK_REAL Ye     = fmin(fmax(eos_3p->rgye.min, Ye_raw), eos_3p->rgye.max);
+    CCTK_REAL Ye = fmin(fmax(eos_3p->rgye.min, Ye_raw), eos_3p->rgye.max);
 
     typename RePrimAnd::froot<EOSType>::cache cache{};
-    RePrimAnd::froot<EOSType> f(eos_3p, Ye,
-                                cv.dens,
-                                cv.tau / cv.dens,
-                                Ssq / (cv.dens*cv.dens),
-                                (BiSi*BiSi) / (cv.dens*cv.dens*cv.dens),
-                                Bsq / cv.dens,
-                                cache);
+    RePrimAnd::froot<EOSType> f(
+        eos_3p, Ye, cv.dens, cv.tau / cv.dens, Ssq / (cv.dens * cv.dens),
+        (BiSi * BiSi) / (cv.dens * cv.dens * cv.dens), Bsq / cv.dens, cache);
 
     interval<CCTK_REAL> mu_br = f.initial_bracket();
 
@@ -126,28 +121,29 @@ public:
     mu_br = rc.bracket;
 
     const CCTK_REAL log2 = std::log(2.0);
-    const CCTK_INT  minbits  = int(std::abs(std::log(tolerance)) / log2);
+    const CCTK_INT minbits = int(std::abs(std::log(tolerance)) / log2);
     const CCTK_REAL tolerance_0 = std::ldexp(double(1.0), -minbits);
-    const CCTK_INT  maxiters = maxIterations;
+    const CCTK_INT maxiters = maxIterations;
 
-    auto fn = [&](CCTK_REAL mu){ return f(mu); };
+    auto fn = [&](CCTK_REAL mu) { return f(mu); };
     if (fn(mu_br.min()) * fn(mu_br.max()) > 0) {
       const CCTK_REAL qtot = cv.tau / cv.dens;
       const CCTK_REAL sPal = Bsq / cv.dens;
-      CCTK_REAL new_hi = CCTK_REAL(3.0) + CCTK_REAL(3.0) * qtot - CCTK_REAL(1.5) * sPal;
+      CCTK_REAL new_hi = 3.0 + 3.0 * qtot - 1.5 * sPal;
       mu_br = interval<CCTK_REAL>{mu_br.min(), new_hi};
     }
 
-    auto result = Algo::brent(fn, mu_br.min(), mu_br.max(), minbits, maxiters, rep.iters);
+    auto result =
+        Algo::brent(fn, mu_br.min(), mu_br.max(), minbits, maxiters, rep.iters);
 
     const CCTK_REAL a_root = result.first;
     const CCTK_REAL b_root = result.second;
     const CCTK_REAL fa = fn(a_root);
     const CCTK_REAL fb = fn(b_root);
     const CCTK_REAL mu =
-      (fb == (CCTK_REAL)0 || std::abs(fb) < std::abs(fa)) ? b_root :
-      (std::abs(fa) < std::abs(fb)) ? a_root :
-      CCTK_REAL(0.5) * (a_root + b_root);
+        (fb == (CCTK_REAL)0 || std::abs(fb) < std::abs(fa)) ? b_root
+        : (std::abs(fa) < std::abs(fb))                     ? a_root
+                                        : CCTK_REAL(0.5) * (a_root + b_root);
 
     // ------------------------------------------------------------------
     // IMPORTANT: ensure cache corresponds to the final chosen mu
@@ -157,81 +153,66 @@ public:
     // ------------------------------------------------------------------
     // Use the EOS-consistent RePrimAnd cached primitives
     // ------------------------------------------------------------------
-    pv.rho   = cache.rho;
-    pv.Ye    = Ye;
-    pv.eps   = cache.eps;
+    pv.rho = cache.rho;
+    pv.Ye = cache.ye;
+    pv.eps = cache.eps;
     pv.press = cache.press;
     pv.w_lor = cache.w;
 
-    CCTK_REAL Ye_tmp3 = pv.Ye;
-    pv.temperature = eos_3p->temp_from_valid_rho_eps_ye(pv.rho, pv.eps, Ye_tmp3);
-    CCTK_REAL Ye_tmp4 = pv.Ye;
-    pv.entropy     = eos_3p->kappa_from_valid_rho_eps_ye(pv.rho, pv.eps, Ye_tmp4);
+    pv.temperature = eos_3p->temp_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+    pv.entropy = eos_3p->kappa_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
 
     // ------------------------------------------------------------------
     // Velocity: RePrimAnd magnetic-aware reconstruction
     //   v^i = mu * x * ( r^i + (r.b) * mu * b^i )
     // where r^i = S^i / D, b^i = B^i / sqrt(D), (r.b) = (B^i S_i)/(D^(3/2)).
     // ------------------------------------------------------------------
-    if (use_zprim) {
-      const vec<CCTK_REAL,3> mom_up = calc_contraction(gup, cv.mom);
 
-      const CCTK_REAL D = cv.dens;
-      const CCTK_REAL sqD = std::sqrt(D + CCTK_REAL(0));
+    const vec<CCTK_REAL, 3> mom_up = calc_contraction(gup, cv.mom);
 
-      const vec<CCTK_REAL,3> r_u = mom_up * (CCTK_REAL(1) / (D + CCTK_REAL(1e-300)));
-      const vec<CCTK_REAL,3> b_u = cv.dBvec * (CCTK_REAL(1) / (sqD + CCTK_REAL(1e-300)));
-      const CCTK_REAL rb = BiSi / ((D + CCTK_REAL(1e-300)) * (sqD + CCTK_REAL(1e-300)));
+    const CCTK_REAL D = cv.dens;
+    const CCTK_REAL sqD = std::sqrt(D);
 
-      pv.vel = (mu * cache.x) * (r_u + (rb * mu) * b_u);
-      pv.w_lor = cache.w;
-    } else {
-      const vec<CCTK_REAL,3> mom_up = calc_contraction(gup, cv.mom);
+    const vec<CCTK_REAL, 3> r_u = mom_up * (1.0 / (D + 1e-300));
+    const vec<CCTK_REAL, 3> b_u = cv.dBvec * (1.0 / (sqD + 1e-300));
+    const CCTK_REAL rb = BiSi / (D * (sqD + 1e-300));
 
-      const CCTK_REAL D = cv.dens;
-      const CCTK_REAL sqD = std::sqrt(D + CCTK_REAL(0));
+    pv.vel = (mu * cache.x) * (r_u + (rb * mu) * b_u);
 
-      const vec<CCTK_REAL,3> r_u = mom_up * (CCTK_REAL(1) / (D + CCTK_REAL(1e-300)));
-      const vec<CCTK_REAL,3> b_u = cv.dBvec * (CCTK_REAL(1) / (sqD + CCTK_REAL(1e-300)));
-      const CCTK_REAL rb = BiSi / ((D + CCTK_REAL(1e-300)) * (sqD + CCTK_REAL(1e-300)));
-
-      pv.vel = (mu * cache.x) * (r_u + (rb * mu) * b_u);
-      pv.w_lor = cache.w;
-    }
-
-    vec<CCTK_REAL,3> v_low = calc_contraction(glo, pv.vel);
+    vec<CCTK_REAL, 3> v_low = calc_contraction(glo, pv.vel);
     CCTK_REAL vsq = calc_contraction(v_low, pv.vel);
-    if (vsq >= v_lim*v_lim) {
+    if (vsq >= v_lim * v_lim) {
       const CCTK_REAL scale = v_lim / (std::sqrt(vsq) + 1e-300);
       pv.vel *= scale;
-      vsq = v_lim*v_lim;
+      vsq = v_lim * v_lim;
     }
-    pv.w_lor = CCTK_REAL(1) / std::sqrt(std::max(CCTK_REAL(1e-16), CCTK_REAL(1) - vsq));
+    pv.w_lor = CCTK_REAL(1) / std::sqrt(std::max(1e-32, 1.0 - vsq));
 
     pv.Bvec = cv.dBvec;
-    const vec<CCTK_REAL,3> Elow = calc_cross_product(pv.Bvec, pv.vel);
+    const vec<CCTK_REAL, 3> Elow = calc_cross_product(pv.Bvec, pv.vel);
     pv.E = calc_contraction(gup, Elow);
 
     if (std::abs(result.first - result.second) >
-        tolerance_0 * std::min(std::abs(result.first), std::abs(result.second))) {
+        tolerance_0 *
+            std::min(std::abs(result.first), std::abs(result.second))) {
 
       cons_vars cv_check;
       cv_check.from_prim(pv, glo);
 
-      cv_check.dens  /= sqrt_detg;
-      cv_check.tau   /= sqrt_detg;
-      cv_check.mom   /= sqrt_detg;
+      cv_check.dens /= sqrt_detg;
+      cv_check.tau /= sqrt_detg;
+      cv_check.mom /= sqrt_detg;
       cv_check.dBvec /= sqrt_detg;
-      cv_check.DYe   /= sqrt_detg;
-      cv_check.DEnt  /= sqrt_detg;
+      cv_check.DYe /= sqrt_detg;
+      cv_check.DEnt /= sqrt_detg;
 
       const CCTK_REAL small = 1e-50;
-      const CCTK_REAL max_error =
-        sqrt(max({ pow((cv_check.dens   - cv.dens  )/(cv.dens   + small), 2.0),
-                   pow((cv_check.mom(0) - cv.mom(0))/(cv.mom(0) + small), 2.0),
-                   pow((cv_check.mom(1) - cv.mom(1))/(cv.mom(1) + small), 2.0),
-                   pow((cv_check.mom(2) - cv.mom(2))/(cv.mom(2) + small), 2.0),
-                   pow((cv_check.tau    - cv.tau   )/(cv.tau    + small), 2.0) }));
+      const CCTK_REAL max_error = sqrt(
+          max({pow((cv_check.dens - cv.dens) / (cv.dens + small), 2.0),
+               pow((cv_check.mom(0) - cv.mom(0)) / (cv.mom(0) + small), 2.0),
+               pow((cv_check.mom(1) - cv.mom(1)) / (cv.mom(1) + small), 2.0),
+               pow((cv_check.mom(2) - cv.mom(2)) / (cv.mom(2) + small), 2.0),
+               pow((cv_check.tau - cv.tau) / (cv.tau + small), 2.0)}));
 
       if (max_error > cons_error) {
         rep.set_root_conv();
@@ -259,12 +240,9 @@ public:
 
   template <typename EOSType>
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
-  operator()(const EOSType* eos_3p,
-             prim_vars& pv, cons_vars& cv,
-             const smat<CCTK_REAL,3>& /*gup_unused*/,
-             const smat<CCTK_REAL,3>& glo,
-             c2p_report& rep) const
-  {
+  operator()(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
+             const smat<CCTK_REAL, 3> & /*gup_unused*/,
+             const smat<CCTK_REAL, 3> &glo, c2p_report &rep) const {
     solve(eos_3p, pv, cv, glo, rep);
   }
 };
@@ -272,4 +250,3 @@ public:
 } // namespace Con2PrimFactory
 
 #endif
-
