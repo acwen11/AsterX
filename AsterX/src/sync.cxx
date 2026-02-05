@@ -66,6 +66,21 @@ extern "C" void AsterX_ApplyOuterBCOnPrim(CCTK_ARGUMENTS) {
   ApplyOuterBC(CCTK_PASS_CTOC, groups);
 }
 
+extern "C" void AsterX_ApplyOuterBCOnCons(CCTK_ARGUMENTS) {
+  static const std::vector<int> groups = {
+      CCTK_GroupIndex("AsterX::dens"),
+      CCTK_GroupIndex("AsterX::tau"),
+      CCTK_GroupIndex("AsterX::mom"),
+      CCTK_GroupIndex("AsterX::DEnt"),
+      CCTK_GroupIndex("AsterX::DYe"),
+      CCTK_GroupIndex("AsterX::Avec_x"),
+      CCTK_GroupIndex("AsterX::Avec_y"),
+      CCTK_GroupIndex("AsterX::Avec_z"),
+      CCTK_GroupIndex("AsterX::Psi")};
+
+  ApplyOuterBC(CCTK_PASS_CTOC, groups);
+}
+
 extern "C" void AsterX_RestrictFluxes(CCTK_ARGUMENTS) {
   static const std::vector<int> restrict_groups = {
       CCTK_GroupIndex("AsterX::flux_x"), CCTK_GroupIndex("AsterX::flux_y"),
