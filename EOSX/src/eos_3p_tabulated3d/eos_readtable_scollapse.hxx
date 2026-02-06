@@ -32,7 +32,6 @@ eos_readtable_scollapse(const std::string &filename,
   } else if (sizeof(CCTK_REAL) == sizeof(double)) {
     mpi_real = MPI_DOUBLE;
   } else {
-    // Unusual build: refuse silently-bad behavior
     assert(false && "Unsupported CCTK_REAL size for MPI_Bcast");
   }
 
@@ -40,6 +39,7 @@ eos_readtable_scollapse(const std::string &filename,
   assert(fapl_id >= 0);
 
   hid_t file_id = -1;
+
 #ifdef H5_HAVE_PARALLEL
   CHECK_ERROR(H5Pset_fapl_mpio(fapl_id, MPI_COMM_WORLD, MPI_INFO_NULL));
   CHECK_ERROR(H5Pset_all_coll_metadata_ops(fapl_id, true));
@@ -71,24 +71,35 @@ eos_readtable_scollapse(const std::string &filename,
 
   const int npoints = nrho * ntemp * nye;
 
+  int have_rel_cs2 = 0;
+#ifdef H5_HAVE_PARALLEL
+  have_rel_cs2 = (H5Lexists(file_id, "/have_rel_cs2", H5P_DEFAULT) > 0);
+#else
+  if (rank == 0) {
+    have_rel_cs2 = (H5Lexists(file_id, "/have_rel_cs2", H5P_DEFAULT) > 0);
+  }
+  MPI_Bcast(&have_rel_cs2, 1, MPI_INT, 0, MPI_COMM_WORLD);
+#endif
+
   // Read and communicate tables using host memory
   auto *host_arena = amrex::The_Pinned_Arena();
 
-  CCTK_REAL *logrho_h = (CCTK_REAL *)host_arena->alloc(nrho * sizeof(CCTK_REAL));
-  CCTK_REAL *logtemp_h = (CCTK_REAL *)host_arena->alloc(ntemp * sizeof(CCTK_REAL));
+  CCTK_REAL *logrho_h =
+      (CCTK_REAL *)host_arena->alloc(nrho * sizeof(CCTK_REAL));
+  CCTK_REAL *logtemp_h =
+      (CCTK_REAL *)host_arena->alloc(ntemp * sizeof(CCTK_REAL));
   CCTK_REAL *yes_h = (CCTK_REAL *)host_arena->alloc(nye * sizeof(CCTK_REAL));
   CCTK_REAL *alltables_tmp_h = (CCTK_REAL *)host_arena->alloc(
       (size_t)npoints * NTABLES * sizeof(CCTK_REAL));
   CCTK_REAL *alltables_h = (CCTK_REAL *)host_arena->alloc(
       (size_t)npoints * NTABLES * sizeof(CCTK_REAL));
-  CCTK_REAL *energy_shift_h =
-      (CCTK_REAL *)host_arena->alloc(sizeof(CCTK_REAL));
+  CCTK_REAL *energy_shift_h = (CCTK_REAL *)host_arena->alloc(sizeof(CCTK_REAL));
 
   // Final device/managed storage
-  CCTK_REAL *logrho = (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(
-      nrho * sizeof(CCTK_REAL));
-  CCTK_REAL *logtemp = (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(
-      ntemp * sizeof(CCTK_REAL));
+  CCTK_REAL *logrho =
+      (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(nrho * sizeof(CCTK_REAL));
+  CCTK_REAL *logtemp =
+      (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(ntemp * sizeof(CCTK_REAL));
   CCTK_REAL *yes =
       (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(nye * sizeof(CCTK_REAL));
   CCTK_REAL *alltables = (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(
@@ -160,9 +171,11 @@ eos_readtable_scollapse(const std::string &filename,
 
   // Copy host -> managed
   amrex::Gpu::copy(amrex::Gpu::hostToDevice, logrho_h, logrho_h + nrho, logrho);
-  amrex::Gpu::copy(amrex::Gpu::hostToDevice, logtemp_h, logtemp_h + ntemp, logtemp);
+  amrex::Gpu::copy(amrex::Gpu::hostToDevice, logtemp_h, logtemp_h + ntemp,
+                   logtemp);
   amrex::Gpu::copy(amrex::Gpu::hostToDevice, yes_h, yes_h + nye, yes);
-  amrex::Gpu::copy(amrex::Gpu::hostToDevice, energy_shift_h, energy_shift_h + 1, energy_shift);
+  amrex::Gpu::copy(amrex::Gpu::hostToDevice, energy_shift_h, energy_shift_h + 1,
+                   energy_shift);
   amrex::Gpu::copy(amrex::Gpu::hostToDevice, alltables_h,
                    alltables_h + (size_t)npoints * NTABLES, alltables);
 
@@ -179,6 +192,9 @@ eos_readtable_scollapse(const std::string &filename,
   tab.nye = nye;
   tab.npoints = npoints;
 
+  // NEW
+  tab.have_rel_cs2 = have_rel_cs2;
+
   tab.logrho = logrho;
   tab.logtemp = logtemp;
   tab.yes = yes;
@@ -191,4 +207,3 @@ eos_readtable_scollapse(const std::string &filename,
 } // namespace EOSX
 
 #endif // EOS_READTABLE_SCOLLAPSE_HXX
-

@@ -110,7 +110,7 @@ CCTK_STRING EOSTable_format "Format of the Tabulated3D EOS table"
 {
   "Auto"            :: "Auto-detect from HDF5 contents"
   "StellarCollapse" :: "Stellar Collapse format"
-  "Compose"         :: "CompOSE format"
+  "CompOSE"         :: "CompOSE format"
 } "Auto"
 
 CCTK_STRING EOSTable_filename "File name of the 3D EOS table" STEERABLE=RECOVER 
