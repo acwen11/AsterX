@@ -142,28 +142,30 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
 
     // ----- Construct C2P objects -----
 
+    const CCTK_REAL sigma_max_t = cctk_iteration > mag_limit_delay ? sigma_max : (CCTK_REAL)1e100;
+    const CCTK_REAL inv_beta_max_t = cctk_iteration > mag_limit_delay ? inv_beta_max : (CCTK_REAL)1e100;
     // Construct Noble c2p object:
     c2p_2DNoble c2p_Noble(eos_3p, atmo, max_iter, c2p_tol, alp_thresh, vw_lim,
-                          B_lim, rho_BH, eps_BH, vwlim_BH, sigma_max,
-                          inv_beta_max, Ye_lenient, use_z, use_temperature,
+                          B_lim, rho_BH, eps_BH, vwlim_BH, sigma_max_t,
+                          inv_beta_max_t, Ye_lenient, use_z, use_temperature,
                           use_press_atmo);
 
     // Construct RePrimAnd c2p object:
     c2p_1DRePrimAnd c2p_RPA(eos_3p, atmo, max_iter, c2p_tol, alp_thresh,
                              cons_error_limit, vw_lim, B_lim, rho_BH, eps_BH,
-                             vwlim_BH, sigma_max, inv_beta_max, Ye_lenient, use_z, use_temperature,
+                             vwlim_BH, sigma_max_t, inv_beta_max_t, Ye_lenient, use_z, use_temperature,
                              use_press_atmo);
 
     // Construct Palenzuela c2p object:
     c2p_1DPalenzuela c2p_Pal(eos_3p, atmo, max_iter, c2p_tol, alp_thresh,
-                             vw_lim, B_lim, rho_BH, eps_BH, vwlim_BH, sigma_max,
-                             inv_beta_max, Ye_lenient, use_z, use_temperature,
+                             vw_lim, B_lim, rho_BH, eps_BH, vwlim_BH, sigma_max_t,
+                             inv_beta_max_t, Ye_lenient, use_z, use_temperature,
                              use_press_atmo);
 
     // Construct Entropy c2p object:
     c2p_1DEntropy c2p_Ent(eos_3p, atmo, max_iter, c2p_tol, alp_thresh, vw_lim,
-                          B_lim, rho_BH, eps_BH, vwlim_BH, sigma_max,
-                          inv_beta_max, Ye_lenient, use_z, use_temperature,
+                          B_lim, rho_BH, eps_BH, vwlim_BH, sigma_max_t,
+                          inv_beta_max_t, Ye_lenient, use_z, use_temperature,
                           use_press_atmo);
 
     // ----------
