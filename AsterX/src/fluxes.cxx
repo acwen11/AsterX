@@ -1201,6 +1201,8 @@ extern "C" void AsterX_Fluxes(CCTK_ARGUMENTS) {
     break;
   }
   case eos_3param::Hybrid: {
+    // Note: the nested if conditions below could be inefficient. 
+    // This needs to be tested, and restructured, if required.
     if (global_eos_3p_hyb_pwpoly) {
       auto eos_3p_hyb = global_eos_3p_hyb_pwpoly;
 
