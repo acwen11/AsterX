@@ -81,12 +81,10 @@ private:
     static CCTK_HOST CCTK_DEVICE size_t
     value(std::array<size_t, dim> const &index,
           std::array<size_t, dim> const &num_points) {
-      if
-        constexpr(N < dim) {
-          return offset + index[N] +
-                 num_points[N] * CI_t::template value<N + 1>(index, num_points);
-        }
-      else {
+      if constexpr (N < dim) {
+        return offset + index[N] +
+               num_points[N] * CI_t::template value<N + 1>(index, num_points);
+      } else {
         return offset;
       }
     }
@@ -112,7 +110,7 @@ private:
   struct recursive_interpolate_single {
     static CCTK_HOST CCTK_DEVICE T const
     linterp(F_t const &F, std::array<size_t, dim> const &index,
-            Xt const &... xin, X1 const &x1) {
+            Xt const &...xin, X1 const &x1) {
       auto const xA = F.x[which_dim][index[which_dim]];
       auto const xB = F.x[which_dim][index[which_dim] + 1];
 
@@ -182,7 +180,7 @@ public:
 
   template <size_t... vars, typename... Xt>
   CCTK_HOST CCTK_DEVICE vec_t<sizeof...(vars)>
-  interpolate(Xt const &... xin) const {
+  interpolate(Xt const &...xin) const {
     static_assert(
         all_true<(std::is_convertible<typename std::remove_cv<Xt>::type,
                                       T>::value)...>::value,
@@ -210,7 +208,7 @@ public:
   template <typename Yt, typename... Xt>
   CCTK_HOST CCTK_DEVICE lintp_ND_t(Yt *__y,
                                    std::array<size_t, dim> __num_points,
-                                   Xt *... __x)
+                                   Xt *...__x)
       : y(__y), num_points(__num_points) {
 
     CCTK_INT n = 0;

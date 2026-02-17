@@ -133,9 +133,9 @@ c2p::prims_floors_and_ceilings(const EOSType *eos_3p, prim_vars &pv,
     } else {
       // keeps pressure, changes eps
       recomp_eps_press_entropy = false;
-      pv.eps = eos_3p->eps_from_valid_rho_press_ye(pv.rho, pv.press, pv.Ye);
-      pv.temperature = eos_3p->temp_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
-      pv.entropy = eos_3p->kappa_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+      pv.eps = eos_3p->eps_from_rho_press_ye(pv.rho, pv.press, pv.Ye);
+      pv.temperature = eos_3p->temp_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+      pv.entropy = eos_3p->kappa_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
     }
   }
 
@@ -150,9 +150,9 @@ c2p::prims_floors_and_ceilings(const EOSType *eos_3p, prim_vars &pv,
     } else {
       // keeps pressure, changes eps
       recomp_eps_press_entropy = false;
-      pv.eps = eos_3p->eps_from_valid_rho_press_ye(pv.rho, pv.press, pv.Ye);
-      pv.temperature = eos_3p->temp_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
-      pv.entropy = eos_3p->kappa_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+      pv.eps = eos_3p->eps_from_rho_press_ye(pv.rho, pv.press, pv.Ye);
+      pv.temperature = eos_3p->temp_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+      pv.entropy = eos_3p->kappa_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
     }
   }
 
@@ -183,9 +183,9 @@ c2p::prims_floors_and_ceilings(const EOSType *eos_3p, prim_vars &pv,
     if (pv.press < atmo.press_atmo) {
 
       pv.press = atmo.press_atmo;
-      pv.eps = eos_3p->eps_from_valid_rho_press_ye(pv.rho, pv.press, pv.Ye);
-      pv.temperature = eos_3p->temp_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
-      pv.entropy = eos_3p->kappa_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+      pv.eps = eos_3p->eps_from_rho_press_ye(pv.rho, pv.press, pv.Ye);
+      pv.temperature = eos_3p->temp_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+      pv.entropy = eos_3p->kappa_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
       recomp_eps_press_entropy = false;
       rep.adjust_cons = true;
 
@@ -209,9 +209,9 @@ c2p::prims_floors_and_ceilings(const EOSType *eos_3p, prim_vars &pv,
   }
 
   if (recomp_eps_press_entropy) {
-    pv.eps = eos_3p->eps_from_valid_rho_temp_ye(pv.rho, pv.temperature, pv.Ye);
-    pv.press = eos_3p->press_from_valid_rho_temp_ye(pv.rho, pv.temperature, pv.Ye);
-    pv.entropy = eos_3p->kappa_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+    pv.eps = eos_3p->eps_from_rho_temp_ye(pv.rho, pv.temperature, pv.Ye);
+    pv.press = eos_3p->press_from_rho_temp_ye(pv.rho, pv.temperature, pv.Ye);
+    pv.entropy = eos_3p->kappa_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
   }
 
 }
@@ -254,9 +254,9 @@ c2p::bh_interior(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
 
     if (recomp_flag) {
   
-      pv.temperature = eos_3p->temp_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
-      pv.press = eos_3p->press_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye); 
-      pv.entropy = eos_3p->kappa_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+      pv.temperature = eos_3p->temp_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+      pv.press = eos_3p->press_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye); 
+      pv.entropy = eos_3p->kappa_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
   
       cv.from_prim(pv, glo);
     };
@@ -268,9 +268,9 @@ c2p::bh_interior(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
     pv.eps = eps_BH;
     pv.Ye = atmo.ye_atmo;
   
-    pv.temperature = eos_3p->temp_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
-    pv.press = eos_3p->press_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye); 
-    pv.entropy = eos_3p->kappa_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+    pv.temperature = eos_3p->temp_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+    pv.press = eos_3p->press_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye); 
+    pv.entropy = eos_3p->kappa_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
 
     // Set velocity such that new conserved momentum has same 
     // direction as before

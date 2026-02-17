@@ -245,11 +245,11 @@ c2p_1DPalenzuela::xPalenzuelaToPrim(CCTK_REAL xPalenzuela_Sol, CCTK_REAL Ssq,
 
   pv.Ye = cv.DYe / cv.dens;
 
-  pv.press = eos_3p->press_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+  pv.press = eos_3p->press_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
 
-  pv.temperature = eos_3p->temp_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+  pv.temperature = eos_3p->temp_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
 
-  pv.entropy = eos_3p->kappa_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+  pv.entropy = eos_3p->kappa_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
 
   pv.Bvec = cv.dBvec;
 
@@ -298,7 +298,7 @@ c2p_1DPalenzuela::funcRoot_1DPalenzuela(CCTK_REAL Ssq, CCTK_REAL Bsq,
 
   // (iv)
   CCTK_REAL P_loc =
-      eos_3p->press_from_valid_rho_eps_ye(rho_loc, eps_loc, Ye_loc);
+      eos_3p->press_from_rho_eps_ye(rho_loc, eps_loc, Ye_loc);
 
   return (x - (1.0 + eps_loc + P_loc / rho_loc) * W_loc);
 }

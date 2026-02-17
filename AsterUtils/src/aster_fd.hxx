@@ -71,7 +71,7 @@ calc_fd_forward_midpoint(const GF3D2<const T> &gf, const PointDesc &p,
 // derivative
 template <typename T>
 CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
-calc_fd2_backward_midpoint(const GF3D2<const T> &gf, const PointDesc &p,
+calc_fd_backward_midpoint(const GF3D2<const T> &gf, const PointDesc &p,
                            const int dir) {
   return (gf(p.I) - gf(p.I - p.DI[dir])) / p.DX[dir];
 }
