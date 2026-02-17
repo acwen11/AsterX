@@ -122,7 +122,7 @@ extern "C" void ID_TabEOS_HydroQuantities_initial_temp_ent(CCTK_ARGUMENTS) {
         case TS_ID_t::Temperature: {
           temperature(p.I) = temp_atm;
           CCTK_REAL ent_val =
-              eos_3p_tab3d->entropy_from_valid_rho_temp_ye(rhoL, temp_atm, yeL);
+              eos_3p_tab3d->entropy_from_rho_temp_ye(rhoL, temp_atm, yeL);
           entropy(p.I) = ent_val;
           break;
         }
@@ -130,13 +130,13 @@ extern "C" void ID_TabEOS_HydroQuantities_initial_temp_ent(CCTK_ARGUMENTS) {
           const CCTK_REAL rho_atmo_cut = rho_atm * (1 + atmo_tol);
           if (rhoL > rho_atmo_cut) {
             CCTK_REAL ent_val = id_entropy;
-            CCTK_REAL temp_val = eos_3p_tab3d->temp_from_valid_rho_entropy_ye(
+            CCTK_REAL temp_val = eos_3p_tab3d->temp_from_rho_entropy_ye(
                 rhoL, ent_val, yeL);
             entropy(p.I) = ent_val;
             temperature(p.I) = temp_val;
           } else {
             temperature(p.I) = temp_atm;
-            CCTK_REAL ent_val = eos_3p_tab3d->entropy_from_valid_rho_temp_ye(
+            CCTK_REAL ent_val = eos_3p_tab3d->entropy_from_rho_temp_ye(
                 rhoL, temp_atm, yeL);
             entropy(p.I) = ent_val;
           }
@@ -173,7 +173,7 @@ ID_TabEOS_HydroQuantities_recompute_HydroBase_variables(CCTK_ARGUMENTS) {
 
   // compute P_min from table at (rho_min, Tmin, Ye_min)
   const CCTK_REAL P_min =
-      eos_3p_tab3d->press_from_valid_rho_temp_ye(rho_min, Tmin, Ye_min);
+      eos_3p_tab3d->press_from_rho_temp_ye(rho_min, Tmin, Ye_min);
 
   // Loop over the grid, recomputing the HydroBase quantities
   grid.loop_all_device<1, 1, 1>(
@@ -202,7 +202,7 @@ ID_TabEOS_HydroQuantities_recompute_HydroBase_variables(CCTK_ARGUMENTS) {
           Ye(p.I) = yeL;
 
           CCTK_REAL Pval =
-              eos_3p_tab3d->press_from_valid_rho_temp_ye(rhoL, tempL, yeL);
+              eos_3p_tab3d->press_from_rho_temp_ye(rhoL, tempL, yeL);
 
           if (!std::isfinite(Pval) || Pval < P_min) {
             Pval = P_min;
@@ -210,7 +210,7 @@ ID_TabEOS_HydroQuantities_recompute_HydroBase_variables(CCTK_ARGUMENTS) {
           press(p.I) = Pval;
 
           CCTK_REAL eps_val =
-              eos_3p_tab3d->eps_from_valid_rho_temp_ye(rhoL, tempL, yeL);
+              eos_3p_tab3d->eps_from_rho_temp_ye(rhoL, tempL, yeL);
           if (!std::isfinite(eps_val) || eps_val < eps_min) {
             eps_val = eps_min;
           }
@@ -222,7 +222,7 @@ ID_TabEOS_HydroQuantities_recompute_HydroBase_variables(CCTK_ARGUMENTS) {
           rho(p.I) = rho_atm;
           Ye(p.I) = Ye_atmo;
 
-          CCTK_REAL Pval_atm = eos_3p_tab3d->press_from_valid_rho_temp_ye(
+          CCTK_REAL Pval_atm = eos_3p_tab3d->press_from_rho_temp_ye(
               rho_atm, temp_atmL, Ye_atmo);
 
           if (!std::isfinite(Pval_atm) || Pval_atm < P_min) {
@@ -230,7 +230,7 @@ ID_TabEOS_HydroQuantities_recompute_HydroBase_variables(CCTK_ARGUMENTS) {
           }
           press(p.I) = Pval_atm;
 
-          CCTK_REAL eps_val_atm = eos_3p_tab3d->eps_from_valid_rho_temp_ye(
+          CCTK_REAL eps_val_atm = eos_3p_tab3d->eps_from_rho_temp_ye(
               rho_atm, temp_atmL, Ye_atmo);
 
           if (!std::isfinite(eps_val_atm) || eps_val_atm < eps_min) {

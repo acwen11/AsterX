@@ -250,23 +250,23 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
       press_atm(0) = (r_atm(0) > r_atmo)
                          ? (p_atmo * pow(r_atmo / r_atm(0), n_press_atmo))
                          : p_atmo;
-      press_atm(0) = std::max(eos_3p->press_from_valid_rho_temp_ye(
+      press_atm(0) = std::max(eos_3p->press_from_rho_temp_ye(
                                   rho_atm(0), eos_3p->rgtemp.min, Ye_atmo),
                               press_atm(0));
       press_atm(1) = (r_atm(1) > r_atmo)
                          ? (p_atmo * pow(r_atmo / r_atm(1), n_press_atmo))
                          : p_atmo;
-      press_atm(1) = std::max(eos_3p->press_from_valid_rho_temp_ye(
+      press_atm(1) = std::max(eos_3p->press_from_rho_temp_ye(
                                   rho_atm(1), eos_3p->rgtemp.min, Ye_atmo),
                               press_atm(1));
-      eps_atm(0) = eos_3p->eps_from_valid_rho_press_ye(rho_atm(0), press_atm(0),
-                                                       Ye_atmo);
-      eps_atm(1) = eos_3p->eps_from_valid_rho_press_ye(rho_atm(1), press_atm(1),
-                                                       Ye_atmo);
+      eps_atm(0) =
+          eos_3p->eps_from_rho_press_ye(rho_atm(0), press_atm(0), Ye_atmo);
+      eps_atm(1) =
+          eos_3p->eps_from_rho_press_ye(rho_atm(1), press_atm(1), Ye_atmo);
       temp_atm(0) =
-          eos_3p->temp_from_valid_rho_eps_ye(rho_atm(0), eps_atm(0), Ye_atmo);
+          eos_3p->temp_from_rho_eps_ye(rho_atm(0), eps_atm(0), Ye_atmo);
       temp_atm(1) =
-          eos_3p->temp_from_valid_rho_eps_ye(rho_atm(1), eps_atm(1), Ye_atmo);
+          eos_3p->temp_from_rho_eps_ye(rho_atm(1), eps_atm(1), Ye_atmo);
     } else {
       temp_atm(0) = (r_atm(0) > r_atmo)
                         ? (t_atmo * pow(r_atmo / r_atm(0), n_temp_atmo))
@@ -277,14 +277,14 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
                         ? (t_atmo * pow(r_atmo / r_atm(1), n_temp_atmo))
                         : t_atmo;
       temp_atm(1) = std::max(eos_3p->rgtemp.min, temp_atm(1));
-      press_atm(0) = eos_3p->press_from_valid_rho_temp_ye(rho_atm(0),
-                                                          temp_atm(0), Ye_atmo);
-      press_atm(1) = eos_3p->press_from_valid_rho_temp_ye(rho_atm(1),
-                                                          temp_atm(1), Ye_atmo);
+      press_atm(0) =
+          eos_3p->press_from_rho_temp_ye(rho_atm(0), temp_atm(0), Ye_atmo);
+      press_atm(1) =
+          eos_3p->press_from_rho_temp_ye(rho_atm(1), temp_atm(1), Ye_atmo);
       eps_atm(0) =
-          eos_3p->eps_from_valid_rho_temp_ye(rho_atm(0), temp_atm(0), Ye_atmo);
+          eos_3p->eps_from_rho_temp_ye(rho_atm(0), temp_atm(0), Ye_atmo);
       eps_atm(1) =
-          eos_3p->eps_from_valid_rho_temp_ye(rho_atm(1), temp_atm(1), Ye_atmo);
+          eos_3p->eps_from_rho_temp_ye(rho_atm(1), temp_atm(1), Ye_atmo);
     }
     // End atmosphere
 
@@ -315,16 +315,16 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
       if (rho_rc(0) <= rho_cut(0)) {
         resetL = true;
         rho_rc(0) = rho_atm(0);
-        entropy_rc(0) = eos_3p->kappa_from_valid_rho_eps_ye(
-            rho_atm(0), eps_atm(0), Ye_atmo);
+        entropy_rc(0) =
+            eos_3p->kappa_from_rho_eps_ye(rho_atm(0), eps_atm(0), Ye_atmo);
         temp_rc(0) = temp_atm(0);
         Ye_rc(0) = Ye_atmo;
       }
       if (rho_rc(1) <= rho_cut(1)) {
         resetR = true;
         rho_rc(1) = rho_atm(1);
-        entropy_rc(1) = eos_3p->kappa_from_valid_rho_eps_ye(
-            rho_atm(1), eps_atm(1), Ye_atmo);
+        entropy_rc(1) =
+            eos_3p->kappa_from_rho_eps_ye(rho_atm(1), eps_atm(1), Ye_atmo);
         temp_rc(1) = temp_atm(1);
         Ye_rc(1) = Ye_atmo;
       }
@@ -333,9 +333,9 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
       // Compute eps_rc and press_rc using lambdas
       for (int f = 0; f < 2; ++f) {
         eps_rc(f) =
-            eos_3p->eps_from_valid_rho_temp_ye(rho_rc(f), temp_rc(f), Ye_rc(f));
-        press_rc(f) = eos_3p->press_from_valid_rho_temp_ye(
-            rho_rc(f), temp_rc(f), Ye_rc(f));
+            eos_3p->eps_from_rho_temp_ye(rho_rc(f), temp_rc(f), Ye_rc(f));
+        press_rc(f) =
+            eos_3p->press_from_rho_temp_ye(rho_rc(f), temp_rc(f), Ye_rc(f));
       }
 
     } else {
@@ -361,16 +361,16 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
       if (rho_rc(0) <= rho_cut(0)) {
         resetL = true;
         rho_rc(0) = rho_atm(0);
-        entropy_rc(0) = eos_3p->kappa_from_valid_rho_eps_ye(
-            rho_atm(0), eps_atm(0), Ye_atmo);
+        entropy_rc(0) =
+            eos_3p->kappa_from_rho_eps_ye(rho_atm(0), eps_atm(0), Ye_atmo);
         press_rc(0) = press_atm(0);
         Ye_rc(0) = Ye_atmo;
       }
       if (rho_rc(1) <= rho_cut(1)) {
         resetR = true;
         rho_rc(1) = rho_atm(1);
-        entropy_rc(1) = eos_3p->kappa_from_valid_rho_eps_ye(
-            rho_atm(1), eps_atm(1), Ye_atmo);
+        entropy_rc(1) =
+            eos_3p->kappa_from_rho_eps_ye(rho_atm(1), eps_atm(1), Ye_atmo);
         press_rc(1) = press_atm(1);
         Ye_rc(1) = Ye_atmo;
       }
@@ -378,10 +378,10 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
 
       // Compute eps_rc and temp_rc using lambdas
       for (int f = 0; f < 2; ++f) {
-        eps_rc(f) = eos_3p->eps_from_valid_rho_press_ye(rho_rc(f), press_rc(f),
-                                                        Ye_rc(f));
+        eps_rc(f) =
+            eos_3p->eps_from_rho_press_ye(rho_rc(f), press_rc(f), Ye_rc(f));
         temp_rc(f) =
-            eos_3p->temp_from_valid_rho_eps_ye(rho_rc(f), eps_rc(f), Ye_rc(f));
+            eos_3p->temp_from_rho_eps_ye(rho_rc(f), eps_rc(f), Ye_rc(f));
       }
     }
 
@@ -559,10 +559,8 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
     // vars
 
     const vec<CCTK_REAL, 2> cs2_rc([&](int f) ARITH_INLINE {
-      return eos_3p->csnd_from_valid_rho_temp_ye(rho_rc(f), temp_rc(f),
-                                                 Ye_rc(f)) *
-             eos_3p->csnd_from_valid_rho_temp_ye(rho_rc(f), temp_rc(f),
-                                                 Ye_rc(f));
+      return eos_3p->csnd_from_rho_temp_ye(rho_rc(f), temp_rc(f), Ye_rc(f)) *
+             eos_3p->csnd_from_rho_temp_ye(rho_rc(f), temp_rc(f), Ye_rc(f));
     });
 
     const vec<CCTK_REAL, 2> h_rc([&](int f) ARITH_INLINE {
@@ -1203,15 +1201,33 @@ extern "C" void AsterX_Fluxes(CCTK_ARGUMENTS) {
     break;
   }
   case eos_3param::Hybrid: {
-    // Get local eos object
-    auto eos_3p_hyb = global_eos_3p_hyb;
+    // Note: the nested if conditions below could be inefficient. 
+    // This needs to be tested, and restructured, if required.
+    if (global_eos_3p_hyb_pwpoly) {
+      auto eos_3p_hyb = global_eos_3p_hyb_pwpoly;
 
-    CalcFlux<0>(cctkGH, eos_3p_hyb, rec_var, reconstruction, reconstruction_LO,
-                reconstruct_params, fluxtype);
-    CalcFlux<1>(cctkGH, eos_3p_hyb, rec_var, reconstruction, reconstruction_LO,
-                reconstruct_params, fluxtype);
-    CalcFlux<2>(cctkGH, eos_3p_hyb, rec_var, reconstruction, reconstruction_LO,
-                reconstruct_params, fluxtype);
+      CalcFlux<0>(cctkGH, eos_3p_hyb, rec_var, reconstruction,
+                  reconstruction_LO, reconstruct_params, fluxtype);
+      CalcFlux<1>(cctkGH, eos_3p_hyb, rec_var, reconstruction,
+                  reconstruction_LO, reconstruct_params, fluxtype);
+      CalcFlux<2>(cctkGH, eos_3p_hyb, rec_var, reconstruction,
+                  reconstruction_LO, reconstruct_params, fluxtype);
+
+    } else if (global_eos_3p_hyb_poly) {
+      auto eos_3p_hyb = global_eos_3p_hyb_poly;
+
+      CalcFlux<0>(cctkGH, eos_3p_hyb, rec_var, reconstruction,
+                  reconstruction_LO, reconstruct_params, fluxtype);
+      CalcFlux<1>(cctkGH, eos_3p_hyb, rec_var, reconstruction,
+                  reconstruction_LO, reconstruct_params, fluxtype);
+      CalcFlux<2>(cctkGH, eos_3p_hyb, rec_var, reconstruction,
+                  reconstruction_LO, reconstruct_params, fluxtype);
+
+    } else {
+      CCTK_ERROR(
+          "Hybrid EOS selected but no hybrid EOS object was initialized");
+    }
+
     break;
   }
   case eos_3param::Tabulated: {

@@ -52,7 +52,7 @@ extern "C" void Tests2D_Initialize(CCTK_ARGUMENTS) {
           }
 
           press(p.I) = 1.;
-          eps(p.I) = eos_3p_ig->eps_from_valid_rho_press_ye(
+          eps(p.I) = eos_3p_ig->eps_from_rho_press_ye(
               rho(p.I), press(p.I), dummy_ye);
         });
 
@@ -100,7 +100,7 @@ extern "C" void Tests2D_Initialize(CCTK_ARGUMENTS) {
         [=] CCTK_HOST(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
           rho(p.I) = 1.;
           press(p.I) = 3.;
-          eps(p.I) = eos_3p_ig->eps_from_valid_rho_press_ye(
+          eps(p.I) = eos_3p_ig->eps_from_rho_press_ye(
               rho(p.I), press(p.I), dummy_ye);
           velx(p.I) = 1. / 12.0;
           vely(p.I) = 1. / 24.;
@@ -169,7 +169,7 @@ extern "C" void Tests2D_Initialize(CCTK_ARGUMENTS) {
             vely(p.I) = 0.0;
             velz(p.I) = 0.0;
           }
-          eps(p.I) = eos_3p_ig->eps_from_valid_rho_press_ye(
+          eps(p.I) = eos_3p_ig->eps_from_rho_press_ye(
               rho(p.I), press(p.I), dummy_ye);
         });
 
@@ -214,7 +214,7 @@ extern "C" void Tests2D_Initialize(CCTK_ARGUMENTS) {
 
           // set constant initial pressure throughout the domain
           press(p.I) = p_val;
-          eps(p.I) = eos_3p_ig->eps_from_valid_rho_press_ye(
+          eps(p.I) = eos_3p_ig->eps_from_rho_press_ye(
               rho(p.I), press(p.I), dummy_ye);
         });
 
@@ -264,7 +264,7 @@ extern "C" void Tests2D_Initialize(CCTK_ARGUMENTS) {
           vely(p.I) = vy;
           velz(p.I) = 0.0;
 
-          eps(p.I) = eos_3p_ig->eps_from_valid_rho_press_ye(
+          eps(p.I) = eos_3p_ig->eps_from_rho_press_ye(
               rho(p.I), press(p.I), dummy_ye);
         });
 

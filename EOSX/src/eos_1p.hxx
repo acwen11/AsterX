@@ -79,6 +79,19 @@ public:
   is_p_valid(CCTK_REAL p) const {
     return rg_p.contains(p);
   }
+
+  CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
+  gm1_from_rho(const CCTK_REAL rho) const;
+  CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
+  p_from_gm1(const CCTK_REAL gm1) const;
+  CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
+  sed_from_gm1(const CCTK_REAL gm1) const;
+  CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
+  hm1_from_gm1(const CCTK_REAL gm1) const;
+  CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
+  csnd2_from_gm1(const CCTK_REAL gm1) const;
+
+
 };
 
 } // namespace EOSX

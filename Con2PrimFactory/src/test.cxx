@@ -29,11 +29,11 @@ extern "C" void Con2PrimFactory_Test(CCTK_ARGUMENTS) {
   CCTK_REAL eps_atmo = 1e-8;
   const CCTK_REAL Ye_atmo = 0.5;
   const CCTK_REAL press_atmo =
-      eos_3p_ig->press_from_valid_rho_eps_ye(rho_atmo, eps_atmo, Ye_atmo);
+      eos_3p_ig->press_from_rho_eps_ye(rho_atmo, eps_atmo, Ye_atmo);
   const CCTK_REAL temp_atmo =
-      eos_3p_ig->temp_from_valid_rho_eps_ye(rho_atmo, eps_atmo, Ye_atmo);
+      eos_3p_ig->temp_from_rho_eps_ye(rho_atmo, eps_atmo, Ye_atmo);
   const CCTK_REAL entropy_atmo =
-      eos_3p_ig->kappa_from_valid_rho_eps_ye(rho_atmo, eps_atmo, Ye_atmo);
+      eos_3p_ig->kappa_from_rho_eps_ye(rho_atmo, eps_atmo, Ye_atmo);
 
   // Setting up atmosphere
   const CCTK_REAL rho_atmo_cut = rho_atmo * (1 + 1.0e-3);
@@ -72,11 +72,11 @@ extern "C" void Con2PrimFactory_Test(CCTK_ARGUMENTS) {
   CCTK_REAL eps_in = 0.8;
   const CCTK_REAL Ye_in = 0.5;
   const CCTK_REAL press_in =
-      eos_3p_ig->press_from_valid_rho_eps_ye(rho_in, eps_in, Ye_in);
+      eos_3p_ig->press_from_rho_eps_ye(rho_in, eps_in, Ye_in);
   const CCTK_REAL temp_in =
-      eos_3p_ig->temp_from_valid_rho_eps_ye(rho_in, eps_in, Ye_in);
+      eos_3p_ig->temp_from_rho_eps_ye(rho_in, eps_in, Ye_in);
   const CCTK_REAL entropy_in =
-      eos_3p_ig->kappa_from_valid_rho_eps_ye(rho_in, eps_in, Ye_in);
+      eos_3p_ig->kappa_from_rho_eps_ye(rho_in, eps_in, Ye_in);
   const vec<CCTK_REAL, 3> vup_in = {0.0, 0.0, 0.0};
   const vec<CCTK_REAL, 3> Bup_in = {0.5, -0.5, 0.0};
   const vec<CCTK_REAL, 3> vdown_in = calc_contraction(g, vup_in);

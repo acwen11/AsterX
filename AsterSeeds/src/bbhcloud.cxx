@@ -94,11 +94,11 @@ extern "C" void BBHCloud_Initialize(CCTK_ARGUMENTS) {
           velz(p.I) = vz_0 * exp(-pow(p.z, 2) / disk_width);
 
   	  // computing gamma - 1, if polytropic EOS is to be used
-          const CCTK_REAL gm1 = eos_1p_poly->gm1_from_valid_rho(rho(p.I));
+          const CCTK_REAL gm1 = eos_1p_poly->gm1_from_rho(rho(p.I));
 
-          press(p.I) = isentropic ? eos_1p_poly->p_from_valid_gm1(gm1)
+          press(p.I) = isentropic ? eos_1p_poly->p_from_gm1(gm1)
                                   : press_disk * exp(-pow(p.z, 2) / disk_width);
-          eps(p.I) = eos_3p_ig->eps_from_valid_rho_press_ye(
+          eps(p.I) = eos_3p_ig->eps_from_rho_press_ye(
               rho(p.I), press(p.I), dummy_ye);
           break;
         };
@@ -110,11 +110,11 @@ extern "C" void BBHCloud_Initialize(CCTK_ARGUMENTS) {
           velz(p.I) = vz_0;
 
           // computing gamma - 1, if polytropic EOS is to be used
-          const CCTK_REAL gm1 = eos_1p_poly->gm1_from_valid_rho(rho(p.I));
+          const CCTK_REAL gm1 = eos_1p_poly->gm1_from_rho(rho(p.I));
 
           press(p.I) =
-              isentropic ? eos_1p_poly->p_from_valid_gm1(gm1) : press_disk;
-          eps(p.I) = eos_3p_ig->eps_from_valid_rho_press_ye(
+              isentropic ? eos_1p_poly->p_from_gm1(gm1) : press_disk;
+          eps(p.I) = eos_3p_ig->eps_from_rho_press_ye(
               rho(p.I), press(p.I), dummy_ye);
           break;
         };
@@ -126,11 +126,11 @@ extern "C" void BBHCloud_Initialize(CCTK_ARGUMENTS) {
           velz(p.I) = vz_0;
 
           // computing gamma - 1, if polytropic EOS is to be used
-          const CCTK_REAL gm1 = eos_1p_poly->gm1_from_valid_rho(rho(p.I));
+          const CCTK_REAL gm1 = eos_1p_poly->gm1_from_rho(rho(p.I));
 
-          press(p.I) = isentropic ? eos_1p_poly->p_from_valid_gm1(gm1)
+          press(p.I) = isentropic ? eos_1p_poly->p_from_gm1(gm1)
                                   : press_disk * pow(rr + 1e-100, -npress);
-          eps(p.I) = eos_3p_ig->eps_from_valid_rho_press_ye(
+          eps(p.I) = eos_3p_ig->eps_from_rho_press_ye(
               rho(p.I), press(p.I), dummy_ye);
           break;
         };
