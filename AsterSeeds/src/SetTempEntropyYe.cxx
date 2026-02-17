@@ -24,7 +24,7 @@ void SetTemp_typeEoS(CCTK_ARGUMENTS, EOSType *eos_3p) {
       grid.nghostzones,
       [=] CCTK_DEVICE(const Loop::PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         temperature(p.I) =
-            eos_3p->temp_from_valid_rho_eps_ye(rho(p.I), eps(p.I), Ye(p.I));
+            eos_3p->temp_from_rho_eps_ye(rho(p.I), eps(p.I), Ye(p.I));
       });
 }
 
@@ -38,7 +38,7 @@ void SetEntropy_typeEoS(CCTK_ARGUMENTS, EOSType *eos_3p) {
       grid.nghostzones,
       [=] CCTK_DEVICE(const Loop::PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         entropy(p.I) =
-            eos_3p->kappa_from_valid_rho_eps_ye(rho(p.I), eps(p.I), Ye(p.I));
+            eos_3p->kappa_from_rho_eps_ye(rho(p.I), eps(p.I), Ye(p.I));
       });
 }
 
@@ -49,10 +49,8 @@ extern "C" void SetYe(CCTK_ARGUMENTS) {
 
   grid.loop_all_device<1, 1, 1>(
       grid.nghostzones,
-      [=] CCTK_DEVICE(const Loop::PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        Ye(p.I) = Ye_atmo;
-      });
-
+      [=] CCTK_DEVICE(const Loop::PointDesc &p)
+          CCTK_ATTRIBUTE_ALWAYS_INLINE { Ye(p.I) = Ye_atmo; });
 }
 
 extern "C" void SetTemp(CCTK_ARGUMENTS) {
@@ -80,8 +78,16 @@ extern "C" void SetTemp(CCTK_ARGUMENTS) {
     break;
   }
   case eos_3param::Hybrid: {
-    auto eos_3p_hyb = global_eos_3p_hyb;
-    SetTemp_typeEoS(CCTK_PASS_CTOC, eos_3p_hyb);
+    if (global_eos_3p_hyb_poly) {
+      auto eos_3p_hyb = global_eos_3p_hyb_poly;
+      SetTemp_typeEoS(CCTK_PASS_CTOC, eos_3p_hyb);
+    } else if (global_eos_3p_hyb_pwpoly) {
+      auto eos_3p_hyb = global_eos_3p_hyb_pwpoly;
+      SetTemp_typeEoS(CCTK_PASS_CTOC, eos_3p_hyb);
+    } else {
+      CCTK_ERROR(
+          "Hybrid EOS selected but no hybrid EOS object was initialized");
+    }
     break;
   }
   case eos_3param::Tabulated: {
@@ -119,8 +125,16 @@ extern "C" void SetEntropy(CCTK_ARGUMENTS) {
     break;
   }
   case eos_3param::Hybrid: {
-    auto eos_3p_hyb = global_eos_3p_hyb;
-    SetEntropy_typeEoS(CCTK_PASS_CTOC, eos_3p_hyb);
+    if (global_eos_3p_hyb_poly) {
+      auto eos_3p_hyb = global_eos_3p_hyb_poly;
+      SetEntropy_typeEoS(CCTK_PASS_CTOC, eos_3p_hyb);
+    } else if (global_eos_3p_hyb_pwpoly) {
+      auto eos_3p_hyb = global_eos_3p_hyb_pwpoly;
+      SetEntropy_typeEoS(CCTK_PASS_CTOC, eos_3p_hyb);
+    } else {
+      CCTK_ERROR(
+          "Hybrid EOS selected but no hybrid EOS object was initialized");
+    }
     break;
   }
   case eos_3param::Tabulated: {

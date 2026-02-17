@@ -89,8 +89,8 @@ template <typename EOSType> void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p) {
         }
 
         // Calculate c_sound
-        const CCTK_REAL cs = eos_3p->csnd_from_valid_rho_temp_ye(
-            rho(p.I), temperature(p.I), Ye(p.I));
+        const CCTK_REAL cs =
+            eos_3p->csnd_from_rho_temp_ye(rho(p.I), temperature(p.I), Ye(p.I));
 
         // Check velocity
         for (int dir = 0; dir < 3; dir++) {
@@ -155,8 +155,21 @@ extern "C" void AsterX_SetLOFlag(CCTK_ARGUMENTS) {
     break;
   }
   case eos_3param::Hybrid: {
-    auto eos_3p_hyb = global_eos_3p_hyb;
-    CalcLOFlag(cctkGH, eos_3p_hyb);
+    if (global_eos_3p_hyb_pwpoly) {
+      // Get local eos object
+      auto eos_3p_hyb = global_eos_3p_hyb_pwpoly;
+      CalcLOFlag(cctkGH, eos_3p_hyb);
+
+    } else if (global_eos_3p_hyb_poly) {
+      // Get local eos object
+      auto eos_3p_hyb = global_eos_3p_hyb_poly;
+      CalcLOFlag(cctkGH, eos_3p_hyb);
+
+    } else {
+      CCTK_ERROR(
+          "Hybrid EOS selected but no hybrid EOS object was initialized");
+    }
+
     break;
   }
   case eos_3param::Tabulated: {

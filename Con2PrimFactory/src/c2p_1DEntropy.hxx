@@ -155,12 +155,12 @@ c2p_1DEntropy::xEntropyToPrim(CCTK_REAL xEntropy_Sol, CCTK_REAL Ssq,
 
   // Pressure and epsilon
   pv.press =
-      eos_3p->press_from_valid_rho_kappa_ye(xEntropy_Sol, pv.entropy, pv.Ye);
-  pv.eps = eos_3p->eps_from_valid_rho_kappa_ye(xEntropy_Sol, pv.entropy, pv.Ye);
+      eos_3p->press_from_rho_kappa_ye(xEntropy_Sol, pv.entropy, pv.Ye);
+  pv.eps = eos_3p->eps_from_rho_kappa_ye(xEntropy_Sol, pv.entropy, pv.Ye);
 
   // Temperature
   pv.temperature =
-      eos_3p->temp_from_valid_rho_eps_ye(xEntropy_Sol, pv.eps, pv.Ye);
+      eos_3p->temp_from_rho_eps_ye(xEntropy_Sol, pv.eps, pv.Ye);
 
   // Taken from WZ2Prim (2DNRNoble)
   // Z_Sol = rho * h * w_lor * w_lor
@@ -242,10 +242,10 @@ c2p_1DEntropy::funcRoot_1DEntropy(CCTK_REAL Ssq, CCTK_REAL Bsq, CCTK_REAL BiSi,
 
   // Compute h using entropy
   const CCTK_REAL press_loc =
-      eos_3p->press_from_valid_rho_kappa_ye(x, ent_loc, ye_loc);
+      eos_3p->press_from_rho_kappa_ye(x, ent_loc, ye_loc);
 
   const CCTK_REAL eps_loc =
-      eos_3p->eps_from_valid_rho_kappa_ye(x, ent_loc, ye_loc);
+      eos_3p->eps_from_rho_kappa_ye(x, ent_loc, ye_loc);
 
   // Compute (A60) using
   // W = rho*h*lorentz*lorentz

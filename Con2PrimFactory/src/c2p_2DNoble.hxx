@@ -260,11 +260,11 @@ c2p_2DNoble::WZ2Prim(CCTK_REAL Z_Sol, CCTK_REAL vsq_Sol, CCTK_REAL Bsq,
 
   pv.Ye = cv.DYe / cv.dens;
 
-  pv.press = eos_3p->press_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+  pv.press = eos_3p->press_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
 
-  pv.temperature = eos_3p->temp_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+  pv.temperature = eos_3p->temp_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
 
-  pv.entropy = eos_3p->kappa_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+  pv.entropy = eos_3p->kappa_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
 
   pv.Bvec = cv.dBvec;
 
@@ -383,7 +383,7 @@ c2p_2DNoble::solve(const EOSType *eos_3p, prim_vars &pv, prim_vars &pv_seeds,
 
   /* get pressure seed from updated pv_seeds.rho */
   pv_seeds.press =
-      eos_3p->press_from_valid_rho_eps_ye(pv_seeds.rho, eps_last, pv_seeds.Ye);
+      eos_3p->press_from_rho_eps_ye(pv_seeds.rho, eps_last, pv_seeds.Ye);
 
   /* get Z seed */
   CCTK_REAL Z_Seed =

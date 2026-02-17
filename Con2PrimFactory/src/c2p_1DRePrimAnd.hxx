@@ -159,8 +159,8 @@ public:
     pv.press = cache.press;
     pv.w_lor = cache.w;
 
-    pv.temperature = eos_3p->temp_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
-    pv.entropy = eos_3p->kappa_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+    pv.temperature = eos_3p->temp_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+    pv.entropy = eos_3p->kappa_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
 
     // ------------------------------------------------------------------
     // Velocity: RePrimAnd magnetic-aware reconstruction

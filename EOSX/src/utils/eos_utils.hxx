@@ -3,6 +3,9 @@
 
 #include <cmath>
 #include <array>
+#include <vector>
+#include <cctype>
+#include <cstdlib>
 #include <string>
 #include <unordered_map>
 #include <algorithm>
@@ -53,18 +56,37 @@ struct eos_range {
 /// Class representing error conditions in EOS calls.
 struct eos_status {
   bool failed; ///< Set to true if parameters are out of range/NAN/INF
-  //  std::string  err_msg; ///< Error description in case of failure, else
-  //  undefined.
+
   /// Default constructor: Set to no failure.
   CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline eos_status()
       : failed(false) {}
-  /// Set fail flag and error message.
-  //  CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
-  //  fail(std::string msg) {
-  //    failed = true;
-  //    err_msg = msg;
-  //  }
 };
+
+CCTK_HOST inline void validate_pwpoly_params(const CCTK_INT nsegm,
+                                             const CCTK_REAL *bound,
+                                             const CCTK_REAL *gamma) {
+
+  if (nsegm <= 0)
+    CCTK_ERROR("EOSX: pwpoly_nsegm must be > 0");
+
+  if (bound[0] != CCTK_REAL(0.0))
+    CCTK_ERROR("EOSX: pwpoly_segm_bound[0] must be 0");
+
+  for (CCTK_INT i = 0; i < nsegm; ++i) {
+    if (!(bound[i] >= CCTK_REAL(0.0)))
+      CCTK_ERROR("EOSX: pwpoly_segm_bound entries must be >= 0");
+
+    if (!(gamma[i] > CCTK_REAL(1.0)))
+      CCTK_ERROR("EOSX: pwpoly_segm_gamma entries must be > 1");
+
+    if (i > 0 && !(bound[i] > bound[i - 1]))
+      CCTK_ERROR("EOSX: pwpoly_segm_bound must be strictly increasing");
+
+    if (bound[i] == CCTK_REAL(-1.0) || gamma[i] == CCTK_REAL(-1.0))
+      CCTK_ERROR(
+          "EOSX: pwpoly arrays contain unused (-1) inside pwpoly_nsegm range");
+  }
+}
 
 // A map linking HDF5 actual I/O modes to appropriate descriptive strings
 #ifdef H5_HAVE_PARALLEL
