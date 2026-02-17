@@ -67,6 +67,8 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     CCTK_ERROR("Unknown value for parameter \"c2p_second\"");
   }
 
+  const vec<GF3D2<const CCTK_REAL>, dim> gf_beta{betax, betay, betaz};
+
   const smat<GF3D2<const CCTK_REAL>, 3> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
 
   const auto c2p_impl = [=] CCTK_DEVICE(
@@ -138,25 +140,32 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     // Construct Noble c2p object:
     c2p_2DNoble c2p_Noble(eos_3p, atmo, max_iter, c2p_tol, alp_thresh,
                           vw_lim, B_lim, rho_BH, eps_BH,
-                          vwlim_BH, Ye_lenient, use_z, use_temperature,
+                          vwlim_BH, sigma_max, inv_beta_max, 
+			  Ye_lenient, use_z, use_temperature,
                           use_press_atmo);
 
     // Construct Palenzuela c2p object:
     c2p_1DPalenzuela c2p_Pal(eos_3p, atmo, max_iter, c2p_tol, alp_thresh,
                              vw_lim, B_lim, rho_BH, eps_BH,
-                             vwlim_BH, Ye_lenient, use_z, use_temperature,
+                             vwlim_BH, sigma_max, inv_beta_max, 
+			     Ye_lenient, use_z, use_temperature,
                              use_press_atmo);
 
     // Construct Entropy c2p object:
     c2p_1DEntropy c2p_Ent(eos_3p, atmo, max_iter, c2p_tol, alp_thresh,
                           vw_lim, B_lim, rho_BH, eps_BH,
-                          vwlim_BH, Ye_lenient, use_z, use_temperature,
+                          vwlim_BH, sigma_max, inv_beta_max,
+			  Ye_lenient, use_z, use_temperature,
                           use_press_atmo);
 
     // ----------
 
     /* Get lapse */
     const CCTK_REAL alp_avg = calc_avg_v2c(alp, p);
+
+    /* Get shift */
+    const vec<CCTK_REAL, 3> beta_avg(
+        [&](int i) ARITH_INLINE { return calc_avg_v2c(gf_beta(i), p); });
 
     /* Get covariant metric */
     const smat<CCTK_REAL, 3> glo(
@@ -260,15 +269,15 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
       c2p_flag_code = C2P_PRIME;
       switch (c2p_fir) {
       case c2p_first_t::Noble: {
-        c2p_Noble.solve(eos_3p, pv, pv_seeds, cv, glo, rep_first);
+        c2p_Noble.solve(eos_3p, pv, pv_seeds, cv, alp_avg, beta_avg, glo, rep_first);
         break;
       }
       case c2p_first_t::Palenzuela: {
-        c2p_Pal.solve(eos_3p, pv, cv, glo, rep_first);
+        c2p_Pal.solve(eos_3p, pv, cv, alp_avg, beta_avg, glo, rep_first);
         break;
       }
       case c2p_first_t::Entropy: {
-        c2p_Ent.solve(eos_3p, pv, cv, glo, rep_first);
+        c2p_Ent.solve(eos_3p, pv, cv, alp_avg, beta_avg, glo, rep_first);
         break;
       }
       case c2p_first_t::None: {
@@ -291,15 +300,15 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
         // Calling the second C2P
         switch (c2p_sec) {
         case c2p_second_t::Noble: {
-          c2p_Noble.solve(eos_3p, pv, pv_seeds, cv, glo, rep_second);
+          c2p_Noble.solve(eos_3p, pv, pv_seeds, cv, alp_avg, beta_avg, glo, rep_second);
           break;
         }
         case c2p_second_t::Palenzuela: {
-          c2p_Pal.solve(eos_3p, pv, cv, glo, rep_second);
+          c2p_Pal.solve(eos_3p, pv, cv, alp_avg, beta_avg, glo, rep_second);
           break;
         }
         case c2p_second_t::Entropy: {
-          c2p_Ent.solve(eos_3p, pv, cv, glo, rep_second);
+          c2p_Ent.solve(eos_3p, pv, cv, alp_avg, beta_avg, glo, rep_second);
           break;
         }
         case c2p_second_t::None: {
@@ -316,7 +325,7 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
         if (use_entropy_fix) {
 
           c2p_flag_code = C2P_ENTROPY;
-          c2p_Ent.solve(eos_3p, pv, cv, glo, rep_ent);
+          c2p_Ent.solve(eos_3p, pv, cv, alp_avg, beta_avg, glo, rep_ent);
 
           if (rep_ent.failed()) {
 
@@ -457,6 +466,21 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     saved_velz(p.I) = velz(p.I);
     saved_eps(p.I) = eps(p.I);
     saved_Ye(p.I) = Ye(p.I);
+
+    // Compute helpers
+    v_low = calc_contraction(glo, pv.vel);
+    const vec<CCTK_REAL, 3> B_low = calc_contraction(glo, pv.Bvec);
+
+    const CCTK_REAL alp_b0 = wlor * calc_contraction(pv.Bvec, v_low);
+
+    const CCTK_REAL B2 = calc_contraction(pv.Bvec, B_low);
+    const CCTK_REAL bsq = ( B2 + alp_b0 * alp_b0 ) / ( wlor*wlor );
+
+    sigma(p.I)    = bsq/pv.rho;
+    inv_beta(p.I) = 0.5 * bsq/pv.press;
+    wlorentz(p.I) = wlor;
+    normB(p.I)    = sqrt(B2);
+    smallb2(p.I)  = bsq; 
   };
 
   cctk_grid.loop_all_device<1, 1, 1>(grid.nghostzones, c2p_impl);

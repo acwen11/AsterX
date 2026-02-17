@@ -128,6 +128,18 @@ CCTK_REAL vwlim_BH " Maximum zvec (v*w) allowed in regions where alp<alp_thresh"
   0.0:* :: ""
 } 1.0e100
 
+# Parameters for highly mag. regions
+
+CCTK_REAL sigma_max "Maximum allowed magnetisation" STEERABLE=ALWAYS
+{
+  (0.0:* :: "Must be positive"
+} 1.0e100
+
+CCTK_REAL inv_beta_max "Maximum allowed inverse beta" STEERABLE=ALWAYS
+{
+  (0.0:* :: "Must be positive"
+} 1.0e100
+
 # Experimental parameter to use z instead of v to avoid v > 1
 
 BOOLEAN use_z "" STEERABLE=ALWAYS

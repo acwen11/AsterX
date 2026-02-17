@@ -41,6 +41,11 @@ extern "C" void Con2PrimFactory_Test(CCTK_ARGUMENTS) {
                   entropy_atmo, rho_atmo_cut);
 
   // Metric
+
+  const CCTK_REAL alp = 1.0;
+
+  const vec<CCTK_REAL, 3> beta{0.0,0.0,0.0};
+
   const smat<CCTK_REAL, 3> g{1.0, 0.0, 0.0,
                              1.0, 0.0, 1.0}; // xx, xy, xz, yy, yz, zz
 
@@ -50,17 +55,24 @@ extern "C" void Con2PrimFactory_Test(CCTK_ARGUMENTS) {
   const CCTK_REAL eps_BH = 1e20;
   const CCTK_REAL vwlim_BH = 1e20;
 
+  // Mag. limits
+  const CCTK_REAL sigma_max    = 100.;
+  const CCTK_REAL inv_beta_max = 100.;
+
   // Con2Prim objects
   // (eos_3p_ig, atmo, max_iter, c2p_tol
   //  alp_thresh,
   //  vw_lim, B_lim, rho_BH, eps_BH, vwlim_BH,
   //  Ye_lenient, use_z, use_temperature)
   c2p_2DNoble c2p_Noble(eos_3p_ig, atmo, 100, 1e-8, alp_thresh, 1, 1,
-                        rho_BH, eps_BH, vwlim_BH, true, false, false, false);
+                        rho_BH, eps_BH, vwlim_BH, sigma_max, inv_beta_max,
+			true, false, false, false);
   c2p_1DPalenzuela c2p_Pal(eos_3p_ig, atmo, 100, 1e-8, alp_thresh, 1, 1,
-                           rho_BH, eps_BH, vwlim_BH, true, false, false, false);
+                           rho_BH, eps_BH, vwlim_BH, sigma_max, inv_beta_max,
+			   true, false, false, false);
   c2p_1DEntropy c2p_Ent(eos_3p_ig, atmo, 100, 1e-8, alp_thresh, 1, 1,
-                        rho_BH, eps_BH, vwlim_BH, true, false, false, false);
+                        rho_BH, eps_BH, vwlim_BH, sigma_max, inv_beta_max,
+			true, false, false, false);
 
   // Construct error report object:
   c2p_report rep_Noble;
@@ -107,7 +119,7 @@ extern "C" void Con2PrimFactory_Test(CCTK_ARGUMENTS) {
 
   // Testing C2P Noble
   CCTK_VINFO("Testing C2P Noble...");
-  c2p_Noble.solve(eos_3p_ig, pv, pv_seeds, cv_all, g, rep_Noble);
+  c2p_Noble.solve(eos_3p_ig, pv, pv_seeds, cv_all, alp, beta, g, rep_Noble);
 
   printf("pv_seeds, pv: \n"
          "rho: %f, %f \n"
@@ -155,7 +167,7 @@ extern "C" void Con2PrimFactory_Test(CCTK_ARGUMENTS) {
   // Testing C2P Palenzuela
   CCTK_VINFO("Testing C2P Palenzuela...");
   // c2p_Pal.solve(eos_3p_ig, pv, pv_seeds, cv, g, rep_Pal);
-  c2p_Pal.solve(eos_3p_ig, pv, cv_all, g, rep_Pal);
+  c2p_Pal.solve(eos_3p_ig, pv, cv_all, alp, beta, g, rep_Pal);
 
   printf("pv_seeds, pv: \n"
          "rho: %f, %f \n"
@@ -201,7 +213,7 @@ extern "C" void Con2PrimFactory_Test(CCTK_ARGUMENTS) {
 
   // Testing C2P Entropy
   CCTK_VINFO("Testing C2P Entropy...");
-  c2p_Ent.solve(eos_3p_ig, pv, cv_all, g, rep_Ent);
+  c2p_Ent.solve(eos_3p_ig, pv, cv_all, alp, beta, g, rep_Ent);
 
   printf("pv_seeds, pv: \n"
          "rho: %f, %f \n"
