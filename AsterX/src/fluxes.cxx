@@ -437,9 +437,9 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
       vlows_rc = calc_contraction(g_avg, vels_rc);
       auto v2_rc = calc_contraction(vlows_rc, vels_rc);
 
-      /* Lower-order if superluminal */
-      constexpr CCTK_REAL ONEMINUSEPS = CCTK_REAL(1.0) - CCTK_REAL(1e-12);
-      if (!(useLO) && (v2_rc(0) >= ONEMINUSEPS || v2_rc(1) >= ONEMINUSEPS)) {
+      /* Lower-order if above limit */
+      const CCTK_REAL v2_lim = v_lim*v_lim;
+      if (!(useLO) && (v2_rc(0) >= v2_lim || v2_rc(1) >= v2_lim)) {
 
         for (int i = 0; i <= 2; ++i) { // loop over components
           vels_rc(i) = reconstruct_loworder(gf_vels(i), p, false, false);
@@ -449,24 +449,24 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
         v2_rc = calc_contraction(vlows_rc, vels_rc);
       }
 
-      /* Last resort if lower-order is also superluminal: 
+      /* Last resort if lower-order is also above limit: 
        * Rescale */
-      if (v2_rc(0) >= ONEMINUSEPS) {
+      if (v2_rc(0) >= v2_lim) {
         CCTK_REAL f = v_lim / sqrt(v2_rc(0));
         for (int i = 0; i <= 2; ++i) {
           vels_rc(i)(0)  *= f;
 	  vlows_rc(i)(0) *= f;
         }
-        v2_rc(0) = v_lim*v_lim;
+        v2_rc(0) = v2_lim;
       }
 
-      if (v2_rc(1) >= ONEMINUSEPS) {
+      if (v2_rc(1) >= v2_lim) {
         CCTK_REAL f = v_lim / sqrt(v2_rc(1));
         for (int i = 0; i <= 2; ++i) {
           vels_rc(i)(1)  *= f;
 	  vlows_rc(i)(1) *= f;
         }
-        v2_rc(1) = v_lim*v_lim;
+        v2_rc(1) = v2_lim;
       }
 
       /* Lorentz factor: W = 1 / sqrt(1 - v^2) */

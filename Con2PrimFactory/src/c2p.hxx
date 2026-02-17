@@ -266,7 +266,7 @@ c2p::prims_floors_and_ceilings(const EOSType *eos_3p, prim_vars &pv,
     // to correct parallel velocity, adapted from SphericalNR
     // by Vassilios Mewes
 
-    const CCTK_REAL B = sqrt(B2);
+    const CCTK_REAL B = max(sqrt(B2),1e-64);
 
     const CCTK_REAL ut = pv.w_lor / alp;
 
@@ -445,11 +445,9 @@ c2p::cons_floors_and_ceilings(const EOSType *eos_3p, cons_vars &cv,
   // Compute Bsq
   vec<CCTK_REAL, 3> B_low  = calc_contraction(glo, cv.dBvec);
   const CCTK_REAL BsqL = calc_contraction(B_low, cv.dBvec);
-  //const CCTK_REAL tauF_atmo = std::max(cv.dens*atmo.eps_atmo,sqrt_detg*tauFluid_atmo);
   const CCTK_REAL tau_lim = 0.5*BsqL/sqrt_detg;
 
   if (cv.tau <= tau_lim) {
-  //  cv.tau = tau_lim + tauF_atmo;
     cv.tau = tau_lim + sqrt_detg*tauFluid_atmo;
   }
 

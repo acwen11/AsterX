@@ -13,15 +13,16 @@ if (compute_MHD) {
     READS: HydroBaseX::vel(everywhere)
     READS: HydroBaseX::Bvec(everywhere)
     READS: AsterX::zvec(everywhere)
+    READS: AsterX::B_norm(everywhere)
+    READS: AsterX::b2small(everywhere)
+    READS: AsterX::w_lorentz(everywhere)
     READS: AsterX::Avec_x(everywhere)
     READS: AsterX::Avec_y(everywhere)
     READS: AsterX::Avec_z(everywhere)
     READS: AsterX::dBx_stag(everywhere)
     READS: AsterX::dBy_stag(everywhere)
     READS: AsterX::dBz_stag(everywhere)
-    WRITES: w_lorentz(interior)
     WRITES: mhd_analysis(interior)
-    SYNC: w_lorentz
   }
   "Compute MHD analysis quantities"
 }
@@ -30,7 +31,7 @@ if (compute_MHD_spherical) {
   SCHEDULE AsterAnalysis_MHD_Spherical AT analysis AFTER AsterAnalysis_MHD
   {
     LANG: C
-    READS: w_lorentz(interior)
+    READS: AsterX::w_lorentz(everywhere)
     READS: ADMBaseX::metric(interior)
     READS: HydroBaseX::Bvec(interior)
     READS: HydroBaseX::rho(interior)

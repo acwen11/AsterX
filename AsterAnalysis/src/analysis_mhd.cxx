@@ -56,13 +56,11 @@ extern "C" void AsterAnalysis_MHD(CCTK_ARGUMENTS) {
           v_up(1) = vely(p.I);
           v_up(2) = velz(p.I);
           v_low = calc_contraction(g_avg, v_up);
-          w_lorentz(p.I) = calc_wlorentz(v_low, v_up);
 
         } else {
 
           const vec<CCTK_REAL, 3> z_up{zvec_x(p.I), zvec_y(p.I), zvec_z(p.I)};
           const vec<CCTK_REAL, 3> z_low = calc_contraction(g_avg, z_up);
-          w_lorentz(p.I) = calc_wlorentz_zvec(z_low, z_up);
           v_up = z_up / w_lorentz(p.I);
           v_low = z_low / w_lorentz(p.I);
         }
@@ -76,7 +74,6 @@ extern "C" void AsterAnalysis_MHD(CCTK_ARGUMENTS) {
         const vec<CCTK_REAL, 3> B_up{Bvecx(p.I), Bvecy(p.I), Bvecz(p.I)};
         const vec<CCTK_REAL, 3> B_low = calc_contraction(g_avg, B_up);
         const CCTK_REAL B2big = calc_contraction(B_up, B_low);
-        B_norm(p.I) = sqrt(B2big);
 
         /* cell-centered A^i and A_i */
         const vec<CCTK_REAL, 3> A_low{calc_avg_e2c<0>(gf_Avec(0), p),
@@ -92,10 +89,6 @@ extern "C" void AsterAnalysis_MHD(CCTK_ARGUMENTS) {
             w_lorentz(p.I) * calc_contraction(B_up, v_low) / alp_avg;
         const vec<CCTK_REAL, 3> bs =
             (B_up / w_lorentz(p.I) + alp_avg * bs0 * velshift);
-
-        /* b^2 */
-        b2small(p.I) = (calc_contraction(B_up, B_low) + pow2(alp_avg * bs0)) /
-                       pow2(w_lorentz(p.I));
 
         /* inverse Beta and magnetization */
         mhd_press_ratio(p.I) = b2small(p.I) / (2.0 * press(p.I));
