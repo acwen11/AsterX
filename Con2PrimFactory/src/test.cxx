@@ -4,9 +4,9 @@
 #include <cctk_Arguments.h>
 
 #include "c2p.hxx"
+#include "c2p_1DEntropy.hxx"
 #include "c2p_1DPalenzuela.hxx"
 #include "c2p_2DNoble.hxx"
-#include "c2p_1DEntropy.hxx"
 
 #include "c2p_utils.hxx"
 
@@ -44,7 +44,7 @@ extern "C" void Con2PrimFactory_Test(CCTK_ARGUMENTS) {
 
   const CCTK_REAL alp = 1.0;
 
-  const vec<CCTK_REAL, 3> beta{0.0,0.0,0.0};
+  const vec<CCTK_REAL, 3> beta{0.0, 0.0, 0.0};
 
   const smat<CCTK_REAL, 3> g{1.0, 0.0, 0.0,
                              1.0, 0.0, 1.0}; // xx, xy, xz, yy, yz, zz
@@ -56,7 +56,7 @@ extern "C" void Con2PrimFactory_Test(CCTK_ARGUMENTS) {
   const CCTK_REAL vwlim_BH = 1e20;
 
   // Mag. limits
-  const CCTK_REAL sigma_max    = 100.;
+  const CCTK_REAL sigma_max = 100.;
   const CCTK_REAL inv_beta_max = 100.;
 
   // Con2Prim objects
@@ -64,15 +64,15 @@ extern "C" void Con2PrimFactory_Test(CCTK_ARGUMENTS) {
   //  alp_thresh,
   //  vw_lim, B_lim, rho_BH, eps_BH, vwlim_BH,
   //  Ye_lenient, use_z, use_temperature)
-  c2p_2DNoble c2p_Noble(eos_3p_ig, atmo, 100, 1e-8, alp_thresh, 1, 1,
-                        rho_BH, eps_BH, vwlim_BH, sigma_max, inv_beta_max,
-			true, false, false, false);
-  c2p_1DPalenzuela c2p_Pal(eos_3p_ig, atmo, 100, 1e-8, alp_thresh, 1, 1,
-                           rho_BH, eps_BH, vwlim_BH, sigma_max, inv_beta_max,
-			   true, false, false, false);
-  c2p_1DEntropy c2p_Ent(eos_3p_ig, atmo, 100, 1e-8, alp_thresh, 1, 1,
-                        rho_BH, eps_BH, vwlim_BH, sigma_max, inv_beta_max,
-			true, false, false, false);
+  c2p_2DNoble c2p_Noble(eos_3p_ig, atmo, 100, 1e-8, alp_thresh, 1, 1, rho_BH,
+                        eps_BH, vwlim_BH, sigma_max, inv_beta_max, true, false,
+                        false, false);
+  c2p_1DPalenzuela c2p_Pal(eos_3p_ig, atmo, 100, 1e-8, alp_thresh, 1, 1, rho_BH,
+                           eps_BH, vwlim_BH, sigma_max, inv_beta_max, true,
+                           false, false, false);
+  c2p_1DEntropy c2p_Ent(eos_3p_ig, atmo, 100, 1e-8, alp_thresh, 1, 1, rho_BH,
+                        eps_BH, vwlim_BH, sigma_max, inv_beta_max, true, false,
+                        false, false);
 
   // Construct error report object:
   c2p_report rep_Noble;

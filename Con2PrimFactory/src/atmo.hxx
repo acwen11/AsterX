@@ -5,8 +5,8 @@
 #ifndef ATMO_HXX
 #define ATMO_HXX
 
-#include "prims.hxx"
 #include "cons.hxx"
+#include "prims.hxx"
 
 #include "aster_utils.hxx"
 
