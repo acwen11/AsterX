@@ -21,7 +21,7 @@ BOOLEAN use_entropy_fix "Shall we use inversion based on entropy as a backup?" S
 
 BOOLEAN prolongate_dbstag "Shall we prolongate dBstag?" STEERABLE=always
 {
-} "yes"
+} "no"
 
 KEYWORD flux_type "Flux solver" STEERABLE=always
 {
