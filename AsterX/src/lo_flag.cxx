@@ -4,8 +4,8 @@
 #include <cctk_Arguments.h>
 #include <cctk_Parameters.h>
 
-#include "aster_utils.hxx"
 #include "setup_eos.hxx"
+#include "aster_utils.hxx"
 
 namespace AsterX {
 using namespace std;

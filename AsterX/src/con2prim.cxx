@@ -138,21 +138,24 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     // ----- Construct C2P objects -----
 
     // Construct Noble c2p object:
-    c2p_2DNoble c2p_Noble(eos_3p, atmo, max_iter, c2p_tol, alp_thresh, vw_lim,
-                          B_lim, rho_BH, eps_BH, vwlim_BH, sigma_max,
-                          inv_beta_max, Ye_lenient, use_z, use_temperature,
+    c2p_2DNoble c2p_Noble(eos_3p, atmo, max_iter, c2p_tol, alp_thresh,
+                          vw_lim, B_lim, rho_BH, eps_BH,
+                          vwlim_BH, sigma_max, inv_beta_max, 
+			  Ye_lenient, use_z, use_temperature,
                           use_press_atmo);
 
     // Construct Palenzuela c2p object:
     c2p_1DPalenzuela c2p_Pal(eos_3p, atmo, max_iter, c2p_tol, alp_thresh,
-                             vw_lim, B_lim, rho_BH, eps_BH, vwlim_BH, sigma_max,
-                             inv_beta_max, Ye_lenient, use_z, use_temperature,
+                             vw_lim, B_lim, rho_BH, eps_BH,
+                             vwlim_BH, sigma_max, inv_beta_max, 
+			     Ye_lenient, use_z, use_temperature,
                              use_press_atmo);
 
     // Construct Entropy c2p object:
-    c2p_1DEntropy c2p_Ent(eos_3p, atmo, max_iter, c2p_tol, alp_thresh, vw_lim,
-                          B_lim, rho_BH, eps_BH, vwlim_BH, sigma_max,
-                          inv_beta_max, Ye_lenient, use_z, use_temperature,
+    c2p_1DEntropy c2p_Ent(eos_3p, atmo, max_iter, c2p_tol, alp_thresh,
+                          vw_lim, B_lim, rho_BH, eps_BH,
+                          vwlim_BH, sigma_max, inv_beta_max,
+			  Ye_lenient, use_z, use_temperature,
                           use_press_atmo);
 
     // ----------
@@ -266,8 +269,7 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
       c2p_flag_code = C2P_PRIME;
       switch (c2p_fir) {
       case c2p_first_t::Noble: {
-        c2p_Noble.solve(eos_3p, pv, pv_seeds, cv, alp_avg, beta_avg, glo,
-                        rep_first);
+        c2p_Noble.solve(eos_3p, pv, pv_seeds, cv, alp_avg, beta_avg, glo, rep_first);
         break;
       }
       case c2p_first_t::Palenzuela: {
@@ -298,8 +300,7 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
         // Calling the second C2P
         switch (c2p_sec) {
         case c2p_second_t::Noble: {
-          c2p_Noble.solve(eos_3p, pv, pv_seeds, cv, alp_avg, beta_avg, glo,
-                          rep_second);
+          c2p_Noble.solve(eos_3p, pv, pv_seeds, cv, alp_avg, beta_avg, glo, rep_second);
           break;
         }
         case c2p_second_t::Palenzuela: {
@@ -473,11 +474,11 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     const CCTK_REAL alp_b0 = wlor * calc_contraction(pv.Bvec, v_low);
 
     const CCTK_REAL B2 = calc_contraction(pv.Bvec, B_low);
-    const CCTK_REAL bsq = (B2 + alp_b0 * alp_b0) / (wlor * wlor);
+    const CCTK_REAL bsq = ( B2 + alp_b0 * alp_b0 ) / ( wlor*wlor );
 
-    w_lorentz(p.I) = wlor;
-    B_norm(p.I) = sqrt(B2);
-    b2small(p.I) = bsq;
+    w_lorentz(p.I)  = wlor;
+    B_norm(p.I)    = sqrt(B2);
+    b2small(p.I)   = bsq; 
   };
 
   cctk_grid.loop_all_device<1, 1, 1>(grid.nghostzones, c2p_impl);
