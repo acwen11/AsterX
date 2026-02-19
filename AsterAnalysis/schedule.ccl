@@ -31,7 +31,7 @@ if (compute_MHD_spherical) {
   SCHEDULE AsterAnalysis_MHD_Spherical AT analysis AFTER AsterAnalysis_MHD
   {
     LANG: C
-    READS: AsterX::w_lorentz(everywhere)
+    READS: AsterX::w_lorentz(interior)
     READS: ADMBaseX::metric(interior)
     READS: HydroBaseX::Bvec(interior)
     READS: HydroBaseX::rho(interior)
