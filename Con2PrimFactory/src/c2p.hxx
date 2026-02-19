@@ -14,11 +14,11 @@ c2p is effectively an interface to be used by different c2p implementations.
 #include <cctk_Parameters.h>
 #include <math.h>
 
-#include "prims.hxx"
-#include "cons.hxx"
 #include "atmo.hxx"
 #include "c2p_report.hxx"
 #include "c2p_utils.hxx"
+#include "cons.hxx"
+#include "prims.hxx"
 #include "setup_eos.hxx"
 
 namespace Con2PrimFactory {
@@ -38,7 +38,6 @@ protected:
   CCTK_INT maxIterations;
   CCTK_REAL tolerance;
   CCTK_REAL alp_thresh;
-  CCTK_REAL cons_error;
   CCTK_REAL vw_lim;
   CCTK_REAL w_lim;
   CCTK_REAL v_lim;
@@ -46,6 +45,8 @@ protected:
   CCTK_REAL rho_BH;
   CCTK_REAL eps_BH;
   CCTK_REAL vwlim_BH;
+  CCTK_REAL sigma_max;
+  CCTK_REAL inv_beta_max;
   bool ye_lenient;
   bool use_zprim;
   bool use_temp;
@@ -68,7 +69,9 @@ protected:
   template <typename EOSType>
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
   prims_floors_and_ceilings(const EOSType *eos_3p, prim_vars &pv,
-                            const cons_vars &cv, const smat<CCTK_REAL, 3> &glo,
+                            const cons_vars &cv, const CCTK_REAL alp,
+                            const vec<CCTK_REAL, 3> &beta,
+                            const smat<CCTK_REAL, 3> &glo,
                             c2p_report &rep) const;
 
 public:
@@ -79,19 +82,23 @@ public:
 
   template <typename EOSType>
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
-  cons_floors_and_ceilings(const EOSType *eos_3p, cons_vars &cv, 
+  cons_floors_and_ceilings(const EOSType *eos_3p, cons_vars &cv,
                            const smat<CCTK_REAL, 3> &glo,
-			   const CCTK_REAL &tauFluid_atm) const;
+                           const CCTK_REAL &tauFluid_atm) const;
 };
 
 template <typename EOSType>
 CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
 c2p::prims_floors_and_ceilings(const EOSType *eos_3p, prim_vars &pv,
-                               const cons_vars &cv,
+                               const cons_vars &cv, const CCTK_REAL alp,
+                               const vec<CCTK_REAL, 3> &beta,
                                const smat<CCTK_REAL, 3> &glo,
                                c2p_report &rep) const {
 
   bool recomp_eps_press_entropy = false;
+
+  // Need to store this here for later use
+  const CCTK_REAL rho_h_fluid_old = pv.rho + pv.rho * pv.eps + pv.press;
 
   // ----------
   // Floor and ceiling for Ye
@@ -116,7 +123,7 @@ c2p::prims_floors_and_ceilings(const EOSType *eos_3p, prim_vars &pv,
   // ----------
 
   // check if computed velocities are within the specified limit
-  const vec<CCTK_REAL, 3> v_low = calc_contraction(glo, pv.vel);
+  vec<CCTK_REAL, 3> v_low = calc_contraction(glo, pv.vel);
   CCTK_REAL vsq_Sol = calc_contraction(v_low, pv.vel);
   CCTK_REAL sol_v = sqrt(vsq_Sol);
 
@@ -160,13 +167,12 @@ c2p::prims_floors_and_ceilings(const EOSType *eos_3p, prim_vars &pv,
   // Ceiling for temperature
   // Keeps rho the same and changes press
   // ----------
-  
+
   if (pv.temperature > eos_3p->rgtemp.max) {
 
     pv.temperature = eos_3p->rgtemp.max;
     recomp_eps_press_entropy = true;
     rep.adjust_cons = true;
-
   }
 
   // ----------
@@ -188,32 +194,127 @@ c2p::prims_floors_and_ceilings(const EOSType *eos_3p, prim_vars &pv,
       pv.entropy = eos_3p->kappa_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
       recomp_eps_press_entropy = false;
       rep.adjust_cons = true;
-
     }
-  
+
   } else {
 
     // ----------
     // Temperature floor
     // Keeps rho the same and changes press
     // ----------
-   
+
     if (pv.temperature < atmo.temp_atmo) {
-  
+
       pv.temperature = atmo.temp_atmo;
       recomp_eps_press_entropy = true;
       rep.adjust_cons = true;
-  
     }
-
   }
 
   if (recomp_eps_press_entropy) {
     pv.eps = eos_3p->eps_from_rho_temp_ye(pv.rho, pv.temperature, pv.Ye);
     pv.press = eos_3p->press_from_rho_temp_ye(pv.rho, pv.temperature, pv.Ye);
     pv.entropy = eos_3p->kappa_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+    recomp_eps_press_entropy = false;
   }
 
+  // ----------
+  // Floors for jet/magnetized regions
+  // ----------
+
+  // Compute helpers
+
+  v_low = calc_contraction(glo, pv.vel);
+  const vec<CCTK_REAL, 3> B_low = calc_contraction(glo, pv.Bvec);
+
+  const CCTK_REAL Bdotv = calc_contraction(pv.Bvec, v_low);
+  const CCTK_REAL alp_b0 = pv.w_lor * Bdotv;
+
+  const CCTK_REAL B2 = calc_contraction(pv.Bvec, B_low);
+  const CCTK_REAL bsq = (B2 + alp_b0 * alp_b0) / (pv.w_lor * pv.w_lor);
+
+  // Add mass and energy for sigma and inv beta ceiling
+
+  bool mag_ceiling = false;
+
+  if (bsq > sigma_max * pv.rho) {
+    pv.rho = bsq / sigma_max;
+    mag_ceiling = true;
+  }
+
+  if (bsq > 2.0 * inv_beta_max * pv.press) {
+    pv.press = 0.5 * bsq / inv_beta_max;
+    mag_ceiling = true;
+  }
+
+  if (mag_ceiling) {
+
+    rep.adjust_cons = true;
+
+    if (use_temp) {
+      // Revert pressure change above for tabulated EOS
+      // TODO: Add functionality to support inv_beta limit w
+      // tabulated EOS
+      pv.eps = eos_3p->eps_from_rho_temp_ye(pv.rho, pv.temperature, pv.Ye);
+      pv.press = eos_3p->press_from_rho_temp_ye(pv.rho, pv.temperature, pv.Ye);
+    } else {
+      pv.eps = eos_3p->eps_from_rho_press_ye(pv.rho, pv.press, pv.Ye);
+      pv.temperature = eos_3p->temp_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+    }
+
+    pv.entropy = eos_3p->kappa_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+    mag_ceiling = false;
+
+    // Drift floors from https://arxiv.org/pdf/1611.09365
+    // to correct parallel velocity, adapted from SphericalNR
+    // by Vassilios Mewes
+
+    const CCTK_REAL B = max(sqrt(B2), 1e-64);
+
+    const CCTK_REAL ut = pv.w_lor / alp;
+
+    const CCTK_REAL u1 = pv.w_lor * (pv.vel(0) - beta(0) / alp);
+    const CCTK_REAL u2 = pv.w_lor * (pv.vel(1) - beta(1) / alp);
+    const CCTK_REAL u3 = pv.w_lor * (pv.vel(2) - beta(2) / alp);
+
+    const CCTK_REAL v_par_old = pv.w_lor * Bdotv / B / ut;
+
+    const CCTK_REAL ut_perp =
+        1.0 / sqrt(1.0 / (ut * ut) + v_par_old * v_par_old);
+
+    const CCTK_REAL u1_perp = ut_perp * (u1 / ut - v_par_old * pv.Bvec(0) / B);
+    const CCTK_REAL u2_perp = ut_perp * (u2 / ut - v_par_old * pv.Bvec(1) / B);
+    const CCTK_REAL u3_perp = ut_perp * (u3 / ut - v_par_old * pv.Bvec(2) / B);
+
+    const CCTK_REAL BdotQ = pv.w_lor * rho_h_fluid_old * Bdotv * ut;
+
+    const CCTK_REAL rho_h_fluid_new = pv.rho + pv.rho * pv.eps + pv.press;
+
+    const CCTK_REAL xx = 2.0 * BdotQ / (B * rho_h_fluid_new * ut_perp);
+
+    const CCTK_REAL v_par_new = xx / (1.0 + sqrt(1.0 + xx * xx)) / ut_perp;
+
+    const CCTK_REAL v1_new = v_par_new * pv.Bvec(0) / B + u1_perp / ut_perp;
+    const CCTK_REAL v2_new = v_par_new * pv.Bvec(1) / B + u2_perp / ut_perp;
+    const CCTK_REAL v3_new = v_par_new * pv.Bvec(2) / B + u3_perp / ut_perp;
+
+    // Now update the Valencia three-velocity
+
+    pv.vel(0) = (v1_new + beta(0)) / alp;
+    pv.vel(1) = (v2_new + beta(1)) / alp;
+    pv.vel(2) = (v3_new + beta(2)) / alp;
+
+    v_low = calc_contraction(glo, pv.vel);
+    vsq_Sol = calc_contraction(v_low, pv.vel);
+    sol_v = sqrt(vsq_Sol);
+
+    if (sol_v > v_lim) {
+      pv.vel *= v_lim / sol_v;
+      pv.w_lor = w_lim;
+    } else {
+      pv.w_lor = 1. / sqrt(1. - vsq_Sol);
+    }
+  }
 }
 
 template <typename EOSType, bool limiting>
@@ -253,26 +354,26 @@ c2p::bh_interior(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
     };
 
     if (recomp_flag) {
-  
+
       pv.temperature = eos_3p->temp_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
-      pv.press = eos_3p->press_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye); 
+      pv.press = eos_3p->press_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
       pv.entropy = eos_3p->kappa_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
-  
+
       cv.from_prim(pv, glo);
     };
-  
+
   } else {
- 
+
     pv.rho = rho_BH; // typically set to 0.01% to 1% of rho_max of initial
                      // NS or disk
     pv.eps = eps_BH;
     pv.Ye = atmo.ye_atmo;
-  
+
     pv.temperature = eos_3p->temp_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
-    pv.press = eos_3p->press_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye); 
+    pv.press = eos_3p->press_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
     pv.entropy = eos_3p->kappa_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
 
-    // Set velocity such that new conserved momentum has same 
+    // Set velocity such that new conserved momentum has same
     // direction as before
 
     // Inverse metric
@@ -280,7 +381,8 @@ c2p::bh_interior(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
     const smat<CCTK_REAL, 3> gup = calc_inv(glo, spatial_detg);
 
     // Compute Z = rho * h * W * W
-    const CCTK_REAL Z_loc = ( pv.rho * ( 1.0 + pv.eps ) + pv.press ) * wlim_BH * wlim_BH;
+    const CCTK_REAL Z_loc =
+        (pv.rho * (1.0 + pv.eps) + pv.press) * wlim_BH * wlim_BH;
 
     // Get Bsq
     const vec<CCTK_REAL, 3> B_low = calc_contraction(glo, pv.Bvec);
@@ -288,7 +390,7 @@ c2p::bh_interior(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
 
     // Norm of conserved momentum, undensitize here
     vec<CCTK_REAL, 3> mom_low = cv.mom / sqrt(spatial_detg);
-    vec<CCTK_REAL, 3> mom_up  = calc_contraction(gup, mom_low);
+    vec<CCTK_REAL, 3> mom_up = calc_contraction(gup, mom_low);
     const CCTK_REAL Ssq_old = calc_contraction(mom_low, mom_up);
     const CCTK_REAL S_old = sqrt(Ssq_old) + 1e-50;
 
@@ -299,40 +401,37 @@ c2p::bh_interior(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
     const CCTK_REAL BiEsi = BiSi_old / S_old;
 
     // Compute magnitude of new conserved momentum
-    const CCTK_REAL Ssq_new = ( (Z_loc + Bsq)*(Z_loc + Bsq)*vlim_BH*vlim_BH ) / 
-                              ( 1.0 + BiEsi * BiEsi * ( 2.0 * Z_loc + Bsq ) / ( Z_loc * Z_loc ) );
+    const CCTK_REAL Ssq_new =
+        ((Z_loc + Bsq) * (Z_loc + Bsq) * vlim_BH * vlim_BH) /
+        (1.0 + BiEsi * BiEsi * (2.0 * Z_loc + Bsq) / (Z_loc * Z_loc));
     const CCTK_REAL S_new = sqrt(Ssq_new);
 
     // Rescale momenta
     mom_low *= S_new / S_old;
-    mom_up  *= S_new / S_old;
+    mom_up *= S_new / S_old;
 
-    // Finally, compute velocity 
+    // Finally, compute velocity
     // This is (24) from https://arxiv.org/pdf/1712.07538
-    pv.vel(X) = mom_up(X) /
-                (Z_loc + Bsq);
+    pv.vel(X) = mom_up(X) / (Z_loc + Bsq);
     pv.vel(X) += BiEsi * S_new * pv.Bvec(X) / (Z_loc * (Z_loc + Bsq));
 
-    pv.vel(Y) = mom_up(Y) /
-                (Z_loc + Bsq);
+    pv.vel(Y) = mom_up(Y) / (Z_loc + Bsq);
     pv.vel(Y) += BiEsi * S_new * pv.Bvec(Y) / (Z_loc * (Z_loc + Bsq));
 
-    pv.vel(Z) = mom_up(Z) /
-                (Z_loc + Bsq);
+    pv.vel(Z) = mom_up(Z) / (Z_loc + Bsq);
     pv.vel(Z) += BiEsi * S_new * pv.Bvec(Z) / (Z_loc * (Z_loc + Bsq));
 
     pv.w_lor = wlim_BH;
 
     cv.from_prim(pv, glo);
- 
   };
 };
 
 template <typename EOSType>
 CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
-c2p::cons_floors_and_ceilings(const EOSType *eos_3p, cons_vars &cv, 
+c2p::cons_floors_and_ceilings(const EOSType *eos_3p, cons_vars &cv,
                               const smat<CCTK_REAL, 3> &glo,
-			      const CCTK_REAL &tauFluid_atmo) const {
+                              const CCTK_REAL &tauFluid_atmo) const {
 
   // Limit conservative variables
   // Note that conservatives are densitized
@@ -346,29 +445,27 @@ c2p::cons_floors_and_ceilings(const EOSType *eos_3p, cons_vars &cv,
   // Based on Appendix A of https://arxiv.org/pdf/1112.0568
 
   // Compute Bsq
-  vec<CCTK_REAL, 3> B_low  = calc_contraction(glo, cv.dBvec);
+  vec<CCTK_REAL, 3> B_low = calc_contraction(glo, cv.dBvec);
   const CCTK_REAL BsqL = calc_contraction(B_low, cv.dBvec);
-  const CCTK_REAL tauF_atmo = std::max(cv.dens*atmo.eps_atmo,sqrt_detg*tauFluid_atmo);
-  const CCTK_REAL tau_lim = 0.5*BsqL/sqrt_detg;
+  const CCTK_REAL tau_lim = 0.5 * BsqL / sqrt_detg;
 
   if (cv.tau <= tau_lim) {
-    cv.tau = tau_lim + tauF_atmo;
+    cv.tau = tau_lim + sqrt_detg * tauFluid_atmo;
   }
 
-  // Dominant energy condition 
+  // Dominant energy condition
   // (A5) from https://arxiv.org/pdf/1505.01607
 
-  vec<CCTK_REAL, 3> mom_up  = calc_contraction(gup, cv.mom);
+  vec<CCTK_REAL, 3> mom_up = calc_contraction(gup, cv.mom);
   const CCTK_REAL mom2L = calc_contraction(cv.mom, mom_up);
 
-  const CCTK_REAL slim  = cv.dens + cv.tau;
-  const CCTK_REAL slim2 = slim*slim;
+  const CCTK_REAL slim = cv.dens + cv.tau;
+  const CCTK_REAL slim2 = slim * slim;
 
   if (mom2L > slim2) {
-   // (A51) from https://arxiv.org/pdf/1112.0568
-   cv.mom = cv.mom * sqrt(slim2/mom2L);
+    // (A51) from https://arxiv.org/pdf/1112.0568
+    cv.mom = cv.mom * sqrt(slim2 / mom2L);
   }
-
 };
 
 } // namespace Con2PrimFactory

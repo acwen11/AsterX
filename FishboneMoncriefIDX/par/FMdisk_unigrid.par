@@ -157,7 +157,6 @@ Con2PrimFactory::vw_lim = 8 #1e8
 Con2PrimFactory::Ye_lenient = "yes"
 Con2PrimFactory::eps_atmo = 1e-10
 
-Con2PrimFactory::cons_error_limit = 1e-4
 Con2PrimFactory::use_z = "yes"
 
 EOSX::evolution_eos = "IdealGas"
