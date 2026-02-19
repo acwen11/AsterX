@@ -14,12 +14,10 @@ public:
   template <typename EOSType>
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline c2p_1DEntropy(
       const EOSType *eos_3p, const atmosphere &atm, CCTK_INT maxIter,
-      CCTK_REAL tol, CCTK_REAL alp_thresh_in,
-      CCTK_REAL vwlim, CCTK_REAL B_lim, CCTK_REAL rho_BH_in,
-      CCTK_REAL eps_BH_in, CCTK_REAL vwlim_BH_in, 
-      CCTK_REAL sigma_max_in, CCTK_REAL inv_beta_max_in,
-      bool ye_len, bool use_z,
-      bool use_temperature, bool use_pressure_atmo);
+      CCTK_REAL tol, CCTK_REAL alp_thresh_in, CCTK_REAL vwlim, CCTK_REAL B_lim,
+      CCTK_REAL rho_BH_in, CCTK_REAL eps_BH_in, CCTK_REAL vwlim_BH_in,
+      CCTK_REAL sigma_max_in, CCTK_REAL inv_beta_max_in, bool ye_len,
+      bool use_z, bool use_temperature, bool use_pressure_atmo);
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   get_Ssq_Exact(const vec<CCTK_REAL, 3> &mom,
@@ -52,9 +50,8 @@ public:
   template <typename EOSType>
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
   solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
-		  const CCTK_REAL alp,
-		  const vec<CCTK_REAL, 3> &beta,
-                  const smat<CCTK_REAL, 3> &glo, c2p_report &rep) const;
+        const CCTK_REAL alp, const vec<CCTK_REAL, 3> &beta,
+        const smat<CCTK_REAL, 3> &glo, c2p_report &rep) const;
 
   /* Destructor */
   CCTK_HOST CCTK_DEVICE ~c2p_1DEntropy();
@@ -65,11 +62,10 @@ template <typename EOSType>
 CCTK_HOST CCTK_DEVICE
     CCTK_ATTRIBUTE_ALWAYS_INLINE inline c2p_1DEntropy::c2p_1DEntropy(
         const EOSType *eos_3p, const atmosphere &atm, CCTK_INT maxIter,
-        CCTK_REAL tol, CCTK_REAL alp_thresh_in,
-        CCTK_REAL vwlim, CCTK_REAL B_lim, CCTK_REAL rho_BH_in,
-        CCTK_REAL eps_BH_in, CCTK_REAL vwlim_BH_in, 
-	CCTK_REAL sigma_max_in, CCTK_REAL inv_beta_max_in,
-	bool ye_len, bool use_z,
+        CCTK_REAL tol, CCTK_REAL alp_thresh_in, CCTK_REAL vwlim,
+        CCTK_REAL B_lim, CCTK_REAL rho_BH_in, CCTK_REAL eps_BH_in,
+        CCTK_REAL vwlim_BH_in, CCTK_REAL sigma_max_in,
+        CCTK_REAL inv_beta_max_in, bool ye_len, bool use_z,
         bool use_temperature, bool use_pressure_atmo) {
 
   // Base
@@ -161,13 +157,11 @@ c2p_1DEntropy::xEntropyToPrim(CCTK_REAL xEntropy_Sol, CCTK_REAL Ssq,
   pv.w_lor = cv.dens / xEntropy_Sol;
 
   // Pressure and epsilon
-  pv.press =
-      eos_3p->press_from_rho_kappa_ye(xEntropy_Sol, pv.entropy, pv.Ye);
+  pv.press = eos_3p->press_from_rho_kappa_ye(xEntropy_Sol, pv.entropy, pv.Ye);
   pv.eps = eos_3p->eps_from_rho_kappa_ye(xEntropy_Sol, pv.entropy, pv.Ye);
 
   // Temperature
-  pv.temperature =
-      eos_3p->temp_from_rho_eps_ye(xEntropy_Sol, pv.eps, pv.Ye);
+  pv.temperature = eos_3p->temp_from_rho_eps_ye(xEntropy_Sol, pv.eps, pv.Ye);
 
   // Taken from WZ2Prim (2DNRNoble)
   // Z_Sol = rho * h * w_lor * w_lor
@@ -251,8 +245,7 @@ c2p_1DEntropy::funcRoot_1DEntropy(CCTK_REAL Ssq, CCTK_REAL Bsq, CCTK_REAL BiSi,
   const CCTK_REAL press_loc =
       eos_3p->press_from_rho_kappa_ye(x, ent_loc, ye_loc);
 
-  const CCTK_REAL eps_loc =
-      eos_3p->eps_from_rho_kappa_ye(x, ent_loc, ye_loc);
+  const CCTK_REAL eps_loc = eos_3p->eps_from_rho_kappa_ye(x, ent_loc, ye_loc);
 
   // Compute (A60) using
   // W = rho*h*lorentz*lorentz
@@ -274,8 +267,7 @@ c2p_1DEntropy::funcRoot_1DEntropy(CCTK_REAL Ssq, CCTK_REAL Bsq, CCTK_REAL BiSi,
 template <typename EOSType>
 CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
 c2p_1DEntropy::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
-		     const CCTK_REAL alp,
-                     const vec<CCTK_REAL, 3> &beta,
+                     const CCTK_REAL alp, const vec<CCTK_REAL, 3> &beta,
                      const smat<CCTK_REAL, 3> &glo, c2p_report &rep) const {
 
   // ROOTSTAT status = ROOTSTAT::SUCCESS;
@@ -430,8 +422,9 @@ c2p_1DEntropy::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
     // Computing b^mu b_mu
     const CCTK_REAL bs2 = (Bsq + bst * bst) / (pv.w_lor * pv.w_lor);
     // Recompute tau
-    cv.tau = sqrt_detg * (pv.w_lor * pv.w_lor * (pv.rho * (1.0 + pv.eps) + pv.press + bs2) -
-              (pv.press + 0.5 * bs2) - bst * bst) -
+    cv.tau = sqrt_detg * (pv.w_lor * pv.w_lor *
+                              (pv.rho * (1.0 + pv.eps) + pv.press + bs2) -
+                          (pv.press + 0.5 * bs2) - bst * bst) -
              cv.dens;
   }
 }
