@@ -346,7 +346,7 @@ public:
   temp_from_rho_press_ye(const CCTK_REAL rho, CCTK_REAL &press,
                                 const CCTK_REAL ye) const {
     CCTK_REAL lP = log(press);
-    CCTK_REAL lt = logtemp_from_rho_var_ye<EV::S>(rho, lP, ye);
+    CCTK_REAL lt = logtemp_from_rho_var_ye<EV::PRESS>(rho, lP, ye);
     press = exp(lP);
     return exp(lt);
   }
