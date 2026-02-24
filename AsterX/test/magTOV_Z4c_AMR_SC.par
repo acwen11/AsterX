@@ -165,10 +165,7 @@ CarpetX::out_tsv_vars = "
     AsterX::Avec_x
     AsterX::Avec_y
     AsterX::Avec_z
-    AsterX::dens
-    AsterX::mom
-    AsterX::tau   
-    AsterX::DEnt
+    AsterX::cons_vector
     AsterX::dBx_stag
     AsterX::dBy_stag
     AsterX::dBz_stag
