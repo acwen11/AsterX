@@ -67,6 +67,8 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     CCTK_ERROR("Unknown value for parameter \"c2p_second\"");
   }
 
+  const vec<GF3D2<const CCTK_REAL>, dim> gf_beta{betax, betay, betaz};
+
   const smat<GF3D2<const CCTK_REAL>, 3> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
 
   const auto c2p_impl = [=] CCTK_DEVICE(
@@ -97,23 +99,19 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
         press_atm = (radial_distance > r_atmo)
                         ? (p_atmo * pow(r_atmo / radial_distance, n_press_atmo))
                         : p_atmo;
-        press_atm = std::max(eos_3p->press_from_valid_rho_temp_ye(
+        press_atm = std::max(eos_3p->press_from_rho_temp_ye(
                                  rho_atm, eos_3p->rgtemp.min, Ye_atmo),
                              press_atm);
-        eps_atm =
-            eos_3p->eps_from_valid_rho_press_ye(rho_atm, press_atm, Ye_atmo);
-        temp_atm =
-            eos_3p->temp_from_valid_rho_eps_ye(rho_atm, eps_atm, Ye_atmo);
+        eps_atm = eos_3p->eps_from_rho_press_ye(rho_atm, press_atm, Ye_atmo);
+        temp_atm = eos_3p->temp_from_rho_eps_ye(rho_atm, eps_atm, Ye_atmo);
       } else {
         temp_atm = (radial_distance > r_atmo)
                        ? (t_atmo * pow(r_atmo / radial_distance, n_temp_atmo))
                        : t_atmo;
         temp_atm = std::max(eos_3p->rgtemp.min, temp_atm);
         // temp_atm = max(temp_atm, eos_3p->interptable->xmin<1>());
-        press_atm =
-            eos_3p->press_from_valid_rho_temp_ye(rho_atm, temp_atm, Ye_atmo);
-        eps_atm =
-            eos_3p->eps_from_valid_rho_temp_ye(rho_atm, temp_atm, Ye_atmo);
+        press_atm = eos_3p->press_from_rho_temp_ye(rho_atm, temp_atm, Ye_atmo);
+        eps_atm = eos_3p->eps_from_rho_temp_ye(rho_atm, temp_atm, Ye_atmo);
         // eps_atm should be kept consistent with temp_atm, so we do not use
         // the setting below
         // eps_atm =
@@ -121,19 +119,18 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
       }
 
     } else {
-      const CCTK_REAL gm1 = eos_1p->gm1_from_valid_rho(rho_atm);
-      temp_atm = eos_1p->temp_from_valid_gm1(gm1);
+      const CCTK_REAL gm1 = eos_1p->gm1_from_rho(rho_atm);
+      temp_atm = eos_1p->temp_from_gm1(gm1);
       temp_atm = std::max(eos_3p->rgtemp.min, temp_atm);
-      eps_atm = eos_3p->eps_from_valid_rho_temp_ye(rho_atm, temp_atm, Ye_atmo);
+      eps_atm = eos_3p->eps_from_rho_temp_ye(rho_atm, temp_atm, Ye_atmo);
       // eps_atm should be kept consistent with temp_atm, so we do not use
       // the setting below
       // eps_atm =
       //    std::min(std::max(eos_3p->rgeps.min, eps_atm), eos_3p->rgeps.max);
-      press_atm =
-          eos_3p->press_from_valid_rho_eps_ye(rho_atm, eps_atm, Ye_atmo);
+      press_atm = eos_3p->press_from_rho_eps_ye(rho_atm, eps_atm, Ye_atmo);
     }
     CCTK_REAL entropy_atm =
-        eos_3p->kappa_from_valid_rho_eps_ye(rho_atm, eps_atm, Ye_atmo);
+        eos_3p->kappa_from_rho_eps_ye(rho_atm, eps_atm, Ye_atmo);
     const CCTK_REAL rho_atmo_cut = rho_atm * (1 + atmo_tol);
     atmosphere atmo(rho_atm, eps_atm, Ye_atmo, press_atm, temp_atm, entropy_atm,
                     rho_atmo_cut);
@@ -141,27 +138,31 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     // ----- Construct C2P objects -----
 
     // Construct Noble c2p object:
-    c2p_2DNoble c2p_Noble(eos_3p, atmo, max_iter, c2p_tol, alp_thresh,
-                          cons_error_limit, vw_lim, B_lim, rho_BH, eps_BH,
-                          vwlim_BH, Ye_lenient, use_z, use_temperature,
+    c2p_2DNoble c2p_Noble(eos_3p, atmo, max_iter, c2p_tol, alp_thresh, vw_lim,
+                          B_lim, rho_BH, eps_BH, vwlim_BH, sigma_max,
+                          inv_beta_max, Ye_lenient, use_z, use_temperature,
                           use_press_atmo);
 
     // Construct Palenzuela c2p object:
     c2p_1DPalenzuela c2p_Pal(eos_3p, atmo, max_iter, c2p_tol, alp_thresh,
-                             cons_error_limit, vw_lim, B_lim, rho_BH, eps_BH,
-                             vwlim_BH, Ye_lenient, use_z, use_temperature,
+                             vw_lim, B_lim, rho_BH, eps_BH, vwlim_BH, sigma_max,
+                             inv_beta_max, Ye_lenient, use_z, use_temperature,
                              use_press_atmo);
 
     // Construct Entropy c2p object:
-    c2p_1DEntropy c2p_Ent(eos_3p, atmo, max_iter, c2p_tol, alp_thresh,
-                          cons_error_limit, vw_lim, B_lim, rho_BH, eps_BH,
-                          vwlim_BH, Ye_lenient, use_z, use_temperature,
+    c2p_1DEntropy c2p_Ent(eos_3p, atmo, max_iter, c2p_tol, alp_thresh, vw_lim,
+                          B_lim, rho_BH, eps_BH, vwlim_BH, sigma_max,
+                          inv_beta_max, Ye_lenient, use_z, use_temperature,
                           use_press_atmo);
 
     // ----------
 
     /* Get lapse */
     const CCTK_REAL alp_avg = calc_avg_v2c(alp, p);
+
+    /* Get shift */
+    const vec<CCTK_REAL, 3> beta_avg(
+        [&](int i) ARITH_INLINE { return calc_avg_v2c(gf_beta(i), p); });
 
     /* Get covariant metric */
     const smat<CCTK_REAL, 3> glo(
@@ -208,10 +209,10 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     prim_vars pv_seeds{saved_rho(p.I),
                        saved_eps(p.I),
                        saved_Ye(p.I),
-                       eos_3p->press_from_valid_rho_eps_ye(
+                       eos_3p->press_from_rho_eps_ye(
                            saved_rho(p.I), saved_eps(p.I), saved_Ye(p.I)),
                        temperature(p.I),
-                       eos_3p->kappa_from_valid_rho_eps_ye(
+                       eos_3p->kappa_from_rho_eps_ye(
                            saved_rho(p.I), saved_eps(p.I), saved_Ye(p.I)),
                        v_up,
                        wlor,
@@ -265,15 +266,16 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
       c2p_flag_code = C2P_PRIME;
       switch (c2p_fir) {
       case c2p_first_t::Noble: {
-        c2p_Noble.solve(eos_3p, pv, pv_seeds, cv, glo, rep_first);
+        c2p_Noble.solve(eos_3p, pv, pv_seeds, cv, alp_avg, beta_avg, glo,
+                        rep_first);
         break;
       }
       case c2p_first_t::Palenzuela: {
-        c2p_Pal.solve(eos_3p, pv, cv, glo, rep_first);
+        c2p_Pal.solve(eos_3p, pv, cv, alp_avg, beta_avg, glo, rep_first);
         break;
       }
       case c2p_first_t::Entropy: {
-        c2p_Ent.solve(eos_3p, pv, cv, glo, rep_first);
+        c2p_Ent.solve(eos_3p, pv, cv, alp_avg, beta_avg, glo, rep_first);
         break;
       }
       case c2p_first_t::None: {
@@ -296,15 +298,16 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
         // Calling the second C2P
         switch (c2p_sec) {
         case c2p_second_t::Noble: {
-          c2p_Noble.solve(eos_3p, pv, pv_seeds, cv, glo, rep_second);
+          c2p_Noble.solve(eos_3p, pv, pv_seeds, cv, alp_avg, beta_avg, glo,
+                          rep_second);
           break;
         }
         case c2p_second_t::Palenzuela: {
-          c2p_Pal.solve(eos_3p, pv, cv, glo, rep_second);
+          c2p_Pal.solve(eos_3p, pv, cv, alp_avg, beta_avg, glo, rep_second);
           break;
         }
         case c2p_second_t::Entropy: {
-          c2p_Ent.solve(eos_3p, pv, cv, glo, rep_second);
+          c2p_Ent.solve(eos_3p, pv, cv, alp_avg, beta_avg, glo, rep_second);
           break;
         }
         case c2p_second_t::None: {
@@ -321,7 +324,7 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
         if (use_entropy_fix) {
 
           c2p_flag_code = C2P_ENTROPY;
-          c2p_Ent.solve(eos_3p, pv, cv, glo, rep_ent);
+          c2p_Ent.solve(eos_3p, pv, cv, alp_avg, beta_avg, glo, rep_ent);
 
           if (rep_ent.failed()) {
 
@@ -462,6 +465,19 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     saved_velz(p.I) = velz(p.I);
     saved_eps(p.I) = eps(p.I);
     saved_Ye(p.I) = Ye(p.I);
+
+    // Compute diagnostics
+    v_low = calc_contraction(glo, pv.vel);
+    const vec<CCTK_REAL, 3> B_low = calc_contraction(glo, pv.Bvec);
+
+    const CCTK_REAL alp_b0 = wlor * calc_contraction(pv.Bvec, v_low);
+
+    const CCTK_REAL B2 = calc_contraction(pv.Bvec, B_low);
+    const CCTK_REAL bsq = (B2 + alp_b0 * alp_b0) / (wlor * wlor);
+
+    w_lorentz(p.I) = wlor;
+    B_norm(p.I) = sqrt(B2);
+    b2small(p.I) = bsq;
   };
 
   cctk_grid.loop_all_device<1, 1, 1>(grid.nghostzones, c2p_impl);
@@ -494,11 +510,33 @@ extern "C" void AsterX_Con2Prim(CCTK_ARGUMENTS) {
     break;
   }
   case eos_3param::Hybrid: {
-    // Get local eos objects
-    auto eos_1p_poly = global_eos_1p_poly;
-    auto eos_3p_hyb = global_eos_3p_hyb;
+    if (global_eos_3p_hyb_pwpoly) {
+      // pwpoly cold + pwpoly-hybrid
+      auto eos_cold = global_eos_1p_pwpoly;
+      auto eos_3p_hyb = global_eos_3p_hyb_pwpoly;
 
-    AsterX_Con2Prim_typeEoS(CCTK_PASS_CTOC, eos_1p_poly, eos_3p_hyb);
+      if (!eos_cold) {
+        CCTK_ERROR("Hybrid(PWPolytropic) selected but no pwpoly cold EOS was "
+                   "initialized");
+      }
+      AsterX_Con2Prim_typeEoS(CCTK_PASS_CTOC, eos_cold, eos_3p_hyb);
+
+    } else if (global_eos_3p_hyb_poly) {
+      // poly cold + poly-hybrid
+      auto eos_cold = global_eos_1p_poly;
+      auto eos_3p_hyb = global_eos_3p_hyb_poly;
+
+      if (!eos_cold) {
+        CCTK_ERROR("Hybrid(Polytropic) selected but no polytropic cold EOS was "
+                   "initialized");
+      }
+      AsterX_Con2Prim_typeEoS(CCTK_PASS_CTOC, eos_cold, eos_3p_hyb);
+
+    } else {
+      CCTK_ERROR(
+          "Hybrid EOS selected but no hybrid EOS object was initialized");
+    }
+
     break;
   }
   case eos_3param::Tabulated: {

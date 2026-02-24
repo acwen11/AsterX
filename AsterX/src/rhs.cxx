@@ -59,7 +59,7 @@ void CalcRHSofPsi_impl(CCTK_ARGUMENTS, const CCTK_REAL damp_fac) {
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
           CCTK_REAL dF = 0.0;
           for (int i = 0; i < dim; i++) {
-            dF += calc_fd2_backward_midpoint(gf_Fstag(i), p, i) -
+            dF += calc_fd_backward_midpoint(gf_Fstag(i), p, i) -
                   (gf_beta(i)(p.I) < 0
                        ? calc_fd2_v2v_oneside<-1>(gf_Fbeta(i), p, i)
                        : calc_fd2_v2v_oneside<+1>(gf_Fbeta(i), p, i));
