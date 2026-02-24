@@ -24,7 +24,7 @@ public:
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline
   c2p_1DRePrimAnd(const EOSType *eos_3p, const atmosphere &atm_in,
                   CCTK_INT maxIter, CCTK_REAL tol, CCTK_REAL alp_thresh_in,
-                  CCTK_REAL consError, CCTK_REAL vwlim, CCTK_REAL B_lim,
+                  CCTK_REAL vwlim, CCTK_REAL B_lim,
                   CCTK_REAL rho_BH_in, CCTK_REAL eps_BH_in,CCTK_REAL vwlim_BH_in, 
                   CCTK_REAL sigma_max_in, CCTK_REAL inv_beta_max_in,
                   bool ye_len, bool use_z,
@@ -34,7 +34,6 @@ public:
     maxIterations = maxIter;
     tolerance = tol;
     alp_thresh = alp_thresh_in;
-    cons_error = consError;
     vw_lim = vwlim;
     w_lim = sqrt(1.0 + vw_lim * vw_lim);
     v_lim = vw_lim / w_lim;
@@ -168,8 +167,8 @@ public:
     pv.press = cache.press;
     pv.w_lor = cache.w;
 
-    pv.temperature = eos_3p->temp_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
-    pv.entropy = eos_3p->kappa_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+    pv.temperature = eos_3p->temp_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+    pv.entropy = eos_3p->kappa_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
 
     // ------------------------------------------------------------------
     // Velocity: RePrimAnd magnetic-aware reconstruction
@@ -204,30 +203,10 @@ public:
     if (std::abs(result.first - result.second) >
         tolerance_0 *
             std::min(std::abs(result.first), std::abs(result.second))) {
-
-      cons_vars cv_check;
-      cv_check.from_prim(pv, glo);
-
-      cv_check.dens /= sqrt_detg;
-      cv_check.tau /= sqrt_detg;
-      cv_check.mom /= sqrt_detg;
-      cv_check.dBvec /= sqrt_detg;
-      cv_check.DYe /= sqrt_detg;
-      cv_check.DEnt /= sqrt_detg;
-
-      const CCTK_REAL small = 1e-50;
-      const CCTK_REAL max_error = sqrt(
-          max({pow((cv_check.dens - cv.dens) / (cv.dens + small), 2.0),
-               pow((cv_check.mom(0) - cv.mom(0)) / (cv.mom(0) + small), 2.0),
-               pow((cv_check.mom(1) - cv.mom(1)) / (cv.mom(1) + small), 2.0),
-               pow((cv_check.mom(2) - cv.mom(2)) / (cv.mom(2) + small), 2.0),
-               pow((cv_check.tau - cv.tau) / (cv.tau + small), 2.0)}));
-
-      if (max_error > cons_error) {
-        rep.set_root_conv();
-        cv = cv_const;
-        return;
-      }
+      // set status to root not converged
+      rep.set_root_conv();
+      cv = cv_const;
+      return;
     }
 
     if (pv.rho < atmo.rho_cut) {

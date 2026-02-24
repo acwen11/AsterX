@@ -122,7 +122,7 @@ public:
 
   // temperature is not yet implemented in thc
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  temp_from_valid_rho_press_ye(const CCTK_REAL rho, CCTK_REAL &press,
+  temp_from_rho_press_ye(const CCTK_REAL rho, CCTK_REAL &press,
                              const CCTK_REAL ye) const {
     printf("eos_3p_hybrid: temperature not implemented");
     return 0.0;
@@ -130,7 +130,7 @@ public:
 
   // temperature is not yet implemented in thc
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  rho_from_valid_press_temp_ye(CCTK_REAL &press, const CCTK_REAL temp,
+  rho_from_press_temp_ye(CCTK_REAL &press, const CCTK_REAL temp,
                              const CCTK_REAL ye) const {
     printf("eos_3p_hybrid: temperature not implemented");
     return 0.0;

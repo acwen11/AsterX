@@ -95,7 +95,7 @@ public:
     const CCTK_REAL rhomin = eos->rgrho.min;
     CCTK_REAL epsmin = eos->rgeps.min;
     const CCTK_REAL pmin =
-        eos->press_from_valid_rho_eps_ye(rhomin, epsmin, valid_ye);
+        eos->press_from_rho_eps_ye(rhomin, epsmin, valid_ye);
     h0 = 1.0 + epsmin + pmin / rhomin;
 
     const CCTK_REAL zsqrinf = rsqr / (h0 * h0);
@@ -127,7 +127,7 @@ public:
     c.eps_raw = get_eps_raw(mu, qf, rfsqr, c.w);
     c.eps = fmin(fmax(eos->rgeps.min, c.eps_raw), eos->rgeps.max);
 
-    c.press = eos->press_from_valid_rho_eps_ye(c.rho, c.eps, c.ye);
+    c.press = eos->press_from_rho_eps_ye(c.rho, c.eps, c.ye);
     ++c.calls;
 
     const CCTK_REAL a = c.press / (c.rho * (1.0 + c.eps));

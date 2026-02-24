@@ -50,7 +50,7 @@ public:
   // must match order of HDF5 datasets below
   enum EV {
     PRESS = 0,   // "logpress"
-    EPSS = 1,     // "logenergy"
+    EPS = 1,     // "logenergy"
     S = 2,       // "entropy"
     MUNU = 3,    // "munu"
     CS2 = 4,     // "cs2"
@@ -96,98 +96,10 @@ public:
     CCTK_REAL *alltables = tab.alltables;
     energy_shift = tab.energy_shift;
 
-    // Initialize host and device memory
-    CCTK_REAL *logrho = (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(
-        nrho * sizeof(CCTK_REAL));
-    CCTK_REAL *logtemp = (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(
-        ntemp * sizeof(CCTK_REAL));
-    CCTK_REAL *yes =
-        (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(nye * sizeof(CCTK_REAL));
-    CCTK_REAL *alltables = (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(
-        npoints * NTABLES * sizeof(CCTK_REAL));
-    energy_shift =
-        (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(sizeof(CCTK_REAL));
-    
-    CCTK_REAL *logrho_host = new CCTK_REAL[nrho];
-    CCTK_REAL *logtemp_host = new CCTK_REAL[ntemp];
-    CCTK_REAL *yes_host = new CCTK_REAL[nye];
-    CCTK_REAL *alltables_tmp = new CCTK_REAL[npoints * NTABLES];
-    CCTK_REAL *alltables_host = new CCTK_REAL[npoints * NTABLES];
+    // -----------------------------------------------------------------
+    // Common post-processing (unit conversions, log conversions, interp)
+    // -----------------------------------------------------------------
 
-    static const char *dnames[NTABLES] = {
-        "logpress", "logenergy", "entropy", "munu", "cs2",  "dedt", "dpdrhoe",
-        "dpderho",  "muhat",     "mu_e",    "mu_p", "mu_n", "Xa",   "Xh",
-        "Xn",       "Xp",        "Abar",    "Zbar", "gamma"};
-
-#ifdef H5_HAVE_PARALLEL
-    get_hdf5_real_dset(file_id, "logrho", nrho, logrho_host);
-    get_hdf5_real_dset(file_id, "logtemp", ntemp, logtemp_host);
-    get_hdf5_real_dset(file_id, "ye", nye, yes_host);
-    get_hdf5_real_dset(file_id, "energy_shift", 1, energy_shift);
-    for (int iv = 0; iv < NTABLES; iv++) {
-      get_hdf5_real_dset(file_id, dnames[iv], npoints,
-                         &alltables_tmp[iv * npoints]);
-    }
-
-    // change ordering of alltables array so that
-    // the table kind is the fastest changing index
-    for (int iv = 0; iv < NTABLES; iv++)
-      for (int k = 0; k < nye; k++)
-        for (int j = 0; j < ntemp; j++)
-          for (int i = 0; i < nrho; i++) {
-            int indold = i + nrho * (j + ntemp * (k + nye * iv));
-            int indnew = iv + NTABLES * (i + nrho * (j + ntemp * k));
-            alltables_host[indnew] = alltables_tmp[indold];
-          }
-
-    CHECK_ERROR(H5Fclose(file_id));
-    CHECK_ERROR(H5Pclose(fapl_id));
-#else
-    if (rank == 0) {
-      get_hdf5_real_dset(file_id, "logrho", nrho, logrho_host);
-      get_hdf5_real_dset(file_id, "logtemp", ntemp, logtemp_host);
-      get_hdf5_real_dset(file_id, "ye", nye, yes_host);
-      get_hdf5_real_dset(file_id, "energy_shift", 1, energy_shift);
-      for (int iv = 0; iv < NTABLES; iv++) {
-        get_hdf5_real_dset(file_id, dnames[iv], npoints,
-                           &alltables_tmp[iv * npoints]);
-      }
-      CHECK_ERROR(H5Fclose(file_id));
-
-      // change ordering of alltables array so that
-      // the table kind is the fastest changing index
-      for (int iv = 0; iv < NTABLES; iv++)
-        for (int k = 0; k < nye; k++)
-          for (int j = 0; j < ntemp; j++)
-            for (int i = 0; i < nrho; i++) {
-              int indold = i + nrho * (j + ntemp * (k + nye * iv));
-              int indnew = iv + NTABLES * (i + nrho * (j + ntemp * k));
-              alltables_host[indnew] = alltables_tmp[indold];
-            }
-    }
-
-    MPI_Bcast(logrho_host, nrho, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(logtemp_host, ntemp, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(yes_host, nye, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(energy_shift, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(alltables_host, npoints * NTABLES, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-#endif
-
-    // Copy from host to GPU
-    cudaMemcpy(logrho, logrho_host, nrho * sizeof(CCTK_REAL), cudaMemcpyHostToDevice);
-    cudaMemcpy(logtemp, logtemp_host, ntemp * sizeof(CCTK_REAL), cudaMemcpyHostToDevice);
-    cudaMemcpy(yes, yes_host, nye * sizeof(CCTK_REAL), cudaMemcpyHostToDevice);
-    cudaMemcpy(alltables, alltables_host, npoints * NTABLES * sizeof(CCTK_REAL), cudaMemcpyHostToDevice);
-
-    cudaDeviceSynchronize();
-
-    // Free host memory
-    delete[] logrho_host;
-    delete[] logtemp_host;
-    delete[] yes_host;
-    delete[] alltables_tmp;
-    delete[] alltables_host;
-  
     *energy_shift *= EPSGF;
     const CCTK_REAL ln10 = log(10.0);
     const CCTK_REAL inv_time2 = 1 / (TIMEGF * TIMEGF);
@@ -362,7 +274,7 @@ public:
 
   CCTK_HOST CCTK_DEVICE inline CCTK_REAL
   press_from_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
-                               const CCTK_REAL ye) const {
+                         const CCTK_REAL ye) const {
     // bound
     CCTK_REAL r = std::fmin(std::fmax(rho, rgrho.min), rgrho.max);
     CCTK_REAL t = std::fmin(std::fmax(temp, rgtemp.min), rgtemp.max);
@@ -385,7 +297,7 @@ public:
                        const CCTK_REAL ye) const {
     CCTK_REAL lr = std::log(std::fmin(std::fmax(rho, rgrho.min), rgrho.max));
     CCTK_REAL lt = std::log(std::fmin(std::fmax(temp, rgtemp.min), rgtemp.max));
-    CCTK_REAL v = interptable->interpolate<EV::EPSS>(lr, lt, ye)[0];
+    CCTK_REAL v = interptable->interpolate<EV::EPS>(lr, lt, ye)[0];
     return exp(v) - *energy_shift;
   }
 
@@ -493,9 +405,9 @@ public:
   range_eps_from_rho_ye(const CCTK_REAL rho, const CCTK_REAL ye) const {
     CCTK_REAL lr = std::log(std::fmin(std::fmax(rho, rgrho.min), rgrho.max));
     CCTK_REAL vmin =
-        interptable->interpolate<EV::EPSS>(lr, interptable->xmin<1>(), ye)[0];
+        interptable->interpolate<EV::EPS>(lr, interptable->xmin<1>(), ye)[0];
     CCTK_REAL vmax =
-        interptable->interpolate<EV::EPSS>(lr, interptable->xmax<1>(), ye)[0];
+        interptable->interpolate<EV::EPS>(lr, interptable->xmax<1>(), ye)[0];
     return range{exp(vmin) - *energy_shift, exp(vmax) - *energy_shift};
   }
 

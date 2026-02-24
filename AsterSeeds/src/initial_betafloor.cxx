@@ -76,9 +76,9 @@ extern "C" void AsterSeeds_SetInitialBetaFloor(CCTK_ARGUMENTS) {
         else {
           // Recalculate primitives
           press(p.I) = press_lim;
-          rho(p.I) = eos_3p_tab3d->rho_from_valid_press_temp_ye(press_lim, tempL, YeL);
-          eps(p.I) = eos_3p_tab3d->eps_from_valid_rho_temp_ye(rho(p.I), tempL, YeL);
-          entropy(p.I) = eos_3p_tab3d->entropy_from_valid_rho_temp_ye(rho(p.I), tempL, YeL);
+          rho(p.I) = eos_3p_tab3d->rho_from_press_temp_ye(press_lim, tempL, YeL);
+          eps(p.I) = eos_3p_tab3d->eps_from_rho_temp_ye(rho(p.I), tempL, YeL);
+          entropy(p.I) = eos_3p_tab3d->entropy_from_rho_temp_ye(rho(p.I), tempL, YeL);
         }
         
       });

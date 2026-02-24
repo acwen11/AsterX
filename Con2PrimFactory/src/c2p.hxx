@@ -253,14 +253,14 @@ c2p::prims_floors_and_ceilings(const EOSType *eos_3p, prim_vars &pv,
 
     if (use_temp) {
       // Recompute T from adjusted rho, P
-      pv.temperature = eos_3p->temp_from_valid_rho_press_ye(pv.rho, pv.press, pv.Ye);
-      pv.eps = eos_3p->eps_from_valid_rho_temp_ye(pv.rho, pv.temperature, pv.Ye);
-      pv.entropy = eos_3p->entropy_from_valid_rho_temp_ye(pv.rho, pv.temperature, pv.Ye);
+      pv.temperature = eos_3p->temp_from_rho_press_ye(pv.rho, pv.press, pv.Ye);
+      pv.eps = eos_3p->eps_from_rho_temp_ye(pv.rho, pv.temperature, pv.Ye);
+      pv.entropy = eos_3p->entropy_from_rho_temp_ye(pv.rho, pv.temperature, pv.Ye);
     }
     else {
-      pv.eps = eos_3p->eps_from_valid_rho_press_ye(pv.rho, pv.press, pv.Ye);
-      pv.temperature = eos_3p->temp_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
-      pv.entropy = eos_3p->kappa_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+      pv.eps = eos_3p->eps_from_rho_press_ye(pv.rho, pv.press, pv.Ye);
+      pv.temperature = eos_3p->temp_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+      pv.entropy = eos_3p->kappa_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
     }
 
     mag_ceiling = false;

@@ -16,20 +16,10 @@ if(use_subcycling_wip) {
   STORAGE: densk3 momk3 tauk3 DYe_k3 DEntk3 Avec_x_k3 Avec_y_k3 Avec_z_k3 Psi_k3
   STORAGE: densk4 momk4 tauk4 DYe_k4 DEntk4 Avec_x_k4 Avec_y_k4 Avec_z_k4 Psi_k4
 
-  # SCHEDULE AsterX_ApplyOuterBCOnCons IN ODESolvers_PostSubStep BEFORE AsterX_Con2PrimGroup
-  # {
-  #   LANG: C
-  #   OPTIONS: global
-  # } "Apply outer/symmetry boundaries on Avec"
-
   SCHEDULE GROUP AsterX_Con2PrimGroup IN ODESolvers_PostSubStep BEFORE TmunuBaseX_SetTmunuVars AFTER ADMBaseX_SetADMVars
   {
   } "Compute primitive variables"
 }
-
-STORAGE: Ex Ey Ez
-STORAGE: con2prim_flag helpers
-
 
 if(unit_test)
 {
@@ -290,7 +280,7 @@ SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBsta
   READS: saved_prims(everywhere)
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
   WRITES: con2prim_flag(everywhere)
-  WRITES: helpers(everywhere)
+  WRITES: diagnostics(everywhere)
   WRITES: AsterMasks::aster_mask_cc(everywhere)
   WRITES: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::Bvec(everywhere)
   WRITES: HydroBaseX::temperature(everywhere) HydroBaseX::entropy(everywhere) HydroBaseX::Ye(everywhere)
@@ -298,7 +288,6 @@ SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBsta
   WRITES: zvec(everywhere)
   WRITES: svec(everywhere)
   WRITES: cons_vector(everywhere) dB(everywhere)
-  WRITES: w_lorentz(everywhere) volform(everywhere)
 } "Calculate primitive variables from conservative variables"
 
 SCHEDULE AsterX_ApplyOuterBCOnPrim IN AsterX_Con2PrimGroup AFTER AsterX_Con2Prim

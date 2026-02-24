@@ -152,8 +152,8 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
 
     // Construct RePrimAnd c2p object:
     c2p_1DRePrimAnd c2p_RPA(eos_3p, atmo, max_iter, c2p_tol, alp_thresh,
-                             cons_error_limit, vw_lim, B_lim, rho_BH, eps_BH,
-                             vwlim_BH, sigma_max_t, inv_beta_max_t, Ye_lenient, use_z, use_temperature,
+                             vw_lim, B_lim, rho_BH, eps_BH, vwlim_BH, sigma_max_t, 
+                             inv_beta_max_t, Ye_lenient, use_z, use_temperature,
                              use_press_atmo);
 
     // Construct Palenzuela c2p object:
@@ -487,22 +487,21 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     saved_eps(p.I) = eps(p.I);
     saved_Ye(p.I) = Ye(p.I);
 
-    // Compute helpers
-    volform(p.I) = sqrt_detg;
-    w_lorentz(p.I) = wlor;
+    // Compute diagnostics
     v_low = calc_contraction(glo, pv.vel);
     const vec<CCTK_REAL, 3> B_low = calc_contraction(glo, pv.Bvec);
 
     const CCTK_REAL alp_b0 = wlor * calc_contraction(pv.Bvec, v_low);
 
     const CCTK_REAL B2 = calc_contraction(pv.Bvec, B_low);
-    const CCTK_REAL bsq = ( B2 + alp_b0 * alp_b0 ) / ( wlor*wlor );
+    const CCTK_REAL bsq = (B2 + alp_b0 * alp_b0) / (wlor * wlor);
 
+    w_lorentz(p.I) = wlor;
+    B_norm(p.I) = sqrt(B2);
+    b2small(p.I) = bsq;
     sigma(p.I)    = bsq/pv.rho;
     inv_beta(p.I) = 0.5 * bsq/pv.press;
-    wlorentz(p.I) = wlor;
-    normB(p.I)    = sqrt(B2);
-    smallb2(p.I)  = bsq; 
+    volform(p.I) = sqrt_detg;
   };
 
   cctk_grid.loop_all_device<1, 1, 1>(grid.nghostzones, c2p_impl);

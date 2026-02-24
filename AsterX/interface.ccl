@@ -135,14 +135,15 @@ CCTK_REAL Ez TYPE=gf CENTERING={vvc} TAGS='checkpoint="no"' "z-component of E"
 
 CCTK_REAL con2prim_flag TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Flag indicating failure of con2prim"
 
-CCTK_REAL helpers TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
+CCTK_REAL diagnostics TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
 {
+  w_lorentz
+  B_norm
+  b2small
   sigma
   inv_beta
-  wlorentz
-  normB
-  smallb2
-} "Helper grid functions"
+  volform
+} "Diagnostic grid functions"
 
 # saved_prims are computed only once at the beginning of the simulation
 # at the outer physical boundary because they are not needed afterwards 

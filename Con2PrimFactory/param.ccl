@@ -131,6 +131,10 @@ CCTK_REAL vwlim_BH " Maximum zvec (v*w) allowed in regions where alp<alp_thresh"
 } 1.0e100
 
 # Parameters for highly mag. regions
+CCTK_INT mag_limit_delay "Enforce mag. limits after this iteration" STEERABLE=ALWAYS
+{
+  *:* :: "Negative means always active"
+} -1
 
 CCTK_REAL sigma_max "Maximum allowed magnetisation: sigma=b^2/rho" STEERABLE=ALWAYS
 {
@@ -138,22 +142,6 @@ CCTK_REAL sigma_max "Maximum allowed magnetisation: sigma=b^2/rho" STEERABLE=ALW
 } 1.0e100
 
 CCTK_REAL inv_beta_max "Maximum allowed inverse plasma beta: inv_beta=b^2/(2*press)" STEERABLE=ALWAYS
-{
-  (0.0:* :: "Must be positive"
-} 1.0e100
-
-# Parameters for highly mag. regions
-CCTK_INT mag_limit_delay "Enforce mag. limits after this iteration" STEERABLE=ALWAYS
-{
-  *:* :: "Negative means always active"
-} -1
-
-CCTK_REAL sigma_max "Maximum allowed magnetisation" STEERABLE=ALWAYS
-{
-  (0.0:* :: "Must be positive"
-} 1.0e100
-
-CCTK_REAL inv_beta_max "Maximum allowed inverse beta" STEERABLE=ALWAYS
 {
   (0.0:* :: "Must be positive"
 } 1.0e100
