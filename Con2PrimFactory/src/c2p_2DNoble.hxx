@@ -17,10 +17,10 @@ public:
   template <typename EOSType>
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline c2p_2DNoble(
       const EOSType *eos_3p, const atmosphere &atm, CCTK_INT maxIter,
-      CCTK_REAL tol, CCTK_REAL alp_thresh_in, CCTK_REAL consError,
-      CCTK_REAL vwlim, CCTK_REAL B_lim, CCTK_REAL rho_BH_in,
-      CCTK_REAL eps_BH_in, CCTK_REAL vwlim_BH_in, bool ye_len, bool use_z,
-      bool use_temperature, bool use_pressure_atmo);
+      CCTK_REAL tol, CCTK_REAL alp_thresh_in, CCTK_REAL vwlim, CCTK_REAL B_lim,
+      CCTK_REAL rho_BH_in, CCTK_REAL eps_BH_in, CCTK_REAL vwlim_BH_in,
+      CCTK_REAL sigma_max_in, CCTK_REAL inv_beta_max_in, bool ye_len,
+      bool use_z, bool use_temperature, bool use_pressure_atmo);
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   get_Ssq_Exact(const vec<CCTK_REAL, 3> &mom,
@@ -62,7 +62,8 @@ public:
   template <typename EOSType>
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
   solve(const EOSType *eos_3p, prim_vars &pv, prim_vars &pv_seeds,
-        cons_vars &cv, const smat<CCTK_REAL, 3> &glo, c2p_report &rep) const;
+        cons_vars &cv, const CCTK_REAL alp, const vec<CCTK_REAL, 3> &beta,
+        const smat<CCTK_REAL, 3> &glo, c2p_report &rep) const;
 
   /* Destructor */
   CCTK_HOST CCTK_DEVICE ~c2p_2DNoble();
@@ -73,9 +74,10 @@ template <typename EOSType>
 CCTK_HOST
     CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline c2p_2DNoble::c2p_2DNoble(
         const EOSType *eos_3p, const atmosphere &atm, CCTK_INT maxIter,
-        CCTK_REAL tol, CCTK_REAL alp_thresh_in, CCTK_REAL consError,
-        CCTK_REAL vwlim, CCTK_REAL B_lim, CCTK_REAL rho_BH_in,
-        CCTK_REAL eps_BH_in, CCTK_REAL vwlim_BH_in, bool ye_len, bool use_z,
+        CCTK_REAL tol, CCTK_REAL alp_thresh_in, CCTK_REAL vwlim,
+        CCTK_REAL B_lim, CCTK_REAL rho_BH_in, CCTK_REAL eps_BH_in,
+        CCTK_REAL vwlim_BH_in, CCTK_REAL sigma_max_in,
+        CCTK_REAL inv_beta_max_in, bool ye_len, bool use_z,
         bool use_temperature, bool use_pressure_atmo) {
 
   // Base
@@ -83,7 +85,6 @@ CCTK_HOST
   maxIterations = maxIter;
   tolerance = tol;
   alp_thresh = alp_thresh_in;
-  cons_error = consError;
   vw_lim = vwlim;
   w_lim = sqrt(1.0 + vw_lim * vw_lim);
   v_lim = vw_lim / w_lim;
@@ -91,6 +92,8 @@ CCTK_HOST
   rho_BH = rho_BH_in;
   eps_BH = eps_BH_in;
   vwlim_BH = vwlim_BH_in;
+  sigma_max = sigma_max_in;
+  inv_beta_max = inv_beta_max_in;
   ye_lenient = ye_len;
   use_zprim = use_z;
   use_temp = use_temperature;
@@ -275,7 +278,8 @@ c2p_2DNoble::WZ2Prim(CCTK_REAL Z_Sol, CCTK_REAL vsq_Sol, CCTK_REAL Bsq,
 template <typename EOSType>
 CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
 c2p_2DNoble::solve(const EOSType *eos_3p, prim_vars &pv, prim_vars &pv_seeds,
-                   cons_vars &cv, const smat<CCTK_REAL, 3> &glo,
+                   cons_vars &cv, const CCTK_REAL alp,
+                   const vec<CCTK_REAL, 3> &beta, const smat<CCTK_REAL, 3> &glo,
                    c2p_report &rep) const {
 
   // ROOTSTAT status = ROOTSTAT::SUCCESS;
@@ -562,7 +566,7 @@ c2p_2DNoble::solve(const EOSType *eos_3p, prim_vars &pv, prim_vars &pv_seeds,
     return;
   }
 
-  c2p::prims_floors_and_ceilings(eos_3p, pv, cv, glo, rep);
+  c2p::prims_floors_and_ceilings(eos_3p, pv, cv, alp, beta, glo, rep);
 
   // Recompute cons if prims have been adjusted
   if (rep.adjust_cons) {

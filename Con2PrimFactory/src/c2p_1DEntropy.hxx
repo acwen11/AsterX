@@ -14,10 +14,10 @@ public:
   template <typename EOSType>
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline c2p_1DEntropy(
       const EOSType *eos_3p, const atmosphere &atm, CCTK_INT maxIter,
-      CCTK_REAL tol, CCTK_REAL alp_thresh_in, CCTK_REAL consError,
-      CCTK_REAL vwlim, CCTK_REAL B_lim, CCTK_REAL rho_BH_in,
-      CCTK_REAL eps_BH_in, CCTK_REAL vwlim_BH_in, bool ye_len, bool use_z,
-      bool use_temperature, bool use_pressure_atmo);
+      CCTK_REAL tol, CCTK_REAL alp_thresh_in, CCTK_REAL vwlim, CCTK_REAL B_lim,
+      CCTK_REAL rho_BH_in, CCTK_REAL eps_BH_in, CCTK_REAL vwlim_BH_in,
+      CCTK_REAL sigma_max_in, CCTK_REAL inv_beta_max_in, bool ye_len,
+      bool use_z, bool use_temperature, bool use_pressure_atmo);
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   get_Ssq_Exact(const vec<CCTK_REAL, 3> &mom,
@@ -50,6 +50,7 @@ public:
   template <typename EOSType>
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
   solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
+        const CCTK_REAL alp, const vec<CCTK_REAL, 3> &beta,
         const smat<CCTK_REAL, 3> &glo, c2p_report &rep) const;
 
   /* Destructor */
@@ -61,9 +62,10 @@ template <typename EOSType>
 CCTK_HOST CCTK_DEVICE
     CCTK_ATTRIBUTE_ALWAYS_INLINE inline c2p_1DEntropy::c2p_1DEntropy(
         const EOSType *eos_3p, const atmosphere &atm, CCTK_INT maxIter,
-        CCTK_REAL tol, CCTK_REAL alp_thresh_in, CCTK_REAL consError,
-        CCTK_REAL vwlim, CCTK_REAL B_lim, CCTK_REAL rho_BH_in,
-        CCTK_REAL eps_BH_in, CCTK_REAL vwlim_BH_in, bool ye_len, bool use_z,
+        CCTK_REAL tol, CCTK_REAL alp_thresh_in, CCTK_REAL vwlim,
+        CCTK_REAL B_lim, CCTK_REAL rho_BH_in, CCTK_REAL eps_BH_in,
+        CCTK_REAL vwlim_BH_in, CCTK_REAL sigma_max_in,
+        CCTK_REAL inv_beta_max_in, bool ye_len, bool use_z,
         bool use_temperature, bool use_pressure_atmo) {
 
   // Base
@@ -71,7 +73,6 @@ CCTK_HOST CCTK_DEVICE
   maxIterations = maxIter;
   tolerance = tol;
   alp_thresh = alp_thresh_in;
-  cons_error = consError;
   vw_lim = vwlim;
   w_lim = sqrt(1.0 + vw_lim * vw_lim);
   v_lim = vw_lim / w_lim;
@@ -79,6 +80,8 @@ CCTK_HOST CCTK_DEVICE
   rho_BH = rho_BH_in;
   eps_BH = eps_BH_in;
   vwlim_BH = vwlim_BH_in;
+  sigma_max = sigma_max_in;
+  inv_beta_max = inv_beta_max_in;
   ye_lenient = ye_len;
   use_zprim = use_z;
   use_temp = use_temperature;
@@ -154,13 +157,11 @@ c2p_1DEntropy::xEntropyToPrim(CCTK_REAL xEntropy_Sol, CCTK_REAL Ssq,
   pv.w_lor = cv.dens / xEntropy_Sol;
 
   // Pressure and epsilon
-  pv.press =
-      eos_3p->press_from_rho_kappa_ye(xEntropy_Sol, pv.entropy, pv.Ye);
+  pv.press = eos_3p->press_from_rho_kappa_ye(xEntropy_Sol, pv.entropy, pv.Ye);
   pv.eps = eos_3p->eps_from_rho_kappa_ye(xEntropy_Sol, pv.entropy, pv.Ye);
 
   // Temperature
-  pv.temperature =
-      eos_3p->temp_from_rho_eps_ye(xEntropy_Sol, pv.eps, pv.Ye);
+  pv.temperature = eos_3p->temp_from_rho_eps_ye(xEntropy_Sol, pv.eps, pv.Ye);
 
   // Taken from WZ2Prim (2DNRNoble)
   // Z_Sol = rho * h * w_lor * w_lor
@@ -244,8 +245,7 @@ c2p_1DEntropy::funcRoot_1DEntropy(CCTK_REAL Ssq, CCTK_REAL Bsq, CCTK_REAL BiSi,
   const CCTK_REAL press_loc =
       eos_3p->press_from_rho_kappa_ye(x, ent_loc, ye_loc);
 
-  const CCTK_REAL eps_loc =
-      eos_3p->eps_from_rho_kappa_ye(x, ent_loc, ye_loc);
+  const CCTK_REAL eps_loc = eos_3p->eps_from_rho_kappa_ye(x, ent_loc, ye_loc);
 
   // Compute (A60) using
   // W = rho*h*lorentz*lorentz
@@ -267,6 +267,7 @@ c2p_1DEntropy::funcRoot_1DEntropy(CCTK_REAL Ssq, CCTK_REAL Bsq, CCTK_REAL BiSi,
 template <typename EOSType>
 CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
 c2p_1DEntropy::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
+                     const CCTK_REAL alp, const vec<CCTK_REAL, 3> &beta,
                      const smat<CCTK_REAL, 3> &glo, c2p_report &rep) const {
 
   // ROOTSTAT status = ROOTSTAT::SUCCESS;
@@ -391,36 +392,11 @@ c2p_1DEntropy::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
   if (abs(result.first - result.second) >
       tolerance_0 * min(abs(result.first), abs(result.second))) {
 
-    // check primitives against conservatives
-    cons_vars cv_check;
-    cv_check.from_prim(pv, glo);
-    /* Undensitize the conserved vars */
-    cv_check.dens /= sqrt_detg;
-    cv_check.tau /= sqrt_detg;
-    cv_check.mom /= sqrt_detg;
-    cv_check.dBvec /= sqrt_detg;
-    cv_check.DYe /= sqrt_detg;
-    cv_check.DEnt /= sqrt_detg;
-
-    CCTK_REAL small = 1e-50;
-
-    // note that we don't compute the error in
-    // tau as we make use of the conserved entropy
-    // for the inversion
-    CCTK_REAL max_error = sqrt(
-        max({pow((cv_check.dens - cv.dens) / (cv.dens + small), 2.0),
-             pow((cv_check.mom(0) - cv.mom(0)) / (cv.mom(0) + small), 2.0),
-             pow((cv_check.mom(1) - cv.mom(1)) / (cv.mom(1) + small), 2.0),
-             pow((cv_check.mom(2) - cv.mom(2)) / (cv.mom(2) + small), 2.0)}));
-
-    // reject only if mismatch in conservatives is inappropriate, else accept
-    if (max_error >= cons_error) {
-      // set status to root not converged
-      rep.set_root_conv();
-      cv = cv_const;
-      // status = ROOTSTAT::NOT_CONVERGED;
-      return;
-    }
+    // set status to root not converged
+    rep.set_root_conv();
+    cv = cv_const;
+    // status = ROOTSTAT::NOT_CONVERGED;
+    return;
   }
 
   // set to atmo if computed rho is below floor density
@@ -430,7 +406,7 @@ c2p_1DEntropy::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
     return;
   }
 
-  c2p::prims_floors_and_ceilings(eos_3p, pv, cv, glo, rep);
+  c2p::prims_floors_and_ceilings(eos_3p, pv, cv, alp, beta, glo, rep);
 
   // Recompute cons if prims have been adjusted
   if (rep.adjust_cons) {
