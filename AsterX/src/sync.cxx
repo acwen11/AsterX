@@ -89,11 +89,18 @@ extern "C" void AsterX_RestrictAuxTermsForAvecPsiRHS(CCTK_ARGUMENTS) {
 }
 
 extern "C" void AsterX_ProlongatedBstag(CCTK_ARGUMENTS) {
-  static const std::vector<int> groups = {CCTK_GroupIndex("AsterX::dBx_stag"),
-                                          CCTK_GroupIndex("AsterX::dBy_stag"),
-                                          CCTK_GroupIndex("AsterX::dBz_stag")};
+  DECLARE_CCTK_ARGUMENTSX_AsterX_ProlongatedBstag;
+  DECLARE_CCTK_PARAMETERS;
+  if (cctk_iteration < prolong_dbstag_until) {
+    static const std::vector<int> groups = {CCTK_GroupIndex("AsterX::dBx_stag"),
+                                            CCTK_GroupIndex("AsterX::dBy_stag"),
+                                            CCTK_GroupIndex("AsterX::dBz_stag")};
 
-  SyncGroupsByDirIProlongateOnly(cctkGH, groups.size(), groups.data(), nullptr);
+    SyncGroupsByDirIProlongateOnly(cctkGH, groups.size(), groups.data(), nullptr);
+  }
+  else {
+    return;
+  }
 }
 
 extern "C" void AsterX_CommdBstag(CCTK_ARGUMENTS) {

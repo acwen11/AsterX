@@ -59,7 +59,7 @@ SCHEDULE AsterX_ComputedBstagFromA IN AsterX_InitialGroup
   WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
 } "Calculate dBstag from curl of A"
 
-if(!use_subcycling_wip && prolongate_dbstag)
+if(prolongate_dbstag)
 {
   SCHEDULE AsterX_ProlongatedBstag IN AsterX_InitialGroup AFTER AsterX_ComputedBstagFromA BEFORE AsterX_ComputedBFromdBstag
   {
@@ -109,7 +109,7 @@ if (unmagnetized_test) {
     WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
   } "Calculate dBstag from curl of A"
 
-  if(!use_subcycling_wip && prolongate_dbstag)
+  if(prolongate_dbstag)
   {
     SCHEDULE AsterX_ProlongatedBstag IN Reset_Mag_Hack AFTER AsterX_ComputedBstagFromA BEFORE AsterX_ComputedBFromdBstag
     {
@@ -238,7 +238,7 @@ SCHEDULE AsterX_ComputedBstagFromA IN AsterX_Con2PrimGroup
   WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
 } "Calculate dBstag from curl of A"
 
-if(!use_subcycling_wip && prolongate_dbstag)
+if(prolongate_dbstag)
 {
   SCHEDULE AsterX_ProlongatedBstag IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBstagFromA BEFORE AsterX_ComputedBFromdBstag
   {
