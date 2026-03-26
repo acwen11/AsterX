@@ -319,11 +319,6 @@ BOOLEAN set_Ye_postinitial "Set Ye in HydroBaseX_PostInitial" STEERABLE=always
 {
 } "yes"
 
-restricted:
-BOOLEAN unmagnetized_test "Reset magnetic fields to 0 after enforcing beta floor"
-{
-} "no"
-
 SHARES: EOSX
 USES KEYWORD evolution_eos
 

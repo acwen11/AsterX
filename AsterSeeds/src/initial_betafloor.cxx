@@ -39,13 +39,6 @@ extern "C" void AsterSeeds_SetInitialBetaFloor(CCTK_ARGUMENTS) {
         const CCTK_REAL epsL = eps(p.I);
         const CCTK_REAL entL = entropy(p.I);
 
-        const CCTK_REAL radial_distance = sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
-        // Grading rho
-        // CCTK_REAL rho_atm = (radial_distance > r_atmo)
-        //     ? (rho_abs_min * pow((r_atmo / radial_distance), n_rho_atmo))
-        //     : rho_abs_min;
-        // const CCTK_REAL rho_atmo_cut = rho_atm * (1 + atmo_tol);
-
         // Compute b^2
         /* Get covariant metric */
         const smat<CCTK_REAL, 3> glo(
@@ -68,7 +61,6 @@ extern "C" void AsterSeeds_SetInitialBetaFloor(CCTK_ARGUMENTS) {
 
         if ((pressL >= press_lim) || (rhoL > initial_beta_rhocut)) {
           press(p.I) = pressL;
-          
           rho(p.I) = rhoL;
           eps(p.I) = epsL;
           entropy(p.I) = entL;
@@ -82,28 +74,6 @@ extern "C" void AsterSeeds_SetInitialBetaFloor(CCTK_ARGUMENTS) {
         }
         
       });
-
-  if (unmagnetized_test)
-  {
-    // Reset everything to 0 again
-    grid.loop_int<1, 0, 0>(grid.nghostzones,
-                           [=] CCTK_HOST(const Loop::PointDesc &p)
-                               CCTK_ATTRIBUTE_ALWAYS_INLINE {
-                                 Avec_x(p.I) = 0.0;
-                               });
-
-    grid.loop_int<0, 1, 0>(grid.nghostzones,
-                           [=] CCTK_HOST(const Loop::PointDesc &p)
-                               CCTK_ATTRIBUTE_ALWAYS_INLINE {
-                                 Avec_y(p.I) = 0.0;
-                               });
-
-    grid.loop_int<0, 0, 1>(grid.nghostzones,
-                           [=] CCTK_HOST(const Loop::PointDesc &p)
-                               CCTK_ATTRIBUTE_ALWAYS_INLINE {
-                                 Avec_z(p.I) = 0.0;
-                               });
-  }
 
 }
 

@@ -23,11 +23,6 @@ BOOLEAN prolongate_dbstag "Shall we prolongate dBstag?" STEERABLE=always
 {
 } "no"
 
-CCTK_INT prolong_dbstag_until "if prolongate_dbstag is on, prolongate dBstag until this iteration" STEERABLE=always
-{
- 0:* :: "should be positive"
-} 0
-
 KEYWORD flux_type "Flux solver" STEERABLE=always
 {
   "LxF" :: ""
@@ -216,6 +211,3 @@ USES CCTK_REAL mp5_alpha
 
 SHARES: Driver
 USES BOOLEAN use_subcycling_wip
-
-SHARES: AsterSeeds
-USES BOOLEAN unmagnetized_test
