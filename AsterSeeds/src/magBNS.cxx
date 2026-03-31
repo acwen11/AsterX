@@ -17,6 +17,10 @@ extern "C" void AsterSeeds_InitializeCenteredAvec_BNS(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterSeeds_InitializeCenteredAvec_BNS;
   DECLARE_CCTK_PARAMETERS;
 
+  if (cctk_iteration == 0) && (seeding_time > 0) {
+    *DoneSeeding = false;
+    return;
+  }
   if (CCTK_EQUALS(Afield_config, "internal dipole")) {
 
     /* computing cell centered vector potential components */
