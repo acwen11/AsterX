@@ -14,3 +14,4 @@ CCTK_REAL Avec_cent TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
   Avec_z_cent
 } "Cell-centered vector potential components"
 
+CCTK_INT DoneSeeding type=SCALAR tags='checkpoint="no"'

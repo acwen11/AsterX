@@ -232,6 +232,18 @@ REAL initial_beta_rhocut "Pad pressure below this density"
 {
   0:*     :: "Positive"
 } 0.0
+
+# BNS inspiral initialization parameters
+REAL seeding_time "Time [Cactus units] after which magnetic field is seeded" STEERABLE=ALWAYS
+{
+  (0.0:*) :: ""
+} 0.0
+
+INT seed_every "Check if conditions for seeding are met every <seed_every> iterations" STEERABLE=ALWAYS
+{
+  0:* :: "0 means dont seed in CCTK_POSTSTEP"
+} 0
+
 # ---------------------------------------
 
 
