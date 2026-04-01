@@ -165,6 +165,7 @@ KEYWORD Afield_config "Definition of the initial vector potential"
   "none"             :: "Nothing set here"
   "internal dipole"  :: "Dipole field according to Ciolfi+2017"
   "external dipole"  :: "Dipole field according to Moesta+2020"
+  "external dipole Ruiz"  :: "Dipole field according to Ruiz+2020"
   "external dipole Shibata 2011"  :: "Dipole field according to Shibata+2011"
 } "none"
 
@@ -233,10 +234,29 @@ REAL initial_beta_rhocut "Pad pressure below this density"
   0:*     :: "Positive"
 } 0.0
 
+BOOLEAN set_coorbiting_vel "After padding pressure, set coorbiting velocity?"
+{
+} "no"
+
+REAL radius_NS1 "Approximate radius of initial left NS, used only for tapering coorbiting vel."
+{
+  0:*     :: "Positive"
+} 9.0
+
+REAL radius_NS2 "Approximate radius of initial right NS, used only for tapering coorbiting vel."
+{
+  0:*     :: "Positive"
+} 9.0
+
+REAL vtol "Overwrite velocity with coorbiting velocity if all |v^i| are below tolerance"
+{
+  0:*     :: "Positive"
+} 0.0
+
 # BNS inspiral initialization parameters
 REAL seeding_time "Time [Cactus units] after which magnetic field is seeded" STEERABLE=ALWAYS
 {
-  (0.0:*) :: ""
+  [0.0:*) :: ""
 } 0.0
 
 INT seed_every "Check if conditions for seeding are met every <seed_every> iterations" STEERABLE=ALWAYS
