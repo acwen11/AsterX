@@ -254,6 +254,19 @@ REAL vtol "Overwrite velocity with coorbiting velocity if all |v^i| are below to
 } 0.0
 
 # BNS inspiral initialization parameters
+BOOLEAN use_separation "Seeding time determined by separation of stars from VolumeIntegrals_GRMHDX" STEERABLE=ALWAYS
+{
+} "yes"
+
+BOOLEAN use_time "Seeding time determined by evolution time" STEERABLE=ALWAYS
+{ 
+} "no"
+
+REAL seeding_separation "Coordinate separation of stars below which magnetic field is seeded" STEERABLE=ALWAYS
+{
+  (0.0:*) :: ""
+} 5.0
+
 REAL seeding_time "Time [Cactus units] after which magnetic field is seeded" STEERABLE=ALWAYS
 {
   [0.0:*) :: ""

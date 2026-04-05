@@ -109,6 +109,7 @@ if (CCTK_Equals(test_type, "3DTest")) {
       {
          LANG: C
          OPTIONS: GLOBAL
+         READS: VolumeIntegrals_GRMHDX::CoM1(everywhere) VolumeIntegrals_GRMHDX::CoM2(everywhere)
          READS: DoneSeeding(everywhere)
          WRITES: SeedNow(everywhere)
       } "Evaluate whether to seed now or not."
@@ -156,32 +157,15 @@ if (CCTK_Equals(test_type, "3DTest")) {
           WRITES: HydrobaseX::rho(everywhere) HydroBaseX::press(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::entropy(everywhere)  HydrobaseX::vel(everywhere)
         } "Enforce initial minimum plasma beta"
 
-        SCHEDULE AsterX_Con2Prim IN Seeding_Tasks AFTER AsterSeeds_SetInitialBetaFloor
+        SCHEDULE AsterX_Prim2Con_Initial IN Seeding_Tasks AFTER AsterSeeds_SetInitialBetaFloor
         {
           LANG: C
-          READS: AsterMasks::aster_mask_vc(everywhere)
-          READS: ADMBaseX::metric(everywhere)
-          READS: ADMBaseX::lapse(everywhere)
-          READS: AsterX::cons_vector(everywhere) AsterX::dB(everywhere)
-          READS: ADMBaseX::shift(everywhere)
-          READS: AsterX::saved_prims(everywhere)
-          READS: AsterX::Avec_x(everywhere) AsterX::Avec_y(everywhere) AsterX::Avec_z(everywhere)
-          WRITES: AsterX::con2prim_flag(everywhere)
-          WRITES: AsterX::diagnostics(everywhere)
-          WRITES: AsterMasks::aster_mask_cc(everywhere)
-          WRITES: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::Bvec(everywhere)
-          WRITES: HydroBaseX::temperature(everywhere) HydroBaseX::entropy(everywhere) HydroBaseX::Ye(everywhere)
-          WRITES: AsterX::saved_prims(everywhere)
-          WRITES: AsterX::zvec(everywhere)
-          WRITES: AsterX::svec(everywhere)
-          WRITES: AsterX::cons_vector(everywhere) AsterX::dB(everywhere)
-        } "Run Con2Prim again after adjusting prims"
-
-        SCHEDULE AsterX_ApplyOuterBCOnPrim IN Seeding_Tasks AFTER AsterX_Con2Prim
-        {
-          LANG: C
-          OPTIONS: global
-        } "Apply CarpetX boundary conditions on primitive variables"
+          READS: ADMBaseX::metric(interior)
+          READS: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::Bvec(interior)
+          READS: HydroBaseX::entropy(interior) HydroBaseX::Ye(interior)
+          WRITES: AsterX::cons_vector(interior) AsterX::dB(interior)
+          SYNC: AsterX::cons_vector AsterX::dB
+        } "Update cons after setting initial beta"
       }
 
       SCHEDULE AsterX_Tmunu IN Seeding_Tasks AFTER AsterX_Con2PrimGroup AFTER AsterX_ApplyOuterBCOnPrim

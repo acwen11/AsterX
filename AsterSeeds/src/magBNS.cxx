@@ -31,7 +31,18 @@ extern "C" void AsterSeeds_Set_Seeding_Flags(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterSeeds_Set_Seeding_Flags;
   DECLARE_CCTK_PARAMETERS;
 
-  if ((!*DoneSeeding) && (cctk_iteration % seed_every == 0) && (cctk_time > seeding_time)) {
+  bool seed_trigger = false;
+  if (use_time && (cctk_time > seeding_time))
+    seed_trigger = true;
+  if (use_separation) {
+    const CCTK_REAL ns_Dx = abs(*comx1 - *comx2);
+    const CCTK_REAL ns_Dy = abs(*comy1 - *comy2);
+    const CCTK_REAL ns_sep = sqrt(ns_Dx * ns_Dx + ns_Dy * ns_Dy);
+    if (ns_sep > seeding_separation)
+      seed_trigger = true;
+  }
+
+  if ((!*DoneSeeding) && (cctk_iteration % seed_every == 0) && seed_trigger) {
     CCTK_VINFO("SEEDING NOW!!!");
     *SeedNow = 1;
   } else {
