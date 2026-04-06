@@ -407,7 +407,7 @@ c2p_1DEntropy::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
     bool accept_soft = false;
     if (soft_root_convergence) {
       const CCTK_REAL scale =
-          fmax(CCTK_REAL(1.0), fmax(abs(result.first), abs(result.second)));
+          fmax(CCTK_REAL(0.0), fmax(abs(result.first), abs(result.second)));
       const CCTK_REAL soft_width_tol =
           soft_root_width_factor * tolerance * scale;
       accept_soft = std::isfinite(root_width) && std::isfinite(soft_width_tol) &&

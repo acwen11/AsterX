@@ -92,20 +92,6 @@ public:
     cv.DYe /= sqrt_detg;
     cv.DEnt /= sqrt_detg;
 
-    if ((!isfinite(cv.dens)) || (cv.dens <= CCTK_REAL(0))) {
-      rep.set_nans_in_cons(cv.dens, CCTK_REAL(0), CCTK_REAL(0), CCTK_REAL(0),
-                           cv.DYe);
-      set_to_nan(pv, cv);
-      return;
-    }
-
-    if (cv.dens <= atmo.rho_cut) {
-      rep.set_atmo_set();
-      pv.Bvec = cv.dBvec;
-      atmo.set(pv, cv, glo);
-      return;
-    }
-
     const CCTK_REAL Ssq =
         calc_contraction(calc_contraction(gup, cv.mom), cv.mom);
     const CCTK_REAL Bsq =
@@ -178,7 +164,7 @@ public:
         if (std::isfinite(a) && std::isfinite(b) && b >= a) {
           const CCTK_REAL width = b - a;
           const CCTK_REAL scale =
-              fmax(CCTK_REAL(1.0), fmax(std::abs(a), std::abs(b)));
+              fmax(CCTK_REAL(0.0), fmax(std::abs(a), std::abs(b)));
           const CCTK_REAL width_tol =
               soft_root_width_factor * tolerance * scale;
           const CCTK_REAL mu_ref =

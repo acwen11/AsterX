@@ -384,6 +384,13 @@ c2p_1DPalenzuela::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
     return;
   }
 
+  // Clamp Ye in the local working conservatives so the root solve and prim
+  // reconstruction both use EOS-valid Ye.
+  CCTK_REAL Ye_raw = cv.DYe / cv.dens;
+  const CCTK_REAL Ye = fmin(fmax(eos_3p->rgye.min, Ye_raw), eos_3p->rgye.max);
+  const bool ye_clipped = (Ye_raw < eos_3p->rgye.min) || (Ye_raw > eos_3p->rgye.max);
+  cv.DYe = cv.dens * Ye;
+
   // Find x, this is the recovery process
   // const CCTK_INT minbits = std::numeric_limits<CCTK_REAL>::digits - 4;
   // const CCTK_INT maxiters = maxIterations;
@@ -468,6 +475,10 @@ c2p_1DPalenzuela::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
     return;
   }
 
+  if (ye_clipped) {
+    rep.adjust_cons = true;
+  }
+
   // General comment:
   // One could think of expressing the following condition
   // in a way that is "safe" against NaNs and infs. First, this only makes
@@ -491,7 +502,7 @@ c2p_1DPalenzuela::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
     bool accept_soft = false;
     if (soft_root_convergence) {
       const CCTK_REAL scale =
-          fmax(CCTK_REAL(1.0), fmax(abs(result.first), abs(result.second)));
+          fmax(CCTK_REAL(0.0), fmax(abs(result.first), abs(result.second)));
       const CCTK_REAL soft_width_tol =
           soft_root_width_factor * tolerance * scale;
       accept_soft = std::isfinite(root_width) && std::isfinite(soft_width_tol) &&
