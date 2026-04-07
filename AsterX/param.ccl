@@ -186,7 +186,6 @@ USES CCTK_REAL alp_thresh
 USES CCTK_REAL rho_BH
 USES CCTK_REAL eps_BH
 USES CCTK_REAL vwlim_BH
-USES CCTK_INT mag_limit_delay
 USES CCTK_REAL sigma_max
 USES CCTK_REAL inv_beta_max
 USES BOOLEAN use_z

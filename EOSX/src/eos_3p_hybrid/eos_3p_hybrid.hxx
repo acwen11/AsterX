@@ -120,7 +120,6 @@ public:
     return CCTK_REAL(0.0);
   }
 
-  // temperature is not yet implemented in thc
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   temp_from_rho_press_ye(const CCTK_REAL rho, CCTK_REAL &press,
                              const CCTK_REAL ye) const {
@@ -128,7 +127,6 @@ public:
     return 0.0;
   }
 
-  // temperature is not yet implemented in thc
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   rho_from_press_temp_ye(CCTK_REAL &press, const CCTK_REAL temp,
                              const CCTK_REAL ye) const {
@@ -136,7 +134,6 @@ public:
     return 0.0;
   }
 
-  // edited
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
   press_derivs_from_rho_eps_ye(CCTK_REAL &press, CCTK_REAL &dpdrho,
                                CCTK_REAL &dpdeps, const CCTK_REAL rho,

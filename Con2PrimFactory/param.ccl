@@ -145,10 +145,6 @@ CCTK_REAL vwlim_BH " Maximum zvec (v*w) allowed in regions where alp<alp_thresh"
 } 1.0e100
 
 # Parameters for highly mag. regions
-CCTK_INT mag_limit_delay "Enforce mag. limits after this iteration" STEERABLE=ALWAYS
-{
-  *:* :: "Negative means always active"
-} -1
 
 CCTK_REAL sigma_max "Maximum allowed magnetisation: sigma=b^2/rho" STEERABLE=ALWAYS
 {
