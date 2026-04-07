@@ -77,6 +77,7 @@ public:
     CCTK_REAL ye{0}, lmu{0}, x{0};
     CCTK_REAL rho{0}, rho_raw{0};
     CCTK_REAL eps{0}, eps_raw{0};
+    CCTK_REAL etot{0}, etot_raw{0};
     CCTK_REAL press{0};
     CCTK_REAL vsqr{0};
     CCTK_REAL w{1};
@@ -93,10 +94,12 @@ public:
 
     // Build h0 from EOS min bounds
     const CCTK_REAL rhomin = eos->rgrho.min;
-    CCTK_REAL epsmin = eos->rgeps.min;
+    const auto rgeps0 = eos->range_eps_from_rho_ye(rhomin, valid_ye);
+    CCTK_REAL epsmin = rgeps0.min;
     const CCTK_REAL pmin =
         eos->press_from_rho_eps_ye(rhomin, epsmin, valid_ye);
     h0 = 1.0 + epsmin + pmin / rhomin;
+    h0 = fmax(h0, CCTK_REAL(1.0) + std::numeric_limits<CCTK_REAL>::epsilon());
 
     const CCTK_REAL zsqrinf = rsqr / (h0 * h0);
     const CCTK_REAL wsqrinf = 1.0 + zsqrinf;
@@ -125,15 +128,22 @@ public:
     c.rho = fmin(fmax(eos->rgrho.min, c.rho_raw), eos->rgrho.max);
 
     c.eps_raw = get_eps_raw(mu, qf, rfsqr, c.w);
-    c.eps = fmin(fmax(eos->rgeps.min, c.eps_raw), eos->rgeps.max);
+    const auto rgeps = eos->range_eps_from_rho_ye(c.rho, c.ye);
+    c.eps = fmin(fmax(rgeps.min, c.eps_raw), rgeps.max);
+
+    c.etot_raw = c.rho_raw * (1.0 + c.eps_raw);
+    c.etot = c.rho * (1.0 + c.eps);
 
     c.press = eos->press_from_rho_eps_ye(c.rho, c.eps, c.ye);
     ++c.calls;
 
-    const CCTK_REAL a = c.press / (c.rho * (1.0 + c.eps));
-    const CCTK_REAL h = (1.0 + c.eps) * (1.0 + a);
+    const CCTK_REAL inv_etot =
+        CCTK_REAL(1.0) /
+        fmax(c.etot, std::numeric_limits<CCTK_REAL>::min());
+    const CCTK_REAL one_plus_a = (c.etot + c.press) * inv_etot;
+    const CCTK_REAL h = (c.etot + c.press) / c.rho;
 
-    const CCTK_REAL hbw_raw = (1.0 + a) * (1.0 + qf - mu * rfsqr);
+    const CCTK_REAL hbw_raw = one_plus_a * (1.0 + qf - mu * rfsqr);
     const CCTK_REAL hbw = fmax(hbw_raw, h / c.w);
     const CCTK_REAL newmu = 1.0 / (hbw + rfsqr * mu);
 
@@ -141,20 +151,39 @@ public:
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE interval<CCTK_REAL>
-  initial_bracket() const {
-    CCTK_REAL mu_max = 1.0 / h0; // fallback
-    {
+  initial_bracket(ROOTSTAT &status) const {
+    status = ROOTSTAT::SUCCESS;
+    CCTK_REAL mu_max = CCTK_REAL(1) / h0;
+
+    if (rsqr >= h0 * h0) {
       const int ndigits2 = 36;
+      const CCTK_REAL margin = std::ldexp(CCTK_REAL(1), 3 - ndigits2);
       RePrimAnd::f_upper g(h0, rsqr, rbsqr, bsqr);
-      ROOTSTAT status{};
-      mu_max = findroot_using_deriv(g, status, ndigits2, ndigits2 + 4);
-      if (status != ROOTSTAT::SUCCESS || !std::isfinite(mu_max))
-        mu_max = 1.0 / h0;
+      const CCTK_REAL mu_try =
+          findroot_using_deriv(g, status, ndigits2, ndigits2 + 4);
+
+      if (status != ROOTSTAT::SUCCESS || !std::isfinite(mu_try)) {
+        if (status == ROOTSTAT::SUCCESS)
+          status = ROOTSTAT::NOT_CONVERGED;
+        return {CCTK_REAL(0), CCTK_REAL(1) / h0};
+      }
+
+      mu_max = mu_try * (CCTK_REAL(1) + margin);
     }
-    const CCTK_REAL margin = std::ldexp(1.0, 3 - 36);
-    mu_max *= (1.0 + margin);
-    const CCTK_REAL mu_min = 0.0;
-    return {mu_min, mu_max};
+
+    return {CCTK_REAL(0), mu_max};
+  }
+
+  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE interval<CCTK_REAL>
+  initial_bracket() const {
+    ROOTSTAT status{};
+    return initial_bracket(status);
+  }
+
+  // RePrimAnd stop condition used by the TOMS748-style bracket solver.
+  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE bool
+  stopif(CCTK_REAL mu, CCTK_REAL dmu, CCTK_REAL acc) const {
+    return std::abs(dmu) * last.w * last.w < mu * acc;
   }
 
   // Public parameters accessed by rarecase/f_rare
@@ -248,7 +277,7 @@ public:
       }
     }
 
-    if (f.d < rgrho.min()) {
+    if (f.d < f.winf * rgrho.min()) {
       const CCTK_REAL wc = f.d / rgrho.min();
       if (wc < 1.0) {
         rho_too_small = true;

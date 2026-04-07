@@ -21,14 +21,14 @@ public:
   CCTK_REAL GammaIdealFluid;
 
   template <typename EOSType>
-  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline
-  c2p_1DRePrimAnd(const EOSType *eos_3p, const atmosphere &atm_in,
-                  CCTK_INT maxIter, CCTK_REAL tol, CCTK_REAL alp_thresh_in,
-                  CCTK_REAL vwlim, CCTK_REAL B_lim,
-                  CCTK_REAL rho_BH_in, CCTK_REAL eps_BH_in,CCTK_REAL vwlim_BH_in, 
-                  CCTK_REAL sigma_max_in, CCTK_REAL inv_beta_max_in,
-                  bool ye_len, bool use_z,
-                  bool use_temperature, bool use_pressure_atmo) {
+  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline c2p_1DRePrimAnd(
+      const EOSType *eos_3p, const atmosphere &atm_in, CCTK_INT maxIter,
+      CCTK_REAL tol, CCTK_REAL alp_thresh_in, CCTK_REAL vwlim,
+      CCTK_REAL B_lim, CCTK_REAL rho_BH_in, CCTK_REAL eps_BH_in,
+      CCTK_REAL vwlim_BH_in, CCTK_REAL sigma_max_in,
+      CCTK_REAL inv_beta_max_in, bool ye_len, bool use_z,
+      bool use_temperature, bool use_pressure_atmo, bool soft_root_conv,
+      CCTK_REAL soft_root_width_factor_in) {
 
     atmo = atm_in;
     maxIterations = maxIter;
@@ -41,12 +41,14 @@ public:
     rho_BH = rho_BH_in;
     eps_BH = eps_BH_in;
     vwlim_BH = vwlim_BH_in;
-    sigma_max = sigma_max_in;
-    inv_beta_max = inv_beta_max_in;
     ye_lenient = ye_len;
     use_zprim = use_z;
     use_temp = use_temperature;
     use_press_atmo = use_pressure_atmo;
+    soft_root_convergence = soft_root_conv;
+    soft_root_width_factor = fmax(CCTK_REAL(1.0), soft_root_width_factor_in);
+    sigma_max = sigma_max_in;
+    inv_beta_max = inv_beta_max_in;
 
     GammaIdealFluid = eos_3p->gamma;
   }
@@ -59,16 +61,13 @@ public:
 
   template <typename EOSType>
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
-  solve(const EOSType* eos_3p,
-        prim_vars& pv, cons_vars& cv,
-        const CCTK_REAL alp,
-        const vec<CCTK_REAL, 3> &beta,
-        const smat<CCTK_REAL,3>& glo,
-        c2p_report& rep) const
-  {
+  solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
+        const CCTK_REAL alp, const vec<CCTK_REAL, 3> &beta,
+        const smat<CCTK_REAL, 3> &glo, c2p_report &rep) const {
     rep.iters = 0;
     rep.adjust_cons = false;
     rep.set_atmo = false;
+    rep.soft_root_conv = false;
     rep.status = c2p_report::SUCCESS;
 
     const CCTK_REAL spatial_detg = calc_det(glo);
@@ -115,48 +114,108 @@ public:
 
     // Ye needs to be a non-const lvalue for EOS calls
     CCTK_REAL Ye_raw = cv.DYe / cv.dens;
-    CCTK_REAL Ye = fmin(fmax(eos_3p->rgye.min, Ye_raw), eos_3p->rgye.max);
+    const CCTK_REAL Ye = fmin(fmax(eos_3p->rgye.min, Ye_raw), eos_3p->rgye.max);
+    const bool ye_clipped =
+        (Ye_raw < eos_3p->rgye.min) || (Ye_raw > eos_3p->rgye.max);
 
     typename RePrimAnd::froot<EOSType>::cache cache{};
     RePrimAnd::froot<EOSType> f(
         eos_3p, Ye, cv.dens, cv.tau / cv.dens, Ssq / (cv.dens * cv.dens),
         (BiSi * BiSi) / (cv.dens * cv.dens * cv.dens), Bsq / cv.dens, cache);
 
-    interval<CCTK_REAL> mu_br = f.initial_bracket();
+    ROOTSTAT prep_stat{};
+    interval<CCTK_REAL> mu_br = f.initial_bracket(prep_stat);
+    if (prep_stat != ROOTSTAT::SUCCESS) {
+      if (prep_stat == ROOTSTAT::NOT_BRACKETED)
+        rep.set_prep_root_bracket();
+      else
+        rep.set_prep_root_conv();
+      cv = cv_const;
+      return;
+    }
 
     interval<CCTK_REAL> rgrho_iv{eos_3p->rgrho.min, eos_3p->rgrho.max};
     RePrimAnd::rarecase<EOSType> rc(mu_br, rgrho_iv, f);
+    if (rc.rho_too_big) {
+      rep.set_range_rho(cv.dens, cv.dens);
+      cv = cv_const;
+      return;
+    }
+    if (rc.rho_too_small) {
+      rep.set_atmo_set();
+      pv.Bvec = cv.dBvec;
+      atmo.set(pv, cv, glo);
+      return;
+    }
     mu_br = rc.bracket;
 
-    const CCTK_REAL log2 = std::log(2.0);
-    const CCTK_INT minbits = int(std::abs(std::log(tolerance)) / log2);
-    const CCTK_REAL tolerance_0 = std::ldexp(double(1.0), -minbits);
     const CCTK_INT maxiters = maxIterations;
 
-    auto fn = [&](CCTK_REAL mu) { return f(mu); };
-    if (fn(mu_br.min()) * fn(mu_br.max()) > 0) {
-      const CCTK_REAL qtot = cv.tau / cv.dens;
-      const CCTK_REAL sPal = Bsq / cv.dens;
-      CCTK_REAL new_hi = 3.0 + 3.0 * qtot - 1.5 * sPal;
-      mu_br = interval<CCTK_REAL>{mu_br.min(), new_hi};
+    ROOTSTAT root_stat{};
+    interval<CCTK_REAL> result =
+        findroot_no_deriv(f, mu_br, tolerance, (unsigned int)maxiters, root_stat);
+    rep.iters = (CCTK_INT)cache.calls;
+
+    if (root_stat == ROOTSTAT::NOT_CONVERGED) {
+      bool accept_soft = false;
+      if (soft_root_convergence) {
+        const CCTK_REAL a = fmin(result.min(), result.max());
+        const CCTK_REAL b = fmax(result.min(), result.max());
+        if (std::isfinite(a) && std::isfinite(b) && b >= a) {
+          const CCTK_REAL width = b - a;
+          const CCTK_REAL scale =
+              fmax(CCTK_REAL(0.0), fmax(std::abs(a), std::abs(b)));
+          const CCTK_REAL width_tol =
+              soft_root_width_factor * tolerance * scale;
+          const CCTK_REAL mu_ref =
+              fmax(CCTK_REAL(0.5) * (a + b), CCTK_REAL(1.0e-300));
+          const bool stopif_ok = f.stopif(mu_ref, width, tolerance);
+          accept_soft = (width <= width_tol) || stopif_ok;
+        }
+      }
+      if (!accept_soft) {
+        rep.set_root_conv();
+        cv = cv_const;
+        return;
+      }
+      rep.set_soft_root_conv();
+      root_stat = ROOTSTAT::SUCCESS;
     }
 
-    auto result =
-        Algo::brent(fn, mu_br.min(), mu_br.max(), minbits, maxiters, rep.iters);
+    if (root_stat != ROOTSTAT::SUCCESS) {
+      if (rc.rho_big) {
+        rep.set_range_rho(cv.dens, cv.dens);
+        cv = cv_const;
+        return;
+      }
+      if (rc.rho_small) {
+        rep.set_atmo_set();
+        pv.Bvec = cv.dBvec;
+        atmo.set(pv, cv, glo);
+        return;
+      }
+      rep.set_root_bracket();
+      cv = cv_const;
+      return;
+    }
 
-    const CCTK_REAL a_root = result.first;
-    const CCTK_REAL b_root = result.second;
-    const CCTK_REAL fa = fn(a_root);
-    const CCTK_REAL fb = fn(b_root);
-    const CCTK_REAL mu =
-        (fb == (CCTK_REAL)0 || std::abs(fb) < std::abs(fa)) ? b_root
-        : (std::abs(fa) < std::abs(fb))                     ? a_root
-                                        : CCTK_REAL(0.5) * (a_root + b_root);
+    CCTK_REAL mu = cache.lmu;
+    const CCTK_REAL mu_lo = fmin(result.min(), result.max());
+    const CCTK_REAL mu_hi = fmax(result.min(), result.max());
 
-    // ------------------------------------------------------------------
-    // IMPORTANT: ensure cache corresponds to the final chosen mu
-    // ------------------------------------------------------------------
-    (void)f(mu);
+    if (!std::isfinite(mu) || mu < mu_lo || mu > mu_hi) {
+      auto fn = [&](CCTK_REAL x) { return f(x); };
+      const CCTK_REAL a_root = result.min();
+      const CCTK_REAL b_root = result.max();
+      const CCTK_REAL fa = fn(a_root);
+      const CCTK_REAL fb = fn(b_root);
+      mu = (fb == (CCTK_REAL)0 || std::abs(fb) < std::abs(fa)) ? b_root
+           : (std::abs(fa) < std::abs(fb))                     ? a_root
+                                     : CCTK_REAL(0.5) * (a_root + b_root);
+
+      // Ensure cache corresponds to the final chosen mu.
+      (void)f(mu);
+    }
 
     // ------------------------------------------------------------------
     // Use the EOS-consistent RePrimAnd cached primitives
@@ -166,6 +225,18 @@ public:
     pv.eps = cache.eps;
     pv.press = cache.press;
     pv.w_lor = cache.w;
+
+    // If root-cache thermodynamics were clipped to EOS bounds, force
+    // conservative recomputation for consistency with adjusted primitives.
+    if (ye_clipped) {
+      rep.adjust_cons = true;
+    }
+    {
+      const auto rgeps = eos_3p->range_eps_from_rho_ye(pv.rho, pv.Ye);
+      if (cache.eps_raw < rgeps.min || cache.eps_raw > rgeps.max) {
+        rep.adjust_cons = true;
+      }
+    }
 
     pv.temperature = eos_3p->temp_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
     pv.entropy = eos_3p->kappa_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
@@ -187,27 +258,24 @@ public:
 
     pv.vel = (mu * cache.x) * (r_u + (rb * mu) * b_u);
 
-    vec<CCTK_REAL, 3> v_low = calc_contraction(glo, pv.vel);
-    CCTK_REAL vsq = calc_contraction(v_low, pv.vel);
-    if (vsq >= v_lim * v_lim) {
-      const CCTK_REAL scale = v_lim / (std::sqrt(vsq) + 1e-300);
-      pv.vel *= scale;
-      vsq = v_lim * v_lim;
+    const CCTK_REAL sol_v = std::sqrt(std::max(CCTK_REAL(0), cache.vsqr));
+    if (sol_v > v_lim) {
+      pv.rho = cv.dens / w_lim;
+      pv.vel *= v_lim / (sol_v + CCTK_REAL(1e-300));
+      pv.w_lor = w_lim;
+      const auto rgeps_lim = eos_3p->range_eps_from_rho_ye(pv.rho, pv.Ye);
+      pv.eps = fmin(fmax(rgeps_lim.min, pv.eps), rgeps_lim.max);
+      pv.press = eos_3p->press_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+      pv.temperature = eos_3p->temp_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+      pv.entropy = eos_3p->kappa_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
+      rep.adjust_cons = true;
+    } else {
+      pv.w_lor = cache.w;
     }
-    pv.w_lor = CCTK_REAL(1) / std::sqrt(std::max(1e-32, 1.0 - vsq));
 
     pv.Bvec = cv.dBvec;
     const vec<CCTK_REAL, 3> Elow = calc_cross_product(pv.Bvec, pv.vel);
     pv.E = calc_contraction(gup, Elow);
-
-    if (std::abs(result.first - result.second) >
-        tolerance_0 *
-            std::min(std::abs(result.first), std::abs(result.second))) {
-      // set status to root not converged
-      rep.set_root_conv();
-      cv = cv_const;
-      return;
-    }
 
     if (pv.rho < atmo.rho_cut) {
       rep.set_atmo_set();
@@ -228,14 +296,19 @@ public:
 
   template <typename EOSType>
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
-  operator()(const EOSType* eos_3p,
-             prim_vars& pv, cons_vars& cv,
-            const CCTK_REAL alp,
-            const vec<CCTK_REAL, 3> &beta,
-             const smat<CCTK_REAL,3>& /*gup_unused*/,
-             const smat<CCTK_REAL,3>& glo,
-             c2p_report& rep) const
-  {
+  solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
+        const smat<CCTK_REAL, 3> &glo, c2p_report &rep) const {
+    // Backward-compatible overload for legacy call sites.
+    const CCTK_REAL alp = 1.0;
+    const vec<CCTK_REAL, 3> beta{0.0, 0.0, 0.0};
+    solve(eos_3p, pv, cv, alp, beta, glo, rep);
+  }
+
+  template <typename EOSType>
+  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
+  operator()(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
+             const smat<CCTK_REAL, 3> & /*gup_unused*/,
+             const smat<CCTK_REAL, 3> &glo, c2p_report &rep) const {
     solve(eos_3p, pv, cv, glo, rep);
   }
 };
