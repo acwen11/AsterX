@@ -54,23 +54,6 @@ extern "C" void AsterSeeds_InitializeCenteredAvec_TOV(CCTK_ARGUMENTS) {
           Avec_z_cent(p.I) = 0.0;
         });
 
-  } else if (CCTK_EQUALS(Afield_config, "external dipole Shibata 2011")) {
-
-    /* computing cell centered vector potential components */
-    grid.loop_all<1, 1, 1>(
-        grid.nghostzones,
-        [=] CCTK_HOST(const Loop::PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-          CCTK_REAL x_local = p.x - dipole_x[0];
-          CCTK_REAL y_local = p.y - dipole_y[0];
-          CCTK_REAL z_local = p.z - dipole_z[0];
-          CCTK_REAL rsph =
-              sqrt(x_local * x_local + y_local * y_local + z_local * z_local);
-          CCTK_REAL Aphi_local = B0 * r0 / pow(rsph * rsph + 0.5 * r0 * r0, 1.5);
-          Avec_x_cent(p.I) = -y_local * Aphi_local;
-          Avec_y_cent(p.I) = x_local * Aphi_local;
-          Avec_z_cent(p.I) = 0.0;
-        });
-
   } else {
     CCTK_ERROR("Vector potential configuration not defined");
   }

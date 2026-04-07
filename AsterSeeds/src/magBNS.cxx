@@ -17,7 +17,6 @@ extern "C" void AsterSeeds_Initialize_Seeding_Flags(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterSeeds_Initialize_Seeding_Flags;
   DECLARE_CCTK_PARAMETERS;
 
-  CCTK_VINFO("Init seeding flags.");
   *SeedNow = 0;
   *DoneSeeding = 0;
   for (int ii=0; ii<3; ii++) {
@@ -43,10 +42,9 @@ extern "C" void AsterSeeds_Set_Seeding_Flags(CCTK_ARGUMENTS) {
   }
 
   if ((!*DoneSeeding) && (cctk_iteration % seed_every == 0) && seed_trigger) {
-    CCTK_VINFO("SEEDING NOW!!!");
+    CCTK_VINFO("Seeding Initial Avec...");
     *SeedNow = 1;
   } else {
-    CCTK_VINFO("Passing this time...");
     *SeedNow = 0;
   }
   
@@ -75,9 +73,6 @@ extern "C" void AsterSeeds_InitializeCenteredAvec_BNS(CCTK_ARGUMENTS) {
     y02 = dipole_y[1]; 
     z02 = dipole_z[1]; 
   }
-
-  CCTK_VINFO("Using (%g, %g, %g) as NS1 CoM", x01, y01, z01);
-  CCTK_VINFO("Using (%g, %g, %g) as NS2 CoM", x02, y02, z02);
 
   if (CCTK_EQUALS(Afield_config, "internal dipole")) {
 
@@ -149,7 +144,7 @@ extern "C" void AsterSeeds_InitializeCenteredAvec_BNS(CCTK_ARGUMENTS) {
           Avec_z_cent(p.I) = 0.0;
         });
 
-  } else if (CCTK_EQUALS(Afield_config, "external dipole Ruiz")) {
+  } else if (CCTK_EQUALS(Afield_config, "external dipole UIUC")) {
 
     /* computing cell centered vector potential components */
     grid.loop_all<1, 1, 1>(
@@ -199,7 +194,6 @@ extern "C" void AsterSeeds_InitializeCenteredAvec_BNS(CCTK_ARGUMENTS) {
     CCTK_ERROR("Vector potential configuration not defined");
   }
 
-  CCTK_VINFO("Done Initializing Cell-Centered Avec.");
   *DoneSeeding = 1;
 }
 
@@ -207,7 +201,6 @@ extern "C" void AsterSeeds_InitializeStagAvec_BNS(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterSeeds_InitializeStagAvec_BNS;
   DECLARE_CCTK_PARAMETERS;
 
-  CCTK_VINFO("Initializing Staggered Avec.");
   grid.loop_int<1, 0, 0>(grid.nghostzones,
                          [=] CCTK_HOST(const Loop::PointDesc &p)
                              CCTK_ATTRIBUTE_ALWAYS_INLINE {
@@ -231,7 +224,6 @@ extern "C" void AsterSeeds_InitializeAvectoZero(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterSeeds_InitializeAvectoZero;
   DECLARE_CCTK_PARAMETERS;
 
-  CCTK_VINFO("Initializing Avec to 0.");
   grid.loop_all<1, 0, 0>(grid.nghostzones,
                          [=] CCTK_HOST(const Loop::PointDesc &p)
                              CCTK_ATTRIBUTE_ALWAYS_INLINE {
