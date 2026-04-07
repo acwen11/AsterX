@@ -24,8 +24,8 @@ CCTK_REAL vel_NS2 TYPE=ARRAY DISTRIB=CONSTANT DIM=1 SIZE=3
   vel_NS2
 } "Helper for dynamic seeding of external dipole field. Records velocity of NS CoM"
 
-CCTK_INT SeedNow type=SCALAR tags='checkpoint="no"'
-CCTK_INT DoneSeeding type=SCALAR tags='checkpoint="no"'
+CCTK_INT SeedNow type=SCALAR tags='checkpoint="yes"'
+CCTK_INT DoneSeeding type=SCALAR tags='checkpoint="yes"'
 
 CCTK_INT FUNCTION DriverInterpolate(
   CCTK_POINTER_TO_CONST IN cctkGH,
