@@ -140,6 +140,7 @@ CCTK_REAL diagnostics TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
   w_lorentz
   B_norm
   b2small
+  volform
 } "Diagnostic grid functions"
 
 # saved_prims are computed only once at the beginning of the simulation
