@@ -136,6 +136,7 @@ extern "C" void AsterSeeds_SetInitialBetaFloor(CCTK_ARGUMENTS) {
           entropy(p.I) = eos_3p_tab3d->entropy_from_rho_temp_ye(rho(p.I), tempL, YeL);
         }
         
+        // TODO: The coorbiting velocity feature is not well tested. Use with caution.
         if (set_coorbiting_vel) {
           const CCTK_REAL vxL = velx(p.I);
           const CCTK_REAL vyL = vely(p.I);

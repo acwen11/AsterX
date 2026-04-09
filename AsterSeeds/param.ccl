@@ -235,7 +235,7 @@ REAL initial_beta_rhocut "Pad pressure below this density" STEERABLE=ALWAYS
   0:*     :: "Positive"
 } 0.0
 
-BOOLEAN set_coorbiting_vel "After padding pressure, set coorbiting velocity?" STEERABLE=ALWAYS
+BOOLEAN set_coorbiting_vel "After padding pressure, set coorbiting velocity? This feature is not well tested, use with caution." STEERABLE=ALWAYS
 {
 } "no"
 
