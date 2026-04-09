@@ -1,6 +1,7 @@
 # Interface definition for thorn AsterSeeds
 
 IMPLEMENTS: AsterSeeds
+# TODO: Remove VolumeIntegrals_GRMHDX dependency. This is only used for dynamic magnetic field seeding for BNS simulations.
 INHERITS: HydroBaseX AsterX VolumeIntegrals_GRMHDX
 
 USES INCLUDE HEADER: loop_device.hxx

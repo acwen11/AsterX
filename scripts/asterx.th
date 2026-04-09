@@ -753,3 +753,11 @@ AsterX/EOSX
 AsterX/ReconX
 AsterX/TOVSolverX
 AsterX/FishboneMoncriefIDX
+
+# BNSTools thorns
+!TARGET   = $ARR
+!TYPE     = git
+!URL      = https://github.com/jaykalinani/BNSTools.git
+!REPO_PATH= $2
+!CHECKOUT =
+BNSTools/VolumeIntegrals_GRMHDX
