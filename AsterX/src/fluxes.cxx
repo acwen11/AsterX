@@ -223,18 +223,20 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
 
     // Setting up atmosphere for two neighboring cell centers
     vec<CCTK_REAL, 2> r_atm;
+    vec<CCTK_REAL, 2> r2_atm = {0.0, 0.0};
     vec<CCTK_REAL, 2> rho_atm;
     vec<CCTK_REAL, 2> rho_cut;
     vec<CCTK_REAL, 2> press_atm;
     vec<CCTK_REAL, 2> eps_atm;
     vec<CCTK_REAL, 2> temp_atm;
 
-    const auto coord_i = p.X;
-    const auto coord_im = p.X - p.DX[dir_i];
-    r_atm(0) = sqrt(coord_im[0] * coord_im[0] + coord_im[1] * coord_im[1] +
-                    coord_im[2] * coord_im[2]);
-    r_atm(1) = sqrt(coord_i[0] * coord_i[0] + coord_i[1] * coord_i[1] +
-                    coord_i[2] * coord_i[2]);
+    // Get coordinates at neighboring cell centers
+    for (int ii=0; ii<3; ii++) {
+      r2_atm(0) += (p.X[ii] - (ii == dir_i) * 0.5 * (p.DX[dir_i])) * (p.X[ii] - (ii == dir_i) * 0.5 * (p.DX[dir_i]));
+      r2_atm(1) += (p.X[ii] + (ii == dir_i) * 0.5 * (p.DX[dir_i])) * (p.X[ii] + (ii == dir_i) * 0.5 * (p.DX[dir_i]));
+    }
+    r_atm(0) = sqrt(r2_atm(0));
+    r_atm(1) = sqrt(r2_atm(1));
 
     // Grading rho
     rho_atm(0) = (r_atm(0) > r_atmo)
@@ -735,7 +737,8 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
 
     /* Positivity Preserving Limiter */
     // First, check if both cells are in the atmosphere. If so, and the atmosphere is graded,
-    // the PP limiter can be spuriously activated, making debugging difficult.
+    // the PP limiter can be spuriously activated before the cell is reset to atmosphere
+    // after the evolution step, making debugging difficult.
     // At face Ip, Ip refers to the right cell and Im refers to the left.
     const auto Ip = p.I;
     const auto Im = p.I - p.DI[dir_i];
