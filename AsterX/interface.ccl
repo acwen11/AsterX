@@ -199,47 +199,47 @@ CCTK_REAL a_zface TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
 
 # For Subcycling
 
-CCTK_REAL cons_vectorold TYPE=gf CENTERING={ccc} TAGS='checkpoint="no" prolongation_type="minmod" prolongation_order=1'
+CCTK_REAL cons_vectorold TYPE=gf CENTERING={ccc} TAGS='checkpoint="yes" evolve="no" restrict="no" prolongation_type="minmod" prolongation_order=1'
 {
   densold, momxold, momyold, momzold, tauold, DYeold, DEntold
 } "Conserved vector RHS"
-CCTK_REAL Avec_x_old TYPE=gf CENTERING={cvv} TAGS='checkpoint="no" prolongation_type="hermite" prolongation_order=5' "x-component of vector potential RHS"
-CCTK_REAL Avec_y_old TYPE=gf CENTERING={vcv} TAGS='checkpoint="no" prolongation_type="hermite" prolongation_order=5' "y-component of vector potential RHS"
-CCTK_REAL Avec_z_old TYPE=gf CENTERING={vvc} TAGS='checkpoint="no" prolongation_type="hermite" prolongation_order=5' "z-component of vector potential RHS"
-CCTK_REAL Psi_old TYPE=gf CENTERING={vvv} TAGS='checkpoint="no" prolongation_type="hermite" prolongation_order=5' "t-component of vector potential RHS"
+CCTK_REAL Avec_x_old TYPE=gf CENTERING={cvv} TAGS='checkpoint="yes" evolve="no" restrict="no" prolongation_type="hermite" prolongation_order=5' "x-component of vector potential RHS"
+CCTK_REAL Avec_y_old TYPE=gf CENTERING={vcv} TAGS='checkpoint="yes" evolve="no" restrict="no" prolongation_type="hermite" prolongation_order=5' "y-component of vector potential RHS"
+CCTK_REAL Avec_z_old TYPE=gf CENTERING={vvc} TAGS='checkpoint="yes" evolve="no" restrict="no" prolongation_type="hermite" prolongation_order=5' "z-component of vector potential RHS"
+CCTK_REAL Psi_old TYPE=gf CENTERING={vvv} TAGS='checkpoint="yes" evolve="no" restrict="no" prolongation_type="hermite" prolongation_order=5' "t-component of vector potential RHS"
 
-CCTK_REAL cons_vectork1 TYPE=gf CENTERING={ccc} TAGS='checkpoint="no" prolongation_type="minmod" prolongation_order=1'
+CCTK_REAL cons_vectork1 TYPE=gf CENTERING={ccc} TAGS='checkpoint="yes" evolve="no" restrict="no" prolongation_type="minmod" prolongation_order=1'
 {
   densk1, momxk1, momyk1, momzk1, tauk1, DYek1, DEntk1
 } "Conserved vector RHS"
-CCTK_REAL Avec_x_k1 TYPE=gf CENTERING={cvv} TAGS='checkpoint="no" prolongation_type="hermite" prolongation_order=5' "x-component of vector potential RHS"
-CCTK_REAL Avec_y_k1 TYPE=gf CENTERING={vcv} TAGS='checkpoint="no" prolongation_type="hermite" prolongation_order=5' "y-component of vector potential RHS"
-CCTK_REAL Avec_z_k1 TYPE=gf CENTERING={vvc} TAGS='checkpoint="no" prolongation_type="hermite" prolongation_order=5' "z-component of vector potential RHS"
-CCTK_REAL Psi_k1 TYPE=gf CENTERING={vvv} TAGS='checkpoint="no" prolongation_type="hermite" prolongation_order=5' "t-component of vector potential RHS"
+CCTK_REAL Avec_x_k1 TYPE=gf CENTERING={cvv} TAGS='checkpoint="yes" evolve="no" restrict="no" prolongation_type="hermite" prolongation_order=5' "x-component of vector potential RHS"
+CCTK_REAL Avec_y_k1 TYPE=gf CENTERING={vcv} TAGS='checkpoint="yes" evolve="no" restrict="no" prolongation_type="hermite" prolongation_order=5' "y-component of vector potential RHS"
+CCTK_REAL Avec_z_k1 TYPE=gf CENTERING={vvc} TAGS='checkpoint="yes" evolve="no" restrict="no" prolongation_type="hermite" prolongation_order=5' "z-component of vector potential RHS"
+CCTK_REAL Psi_k1 TYPE=gf CENTERING={vvv} TAGS='checkpoint="yes" evolve="no" restrict="no" prolongation_type="hermite" prolongation_order=5' "t-component of vector potential RHS"
 
-CCTK_REAL cons_vectork2 TYPE=gf CENTERING={ccc} TAGS='checkpoint="no" prolongation_type="minmod" prolongation_order=1'
+CCTK_REAL cons_vectork2 TYPE=gf CENTERING={ccc} TAGS='checkpoint="yes" evolve="no" restrict="no" prolongation_type="minmod" prolongation_order=1'
 {
   densk2, momxk2, momyk2, momzk2, tauk2, DYek2, DEntk2
 } "Conserved vector RHS"
-CCTK_REAL Avec_x_k2 TYPE=gf CENTERING={cvv} TAGS='checkpoint="no" prolongation_type="hermite" prolongation_order=5' "x-component of vector potential RHS"
-CCTK_REAL Avec_y_k2 TYPE=gf CENTERING={vcv} TAGS='checkpoint="no" prolongation_type="hermite" prolongation_order=5' "y-component of vector potential RHS"
-CCTK_REAL Avec_z_k2 TYPE=gf CENTERING={vvc} TAGS='checkpoint="no" prolongation_type="hermite" prolongation_order=5' "z-component of vector potential RHS"
-CCTK_REAL Psi_k2 TYPE=gf CENTERING={vvv} TAGS='checkpoint="no" prolongation_type="hermite" prolongation_order=5' "t-component of vector potential RHS"
+CCTK_REAL Avec_x_k2 TYPE=gf CENTERING={cvv} TAGS='checkpoint="yes" evolve="no" restrict="no" prolongation_type="hermite" prolongation_order=5' "x-component of vector potential RHS"
+CCTK_REAL Avec_y_k2 TYPE=gf CENTERING={vcv} TAGS='checkpoint="yes" evolve="no" restrict="no" prolongation_type="hermite" prolongation_order=5' "y-component of vector potential RHS"
+CCTK_REAL Avec_z_k2 TYPE=gf CENTERING={vvc} TAGS='checkpoint="yes" evolve="no" restrict="no" prolongation_type="hermite" prolongation_order=5' "z-component of vector potential RHS"
+CCTK_REAL Psi_k2 TYPE=gf CENTERING={vvv} TAGS='checkpoint="yes" evolve="no" restrict="no" prolongation_type="hermite" prolongation_order=5' "t-component of vector potential RHS"
 
-CCTK_REAL cons_vectork3 TYPE=gf CENTERING={ccc} TAGS='checkpoint="no" prolongation_type="minmod" prolongation_order=1'
+CCTK_REAL cons_vectork3 TYPE=gf CENTERING={ccc} TAGS='checkpoint="yes" evolve="no" restrict="no" prolongation_type="minmod" prolongation_order=1'
 {
   densk3, momxk3, momyk3, momzk3, tauk3, DYek3, DEntk3
 } "Conserved vector RHS"
-CCTK_REAL Avec_x_k3 TYPE=gf CENTERING={cvv} TAGS='checkpoint="no" prolongation_type="hermite" prolongation_order=5' "x-component of vector potential RHS"
-CCTK_REAL Avec_y_k3 TYPE=gf CENTERING={vcv} TAGS='checkpoint="no" prolongation_type="hermite" prolongation_order=5' "y-component of vector potential RHS"
-CCTK_REAL Avec_z_k3 TYPE=gf CENTERING={vvc} TAGS='checkpoint="no" prolongation_type="hermite" prolongation_order=5' "z-component of vector potential RHS"
-CCTK_REAL Psi_k3 TYPE=gf CENTERING={vvv} TAGS='checkpoint="no" prolongation_type="hermite" prolongation_order=5' "t-component of vector potential RHS"
+CCTK_REAL Avec_x_k3 TYPE=gf CENTERING={cvv} TAGS='checkpoint="yes" evolve="no" restrict="no" prolongation_type="hermite" prolongation_order=5' "x-component of vector potential RHS"
+CCTK_REAL Avec_y_k3 TYPE=gf CENTERING={vcv} TAGS='checkpoint="yes" evolve="no" restrict="no" prolongation_type="hermite" prolongation_order=5' "y-component of vector potential RHS"
+CCTK_REAL Avec_z_k3 TYPE=gf CENTERING={vvc} TAGS='checkpoint="yes" evolve="no" restrict="no" prolongation_type="hermite" prolongation_order=5' "z-component of vector potential RHS"
+CCTK_REAL Psi_k3 TYPE=gf CENTERING={vvv} TAGS='checkpoint="yes" evolve="no" restrict="no" prolongation_type="hermite" prolongation_order=5' "t-component of vector potential RHS"
 
-CCTK_REAL cons_vectork4 TYPE=gf CENTERING={ccc} TAGS='checkpoint="no" prolongation_type="minmod" prolongation_order=1'
+CCTK_REAL cons_vectork4 TYPE=gf CENTERING={ccc} TAGS='checkpoint="yes" evolve="no" restrict="no" prolongation_type="minmod" prolongation_order=1'
 {
   densk4, momxk4, momyk4, momzk4, tauk4, DYek4, DEntk4
 } "Conserved vector RHS"
-CCTK_REAL Avec_x_k4 TYPE=gf CENTERING={cvv} TAGS='checkpoint="no" prolongation_type="hermite" prolongation_order=5' "x-component of vector potential RHS"
-CCTK_REAL Avec_y_k4 TYPE=gf CENTERING={vcv} TAGS='checkpoint="no" prolongation_type="hermite" prolongation_order=5' "y-component of vector potential RHS"
-CCTK_REAL Avec_z_k4 TYPE=gf CENTERING={vvc} TAGS='checkpoint="no" prolongation_type="hermite" prolongation_order=5' "z-component of vector potential RHS"
-CCTK_REAL Psi_k4 TYPE=gf CENTERING={vvv} TAGS='checkpoint="no" prolongation_type="hermite" prolongation_order=5' "t-component of vector potential RHS"
+CCTK_REAL Avec_x_k4 TYPE=gf CENTERING={cvv} TAGS='checkpoint="yes" evolve="no" restrict="no" prolongation_type="hermite" prolongation_order=5' "x-component of vector potential RHS"
+CCTK_REAL Avec_y_k4 TYPE=gf CENTERING={vcv} TAGS='checkpoint="yes" evolve="no" restrict="no" prolongation_type="hermite" prolongation_order=5' "y-component of vector potential RHS"
+CCTK_REAL Avec_z_k4 TYPE=gf CENTERING={vvc} TAGS='checkpoint="yes" evolve="no" restrict="no" prolongation_type="hermite" prolongation_order=5' "z-component of vector potential RHS"
+CCTK_REAL Psi_k4 TYPE=gf CENTERING={vvv} TAGS='checkpoint="yes" evolve="no" restrict="no" prolongation_type="hermite" prolongation_order=5' "t-component of vector potential RHS"
