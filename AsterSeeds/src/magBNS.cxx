@@ -20,6 +20,8 @@ extern "C" void AsterSeeds_Initialize_Seeding_Flags(CCTK_ARGUMENTS) {
   *SeedNow = 0;
   *DoneSeeding = 0;
   for (int ii=0; ii<3; ii++) {
+    CoM_NS1[ii] = 0.0;
+    CoM_NS2[ii] = 0.0;
     vel_NS1[ii] = 0.0;
     vel_NS2[ii] = 0.0;
   }
@@ -34,10 +36,10 @@ extern "C" void AsterSeeds_Set_Seeding_Flags(CCTK_ARGUMENTS) {
   if (use_time && (cctk_time > seeding_time))
     seed_trigger = true;
   if (use_separation) {
-    const CCTK_REAL ns_Dx = abs(*comx1 - *comx2);
-    const CCTK_REAL ns_Dy = abs(*comy1 - *comy2);
+    const CCTK_REAL ns_Dx = abs(CoM_NS1[0] - CoM_NS2[0]);
+    const CCTK_REAL ns_Dy = abs(CoM_NS1[1] - CoM_NS2[1]);
     const CCTK_REAL ns_sep = sqrt(ns_Dx * ns_Dx + ns_Dy * ns_Dy);
-    if (ns_sep > seeding_separation)
+    if (ns_sep < seeding_separation)
       seed_trigger = true;
   }
 
@@ -58,12 +60,12 @@ extern "C" void AsterSeeds_InitializeCenteredAvec_BNS(CCTK_ARGUMENTS) {
   // Set origin according to parameter or NS CoMs
   CCTK_REAL x01, y01, z01, x02, y02, z02;
   if (seed_every != 0) {
-    x01 = *comx1;
-    y01 = *comy1;
-    z01 = *comz1;
-    x02 = *comx2;
-    y02 = *comy2;
-    z02 = *comz2;
+    x01 = CoM_NS1[0];
+    y01 = CoM_NS1[1];
+    z01 = CoM_NS1[2];
+    x02 = CoM_NS2[0];
+    y02 = CoM_NS2[1];
+    z02 = CoM_NS2[2];
   }
   else {
     x01 = dipole_x[0]; 

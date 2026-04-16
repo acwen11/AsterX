@@ -1,8 +1,7 @@
 # Interface definition for thorn AsterSeeds
 
 IMPLEMENTS: AsterSeeds
-# TODO: Remove VolumeIntegrals_GRMHDX dependency. This is only used for dynamic magnetic field seeding for BNS simulations.
-INHERITS: HydroBaseX AsterX VolumeIntegrals_GRMHDX
+INHERITS: HydroBaseX AsterX
 
 USES INCLUDE HEADER: loop_device.hxx
 USES INCLUDE HEADER: setup_eos.hxx
@@ -14,6 +13,18 @@ CCTK_REAL Avec_cent TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
   Avec_y_cent
   Avec_z_cent
 } "Cell-centered vector potential components"
+
+public:
+CCTK_REAL CoM_NS1 TYPE=ARRAY DISTRIB=CONSTANT DIM=1 SIZE=3
+{
+  CoM_NS1
+} "Helper for dynamic seeding of external dipole field. Records position of NS CoM"
+
+public:
+CCTK_REAL CoM_NS2 TYPE=ARRAY DISTRIB=CONSTANT DIM=1 SIZE=3
+{
+  CoM_NS2
+} "Helper for dynamic seeding of external dipole field. Records position of NS CoM"
 
 CCTK_REAL vel_NS1 TYPE=ARRAY DISTRIB=CONSTANT DIM=1 SIZE=3
 {

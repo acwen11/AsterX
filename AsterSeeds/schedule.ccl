@@ -91,8 +91,8 @@ if (CCTK_Equals(test_type, "3DTest")) {
     {
        LANG: C
        OPTIONS: GLOBAL
-       WRITES:  SeedNow(everywhere), DoneSeeding(everywhere)
-       WRITES: vel_NS1(everywhere) vel_NS2(everywhere)
+       WRITES: SeedNow(everywhere) DoneSeeding(everywhere)
+       WRITES: CoM_NS1(everywhere) CoM_NS2(everywhere) vel_NS1(everywhere) vel_NS2(everywhere)
     } "Initialize seeding variables."
 
     if (seed_every != 0) {
@@ -110,8 +110,7 @@ if (CCTK_Equals(test_type, "3DTest")) {
       {
          LANG: C
          OPTIONS: GLOBAL
-         READS: VolumeIntegrals_GRMHDX::CoM1(everywhere) VolumeIntegrals_GRMHDX::CoM2(everywhere)
-         READS: DoneSeeding(everywhere)
+         READS: DoneSeeding(everywhere) CoM_NS1(everywhere) CoM_NS2(everywhere)
          WRITES: SeedNow(everywhere)
       } "Evaluate whether to seed now or not."
 
@@ -123,7 +122,7 @@ if (CCTK_Equals(test_type, "3DTest")) {
       {
         LANG: C
         READS: HydroBaseX::press(everywhere)
-        READS: VolumeIntegrals_GRMHDX::CoM1(everywhere) VolumeIntegrals_GRMHDX::CoM2(everywhere)
+        READS: CoM_NS1(everywhere) CoM_NS2(everywhere)
         WRITES: Avec_x_cent(everywhere) Avec_y_cent(everywhere) Avec_z_cent(everywhere)
         WRITES: SeedNow(everywhere), DoneSeeding(everywhere)
       } "Set up initial conditions for the cell-centered vector potential"
@@ -147,7 +146,7 @@ if (CCTK_Equals(test_type, "3DTest")) {
             LANG: C
             OPTIONS: GLOBAL
             READS: HydroBaseX::vel(everywhere)
-            READS: VolumeIntegrals_GRMHDX::CoM1(everywhere) VolumeIntegrals_GRMHDX::CoM2(everywhere)
+            READS: CoM_NS1(everywhere) CoM_NS2(everywhere)
             WRITES: vel_NS1(everywhere) vel_NS2(everywhere)
           } "Get velocity of NS CoMs"
         }
@@ -156,22 +155,21 @@ if (CCTK_Equals(test_type, "3DTest")) {
         {
           LANG: C
           READS: HydroBaseX::vel(everywhere) HydroBaseX::Bvec(everywhere) HydroBaseX::press(everywhere) HydroBaseX::temperature(everywhere) HydroBaseX::Ye(everywhere)
-          READS: VolumeIntegrals_GRMHDX::CoM1(everywhere) VolumeIntegrals_GRMHDX::CoM2(everywhere)
           READS: ADMBaseX::metric(everywhere)
-          READS: vel_NS1(everywhere) vel_NS2(everywhere)
+          READS: vel_NS1(everywhere) vel_NS2(everywhere) CoM_NS1(everywhere) CoM_NS2(everywhere)
           WRITES: HydrobaseX::rho(everywhere) HydroBaseX::press(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::entropy(everywhere)  HydrobaseX::vel(everywhere)
         } "Enforce initial minimum plasma beta"
-
-        SCHEDULE AsterX_Prim2Con_Initial IN Seeding_Tasks AFTER AsterSeeds_SetInitialBetaFloor
-        {
-          LANG: C
-          READS: ADMBaseX::metric(interior)
-          READS: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::Bvec(interior)
-          READS: HydroBaseX::entropy(interior) HydroBaseX::Ye(interior)
-          WRITES: AsterX::cons_vector(interior) AsterX::dB(interior)
-          SYNC: AsterX::cons_vector AsterX::dB
-        } "Update cons after setting initial beta"
       }
+
+      SCHEDULE AsterX_Prim2Con_Initial IN Seeding_Tasks AFTER AsterSeeds_SetInitialBetaFloor AFTER AsterX_Con2PrimGroup
+      {
+        LANG: C
+        READS: ADMBaseX::metric(interior)
+        READS: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::Bvec(interior)
+        READS: HydroBaseX::entropy(interior) HydroBaseX::Ye(interior)
+        WRITES: AsterX::cons_vector(interior) AsterX::dB(interior)
+        SYNC: AsterX::cons_vector AsterX::dB
+      } "Update cons after setting initial beta"
 
       SCHEDULE AsterX_Tmunu IN Seeding_Tasks AFTER AsterX_Con2PrimGroup AFTER AsterX_ApplyOuterBCOnPrim
       {
@@ -192,7 +190,7 @@ if (CCTK_Equals(test_type, "3DTest")) {
       SCHEDULE AsterSeeds_InitializeCenteredAvec_BNS AT initial IN ODESolvers_Initial AFTER HydroBaseX_PostInitial BEFORE AsterX_InitialGroup {
         LANG: C
         READS: HydroBaseX::press(everywhere)
-        READS: VolumeIntegrals_GRMHDX::CoM1(everywhere) VolumeIntegrals_GRMHDX::CoM2(everywhere)
+        READS: CoM_NS1(everywhere) CoM_NS2(everywhere)
         WRITES: Avec_x_cent(everywhere) Avec_y_cent(everywhere) Avec_z_cent(everywhere)
         WRITES:  SeedNow(everywhere), DoneSeeding(everywhere)
       } "Set up initial conditions for the cell-centered vector potential"
@@ -212,7 +210,7 @@ if (CCTK_Equals(test_type, "3DTest")) {
             LANG: C
             OPTIONS: GLOBAL
             READS: HydroBaseX::vel(everywhere)
-            READS: VolumeIntegrals_GRMHDX::CoM1(everywhere) VolumeIntegrals_GRMHDX::CoM2(everywhere)
+            READS: CoM_NS1(everywhere) CoM_NS2(everywhere)
             WRITES: vel_NS1(everywhere) vel_NS2(everywhere)
           } "Get velocity of NS CoMs"
         }
@@ -222,8 +220,7 @@ if (CCTK_Equals(test_type, "3DTest")) {
           LANG: C
           READS: HydroBaseX::vel(everywhere) HydroBaseX::Bvec(everywhere) HydroBaseX::press(everywhere) HydroBaseX::temperature(everywhere) HydroBaseX::Ye(everywhere)
           READS: ADMBaseX::metric(everywhere)
-          READS: VolumeIntegrals_GRMHDX::CoM1(everywhere) VolumeIntegrals_GRMHDX::CoM2(everywhere)
-          READS: vel_NS1(everywhere) vel_NS2(everywhere)
+          READS: vel_NS1(everywhere) vel_NS2(everywhere) CoM_NS1(everywhere) CoM_NS2(everywhere)
           WRITES: HydrobaseX::rho(everywhere) HydroBaseX::press(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::entropy(everywhere) HydrobaseX::vel(everywhere)
         } "Enforce initial minimum plasma beta"
       }

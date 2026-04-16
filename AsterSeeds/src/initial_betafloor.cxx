@@ -23,9 +23,9 @@ extern "C" void AsterSeeds_InterpolateNSVelocity(CCTK_ARGUMENTS) {
   // Get NS velocities
   const int nPoints = 2;
   const int nInputArrays = 3;
-  CCTK_REAL nsx[nPoints] = {*comx1, *comx2};
-  CCTK_REAL nsy[nPoints] = {*comy1, *comy2};
-  CCTK_REAL nsz[nPoints] = {*comz1, *comz2};
+  CCTK_REAL nsx[nPoints] = {CoM_NS1[0], CoM_NS2[0]};
+  CCTK_REAL nsy[nPoints] = {CoM_NS1[1], CoM_NS2[1]};
+  CCTK_REAL nsz[nPoints] = {CoM_NS1[2], CoM_NS2[2]};
   const void *interp_coords[nInputArrays] = {(const void *)nsx, (const void *)nsy,
                                   (const void *)nsz};
   const CCTK_INT inputArrayIndices[nInputArrays] = {
@@ -88,9 +88,6 @@ extern "C" void AsterSeeds_SetInitialBetaFloor(CCTK_ARGUMENTS) {
 
   const smat<GF3D2<const CCTK_REAL>, 3> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
 
-  CCTK_VINFO("Using (%g, %g, %g) as NS1 velocity", vel_NS1[0], vel_NS1[1], vel_NS1[2]);
-  CCTK_VINFO("Using (%g, %g, %g) as NS2 velocity", vel_NS2[0], vel_NS2[1], vel_NS2[2]);
-
   grid.loop_all_device<1, 1, 1>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const Loop::PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
@@ -143,13 +140,13 @@ extern "C" void AsterSeeds_SetInitialBetaFloor(CCTK_ARGUMENTS) {
           const CCTK_REAL vzL = velz(p.I);
           if ((abs(vxL) < vtol) && (abs(vyL) < vtol) && (abs(vzL) < vtol)) {
             // For star 1 at minus side
-            const CCTK_REAL x_local_s1 = p.x - *comx1;
-            const CCTK_REAL y_local_s1 = p.y - *comy1;
+            const CCTK_REAL x_local_s1 = p.x - CoM_NS1[0];
+            const CCTK_REAL y_local_s1 = p.y - CoM_NS1[1];
             const CCTK_REAL cylrad2_s1 =
               x_local_s1 * x_local_s1 + y_local_s1 * y_local_s1;  
             // For star 2 at minus side
-            const CCTK_REAL x_local_s2 = p.x - *comx2;
-            const CCTK_REAL y_local_s2 = p.y - *comy2;
+            const CCTK_REAL x_local_s2 = p.x - CoM_NS2[0];
+            const CCTK_REAL y_local_s2 = p.y - CoM_NS2[1];
             const CCTK_REAL cylrad2_s2 =
               x_local_s2 * x_local_s2 + y_local_s2 * y_local_s2;  
              
