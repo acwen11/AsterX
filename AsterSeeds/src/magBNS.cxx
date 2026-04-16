@@ -19,7 +19,7 @@ extern "C" void AsterSeeds_Initialize_Seeding_Flags(CCTK_ARGUMENTS) {
 
   *SeedNow = 0;
   *DoneSeeding = 0;
-  for (int ii=0; ii<3; ii++) {
+  for (int ii = 0; ii < 3; ii++) {
     CoM_NS1[ii] = 0.0;
     CoM_NS2[ii] = 0.0;
     vel_NS1[ii] = 0.0;
@@ -49,7 +49,7 @@ extern "C" void AsterSeeds_Set_Seeding_Flags(CCTK_ARGUMENTS) {
   } else {
     *SeedNow = 0;
   }
-  
+
   return;
 }
 
@@ -66,14 +66,13 @@ extern "C" void AsterSeeds_InitializeCenteredAvec_BNS(CCTK_ARGUMENTS) {
     x02 = CoM_NS2[0];
     y02 = CoM_NS2[1];
     z02 = CoM_NS2[2];
-  }
-  else {
-    x01 = dipole_x[0]; 
-    y01 = dipole_y[0]; 
-    z01 = dipole_z[0]; 
-    x02 = dipole_x[1]; 
-    y02 = dipole_y[1]; 
-    z02 = dipole_z[1]; 
+  } else {
+    x01 = dipole_x[0];
+    y01 = dipole_y[0];
+    z01 = dipole_z[0];
+    x02 = dipole_x[1];
+    y02 = dipole_y[1];
+    z02 = dipole_z[1];
   }
 
   if (CCTK_EQUALS(Afield_config, "internal dipole")) {
@@ -152,7 +151,6 @@ extern "C" void AsterSeeds_InitializeCenteredAvec_BNS(CCTK_ARGUMENTS) {
     grid.loop_all<1, 1, 1>(
         grid.nghostzones,
         [=] CCTK_HOST(const Loop::PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-
           const CCTK_REAL pi = 2 * acos(0.0);
 
           // For star 1 at minus side
@@ -161,16 +159,17 @@ extern "C" void AsterSeeds_InitializeCenteredAvec_BNS(CCTK_ARGUMENTS) {
           CCTK_REAL z_local_s1 = p.z - z01;
           CCTK_REAL cylrad2_s1 =
               x_local_s1 * x_local_s1 + y_local_s1 * y_local_s1;
-          CCTK_REAL sphrad2_s1 =
-              x_local_s1 * x_local_s1 + y_local_s1 * y_local_s1 +
-                   z_local_s1 * z_local_s1;
+          CCTK_REAL sphrad2_s1 = x_local_s1 * x_local_s1 +
+                                 y_local_s1 * y_local_s1 +
+                                 z_local_s1 * z_local_s1;
           CCTK_REAL r02 = r0 * r0;
 
-          // See e.g. Ruiz+ 2020, Eq. 1. Here, B0 is I0 from Eq. 1, and we have preemptively canceled out the factor
-          // of cylrad2.
+          // See e.g. Ruiz+ 2020, Eq. 1. Here, B0 is I0 from Eq. 1, and we have
+          // preemptively canceled out the factor of cylrad2.
           CCTK_REAL Aphi_local_s1 =
-              pi * B0 * r02 / pow(r02 + sphrad2_s1, 1.5) 
-              * (1.0 + (15.0 * r02 * (r02 + cylrad2_s1) / (8.0 * pow(r02 + sphrad2_s1, 2.0))));
+              pi * B0 * r02 / pow(r02 + sphrad2_s1, 1.5) *
+              (1.0 + (15.0 * r02 * (r02 + cylrad2_s1) /
+                      (8.0 * pow(r02 + sphrad2_s1, 2.0))));
 
           // For star 2 at minus side
           CCTK_REAL x_local_s2 = p.x - x02;
@@ -178,13 +177,14 @@ extern "C" void AsterSeeds_InitializeCenteredAvec_BNS(CCTK_ARGUMENTS) {
           CCTK_REAL z_local_s2 = p.z - z02;
           CCTK_REAL cylrad2_s2 =
               x_local_s2 * x_local_s2 + y_local_s2 * y_local_s2;
-          CCTK_REAL sphrad2_s2 =
-              x_local_s2 * x_local_s2 + y_local_s2 * y_local_s2 +
-                   z_local_s2 * z_local_s2;
+          CCTK_REAL sphrad2_s2 = x_local_s2 * x_local_s2 +
+                                 y_local_s2 * y_local_s2 +
+                                 z_local_s2 * z_local_s2;
 
           CCTK_REAL Aphi_local_s2 =
-              pi * B0 * r02 / pow(r02 + sphrad2_s2, 1.5) 
-              * (1.0 + (15.0 * r02 * (r02 + cylrad2_s2) / (8.0 * pow(r02 + sphrad2_s2, 2.0))));
+              pi * B0 * r02 / pow(r02 + sphrad2_s2, 1.5) *
+              (1.0 + (15.0 * r02 * (r02 + cylrad2_s2) /
+                      (8.0 * pow(r02 + sphrad2_s2, 2.0))));
 
           Avec_x_cent(p.I) =
               -(y_local_s1 * Aphi_local_s1 + y_local_s2 * Aphi_local_s2);
@@ -226,23 +226,20 @@ extern "C" void AsterSeeds_InitializeAvectoZero(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterSeeds_InitializeAvectoZero;
   DECLARE_CCTK_PARAMETERS;
 
-  grid.loop_all<1, 0, 0>(grid.nghostzones,
-                         [=] CCTK_HOST(const Loop::PointDesc &p)
-                             CCTK_ATTRIBUTE_ALWAYS_INLINE {
-                               Avec_x(p.I) = 0.0;
-                             });
+  grid.loop_all<1, 0, 0>(
+      grid.nghostzones,
+      [=] CCTK_HOST(const Loop::PointDesc &p)
+          CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_x(p.I) = 0.0; });
 
-  grid.loop_all<0, 1, 0>(grid.nghostzones,
-                         [=] CCTK_HOST(const Loop::PointDesc &p)
-                             CCTK_ATTRIBUTE_ALWAYS_INLINE {
-                               Avec_y(p.I) = 0.0;
-                             });
+  grid.loop_all<0, 1, 0>(
+      grid.nghostzones,
+      [=] CCTK_HOST(const Loop::PointDesc &p)
+          CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_y(p.I) = 0.0; });
 
-  grid.loop_all<0, 0, 1>(grid.nghostzones,
-                         [=] CCTK_HOST(const Loop::PointDesc &p)
-                             CCTK_ATTRIBUTE_ALWAYS_INLINE {
-                               Avec_z(p.I) = 0.0;
-                             });
+  grid.loop_all<0, 0, 1>(
+      grid.nghostzones,
+      [=] CCTK_HOST(const Loop::PointDesc &p)
+          CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_z(p.I) = 0.0; });
 }
 
 } // namespace AsterSeeds
