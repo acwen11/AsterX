@@ -87,13 +87,13 @@ extern "C" void AsterSeeds_InitializeCenteredAvec_BNS(CCTK_ARGUMENTS) {
 
           // For star 1 at minus side
           if (p.x < 0) {
-            x_local = p.x - x01;
-            y_local = p.y - y01;
+            x_local = p.x - dipole_x[0];
+            y_local = p.y - dipole_y[0];
           }
-          // For star 2 at plus side
+          // For star 2 at minus side
           else {
-            x_local = p.x - x02;
-            y_local = p.y - y02;
+            x_local = p.x - dipole_x[1];
+            y_local = p.y - dipole_y[1];
           }
 
           CCTK_REAL Pcut = press_max * press_cut;
@@ -189,8 +189,6 @@ extern "C" void AsterSeeds_InitializeCenteredAvec_BNS(CCTK_ARGUMENTS) {
   } else {
     CCTK_ERROR("Vector potential configuration not defined");
   }
-
-  *DoneSeeding = 1;
 }
 
 extern "C" void AsterSeeds_InitializeStagAvec_BNS(CCTK_ARGUMENTS) {
