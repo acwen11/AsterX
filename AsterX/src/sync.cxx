@@ -117,11 +117,7 @@ extern "C" void AsterX_CommConsPV(CCTK_ARGUMENTS) {
 }
 
 extern "C" void AsterX_CommConsCA(CCTK_ARGUMENTS) {
-  static const std::vector<int> groups = {CCTK_GroupIndex("AsterX::dens"),
-                                          CCTK_GroupIndex("AsterX::tau"),
-                                          CCTK_GroupIndex("AsterX::mom"),
-                                          CCTK_GroupIndex("AsterX::DEnt"),
-                                          CCTK_GroupIndex("AsterX::DYe")};
+  static const std::vector<int> groups = {CCTK_GroupIndex("AsterX::cons_vector")};
 
   SyncGroupsByDirIGhostOnly(cctkGH, groups.size(), groups.data(), nullptr);
 }
