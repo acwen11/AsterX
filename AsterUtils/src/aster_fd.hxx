@@ -25,7 +25,14 @@ using namespace Arith;
 template <int dir, typename T>
 CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
 laplace_1d(const GF3D2<T> &gf, const PointDesc &p) {
-  return ( gf(p.I - p.DI[dir])-T(2)*gf(p.I)+gf(p.I + p.DI[dir]) );
+  return (gf(p.I - p.DI[dir]) - T(2) * gf(p.I) + gf(p.I + p.DI[dir]));
+}
+
+// Overload to use geometry at PointDesc p, at coordinate pI
+template <int dir, typename T>
+CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
+laplace_1d(const GF3D2<T> &gf, const PointDesc &p, const vect<int, dim> pI) {
+  return (gf(pI - p.DI[dir]) - T(2) * gf(pI) + gf(pI + p.DI[dir]));
 }
 
 // Laplace operator in all (3) directions
@@ -33,9 +40,8 @@ laplace_1d(const GF3D2<T> &gf, const PointDesc &p) {
 template <typename T>
 CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
 laplace_3d(const GF3D2<T> &gf, const PointDesc &p) {
-  return ( laplace_1d<0,T>(gf,p) + 
-           laplace_1d<1,T>(gf,p) + 
-	   laplace_1d<2,T>(gf,p) );
+  return (laplace_1d<0, T>(gf, p) + laplace_1d<1, T>(gf, p) +
+          laplace_1d<2, T>(gf, p));
 }
 
 // Laplace operator in all perpendicular directions
@@ -46,11 +52,24 @@ CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
 laplace_perp(const GF3D2<T> &gf, const PointDesc &p) {
 
   if constexpr (dir_perp == 0) {
-     	return laplace_1d<1,T>(gf,p) + laplace_1d<2,T>(gf,p);
+    return laplace_1d<1, T>(gf, p) + laplace_1d<2, T>(gf, p);
   } else if constexpr (dir_perp == 1) {
-     	return laplace_1d<0,T>(gf,p) + laplace_1d<2,T>(gf,p);
+    return laplace_1d<0, T>(gf, p) + laplace_1d<2, T>(gf, p);
   } else {
-     	return laplace_1d<0,T>(gf,p) + laplace_1d<1,T>(gf,p);
+    return laplace_1d<0, T>(gf, p) + laplace_1d<1, T>(gf, p);
+  }
+}
+
+template <int dir_perp, typename T>
+CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
+laplace_perp(const GF3D2<T> &gf, const PointDesc &p, const vect<int, dim> pI) {
+
+  if constexpr (dir_perp == 0) {
+    return laplace_1d<1, T>(gf, p, pI) + laplace_1d<2, T>(gf, p, pI);
+  } else if constexpr (dir_perp == 1) {
+    return laplace_1d<0, T>(gf, p, pI) + laplace_1d<2, T>(gf, p, pI);
+  } else {
+    return laplace_1d<0, T>(gf, p, pI) + laplace_1d<1, T>(gf, p, pI);
   }
 }
 
@@ -75,7 +94,7 @@ calc_fd2_v2v_oneside(const GF3D2<const T> &gf, const PointDesc &p,
 }
 
 // FD Forward Midpoint: vertex centered input gridfunction along dir, cell
-// centered output derivative 
+// centered output derivative
 template <int dir, typename T>
 CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
 calc_fd_forward_midpoint(const GF3D2<const T> &gf, const PointDesc &p,
@@ -106,7 +125,7 @@ calc_fd_forward_midpoint(const GF3D2<const T> &gf, const PointDesc &p,
 template <typename T>
 CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
 calc_fd_backward_midpoint(const GF3D2<const T> &gf, const PointDesc &p,
-                           const int dir) {
+                          const int dir) {
   return (gf(p.I) - gf(p.I - p.DI[dir])) / p.DX[dir];
 }
 

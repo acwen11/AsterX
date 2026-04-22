@@ -162,6 +162,42 @@ extern "C" void Tests1D_Initialize(CCTK_ARGUMENTS) {
         [=] CCTK_DEVICE(const PointDesc &p)
             CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_z(p.I) = 0.0; });
 
+  } else if (CCTK_EQUALS(test_case, "strong hydro shock")) {
+    grid.loop_all_device<1, 1, 1>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+          if (p.x <= 0.0) {
+            rho(p.I) = 1.0;
+            velx(p.I) = 0.0;
+            vely(p.I) = 0.0;
+            velz(p.I) = 0.0;
+            press(p.I) = 1000.0;
+          } else {
+            rho(p.I) = 1.0;
+            velx(p.I) = 0.0;
+            vely(p.I) = 0.0;
+            velz(p.I) = 0.0;
+            press(p.I) = 1e-2;
+          }
+          eps(p.I) = eos_3p_ig->eps_from_rho_press_ye(
+              rho(p.I), press(p.I), dummy_ye);
+        });
+
+    grid.loop_all_device<1, 0, 0>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p)
+            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_x(p.I) = 0.0; });
+
+    grid.loop_all_device<0, 1, 0>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p)
+            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_y(p.I) = 0.0; });
+
+    grid.loop_all_device<0, 0, 1>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p)
+            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_z(p.I) = 0.0; });
+
   } else if (CCTK_EQUALS(test_case, "Balsara1") ||
              CCTK_EQUALS(test_case, "Balsara2") ||
              CCTK_EQUALS(test_case, "Balsara3") ||

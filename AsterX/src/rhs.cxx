@@ -14,19 +14,25 @@ using namespace AsterUtils;
 enum class vector_potential_gauge_t { algebraic, generalized_lorenz };
 
 template <int i, vector_potential_gauge_t gauge>
-void CalcRHSofAvec_impl(CCTK_ARGUMENTS, const int order) {
+void CalcRHSofAvec_impl(CCTK_ARGUMENTS, const int order, const bool hofv) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_RHS;
 
   const vec<GF3D2<const CCTK_REAL>, dim> gf_E{Ex, Ey, Ez};
   const vec<GF3D2<CCTK_REAL>, dim> gf_Avec_rhs{Avec_x_rhs, Avec_y_rhs,
                                                Avec_z_rhs};
+  constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
 
   if constexpr (gauge == vector_potential_gauge_t::algebraic) {
 
     grid.loop_int_device<i == 0, i == 1, i == 2>(
         grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-          gf_Avec_rhs(i)(p.I) = -gf_E(i)(p.I);
+          if (hofv) {
+            // Eq. (40) in https://arxiv.org/pdf/2310.11831
+            gf_Avec_rhs(i)(p.I) = -(gf_E(i)(p.I) + one_over_24 * laplace_1d<i>(gf_E(i), p));
+          } else {
+            gf_Avec_rhs(i)(p.I) = -gf_E(i)(p.I);
+          }
         });
 
   } else if constexpr (gauge == vector_potential_gauge_t::generalized_lorenz) {
@@ -34,8 +40,14 @@ void CalcRHSofAvec_impl(CCTK_ARGUMENTS, const int order) {
     grid.loop_int_device<i == 0, i == 1, i == 2>(
         grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-          gf_Avec_rhs(i)(p.I) =
-              -gf_E(i)(p.I) - calc_fd_forward_midpoint<i>(G, p, order);
+          if (hofv) {
+            // Eq. (40) in https://arxiv.org/pdf/2310.11831
+            gf_Avec_rhs(i)(p.I) = -(gf_E(i)(p.I) + one_over_24 * laplace_1d<i>(gf_E(i), p))
+                - calc_fd_forward_midpoint<i>(G, p, 4);
+          } else {
+            gf_Avec_rhs(i)(p.I) =
+                -gf_E(i)(p.I) - calc_fd_forward_midpoint<i>(G, p, order);
+          }
         });
   }
 }
@@ -71,16 +83,16 @@ void CalcRHSofPsi_impl(CCTK_ARGUMENTS, const CCTK_REAL damp_fac) {
 
 template <int i>
 void CalcRHSofAvec(CCTK_ARGUMENTS, const vector_potential_gauge_t gauge,
-                   const int order) {
+                   const int order, const bool hofv) {
   switch (gauge) {
   case vector_potential_gauge_t::algebraic: {
     CalcRHSofAvec_impl<i, vector_potential_gauge_t::algebraic>(CCTK_PASS_CTOC,
-                                                               order);
+                                                               order, hofv);
     break;
   }
   case vector_potential_gauge_t::generalized_lorenz: {
     CalcRHSofAvec_impl<i, vector_potential_gauge_t::generalized_lorenz>(
-        CCTK_PASS_CTOC, order);
+        CCTK_PASS_CTOC, order, hofv);
     break;
   }
   default:
@@ -128,13 +140,28 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
   const auto calcupdate_hydro =
       [=] CCTK_DEVICE(const vec<GF3D2<const CCTK_REAL>, dim> &gf_fluxes,
                       const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        vec<CCTK_REAL, 3> dfluxes{calc_fd_forward_midpoint<0>(
-                                      gf_fluxes(0), p, hydro_correction_order),
-                                  calc_fd_forward_midpoint<1>(
-                                      gf_fluxes(1), p, hydro_correction_order),
-                                  calc_fd_forward_midpoint<2>(
-                                      gf_fluxes(2), p, hydro_correction_order)};
-        return -(dfluxes(0) + dfluxes(1) + dfluxes(2));
+        if (use_ho_fv) {
+          constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
+          vec<CCTK_REAL, 3> dfluxes{calc_fd_forward_midpoint<0>(gf_fluxes(0), p, 2)
+                                    + (one_over_24 / p.DX[0]) * (laplace_perp<0>(gf_fluxes(0), p, p.I + p.DI[0]) 
+                                                      - laplace_perp<0>(gf_fluxes(0), p, p.I)),
+                                    calc_fd_forward_midpoint<1>(gf_fluxes(1), p, 2)
+                                    + (one_over_24 / p.DX[1]) * (laplace_perp<1>(gf_fluxes(1), p, p.I + p.DI[1]) 
+                                                      - laplace_perp<1>(gf_fluxes(1), p, p.I)),
+                                    calc_fd_forward_midpoint<2>(gf_fluxes(2), p, 2)
+                                    + (one_over_24 / p.DX[2]) * (laplace_perp<2>(gf_fluxes(2), p, p.I + p.DI[2]) 
+                                                      - laplace_perp<2>(gf_fluxes(2), p, p.I))};
+          return -(dfluxes(0) + dfluxes(1) + dfluxes(2));
+        }
+        else {
+          vec<CCTK_REAL, 3> dfluxes{calc_fd_forward_midpoint<0>(
+                                        gf_fluxes(0), p, hydro_correction_order),
+                                    calc_fd_forward_midpoint<1>(
+                                        gf_fluxes(1), p, hydro_correction_order),
+                                    calc_fd_forward_midpoint<2>(
+                                        gf_fluxes(2), p, hydro_correction_order)};
+          return -(dfluxes(0) + dfluxes(1) + dfluxes(2));
+        }
       };
 
   grid.loop_int_device<1, 1, 1>(
@@ -168,9 +195,9 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
 #endif
       });
 
-  CalcRHSofAvec<0>(CCTK_PASS_CTOC, gauge, mag_correction_order);
-  CalcRHSofAvec<1>(CCTK_PASS_CTOC, gauge, mag_correction_order);
-  CalcRHSofAvec<2>(CCTK_PASS_CTOC, gauge, mag_correction_order);
+  CalcRHSofAvec<0>(CCTK_PASS_CTOC, gauge, mag_correction_order, use_ho_fv);
+  CalcRHSofAvec<1>(CCTK_PASS_CTOC, gauge, mag_correction_order, use_ho_fv);
+  CalcRHSofAvec<2>(CCTK_PASS_CTOC, gauge, mag_correction_order, use_ho_fv);
 
   CalcRHSofPsi(CCTK_PASS_CTOC, gauge, lorenz_damp_fac);
 }

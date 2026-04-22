@@ -114,6 +114,13 @@ CCTK_REAL dBx_stag TYPE=gf CENTERING={vcc} TAGS='parities={+1 -1 -1} checkpoint=
 CCTK_REAL dBy_stag TYPE=gf CENTERING={cvc} TAGS='parities={-1 +1 -1} checkpoint="no"' "y-component of staggered densitized magnetic field"
 CCTK_REAL dBz_stag TYPE=gf CENTERING={ccv} TAGS='parities={-1 -1 +1} checkpoint="no"' "z-component of staggered densitized magnetic field"
 
+# ----- staggered face-averaged magnetic field used only for HO FV. dBi_stag above is then promoted to 4th order
+# point values. Note that these are the primary representations of the magnetic field, and will be divergence free to roundoff
+
+CCTK_REAL dBx_stag_fa TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"' "x-component of staggered densitized magnetic field"
+CCTK_REAL dBy_stag_fa TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"' "y-component of staggered densitized magnetic field"
+CCTK_REAL dBz_stag_fa TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"' "z-component of staggered densitized magnetic field"
+
 # ----- staggered gauge functions
 
 CCTK_REAL Psi TYPE=gf TIMELEVELS=2 CENTERING={vvv} TAGS='rhs="Psi_rhs" ks="Psi_k1 Psi_k2 Psi_k3 Psi_k4" prolongation_type="hermite" prolongation_order=5' "t-component of vector potential: sqrt(det(gamma_ij))*Phi"

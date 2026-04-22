@@ -354,7 +354,7 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
           assert(0);
         }
       } else if (rep_first.adjust_cons) {
-	write_back_cons = true;
+	      write_back_cons = true;
       }
 
       if (rep_first.failed() && rep_second.failed()) {
@@ -411,11 +411,11 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
               pv.Bvec = Bup;
               atmo.set(pv, cv, glo);
             }
-	    write_back_cons = true;
+	          write_back_cons = true;
 
           } else if (rep_ent.adjust_cons) {
             write_back_cons = true;
-	  }
+	        }
 
         } else {
 
@@ -462,11 +462,11 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
             pv.Bvec = Bup;
             atmo.set(pv, cv, glo);
           }
-	  write_back_cons = true;
+	        write_back_cons = true;
         }
 
       } else if (rep_first.failed() && rep_second.adjust_cons) {
-	write_back_cons = true;
+	      write_back_cons = true;
       }
 
       // Inside mask, C2P success
@@ -631,13 +631,14 @@ extern "C" void AsterX_SetPointValues(CCTK_ARGUMENTS) {
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
 
 	  // Eq. (16) from https://arxiv.org/pdf/2310.11831 
-          dens_pv(p.I) =  dens(p.I) - one_over_24*laplace_3d(dens,p);
-          momx_pv(p.I) =  momx(p.I) - one_over_24*laplace_3d(momx,p);
-          momy_pv(p.I) =  momy(p.I) - one_over_24*laplace_3d(momy,p);
-          momz_pv(p.I) =  momz(p.I) - one_over_24*laplace_3d(momz,p);
-          tau_pv(p.I)  =  tau(p.I) - one_over_24*laplace_3d(tau,p);
-          DYe_pv(p.I)  =  DYe(p.I) - one_over_24*laplace_3d(DYe,p);
-          DEnt_pv(p.I) =  DEnt(p.I) - one_over_24*laplace_3d(DEnt,p);
+          bool thetac = (!LOflag(p.I) || !shock_pv_fallback);
+          dens_pv(p.I) =  dens(p.I) - thetac * one_over_24*laplace_3d(dens,p);
+          momx_pv(p.I) =  momx(p.I) - thetac * one_over_24*laplace_3d(momx,p);
+          momy_pv(p.I) =  momy(p.I) - thetac * one_over_24*laplace_3d(momy,p);
+          momz_pv(p.I) =  momz(p.I) - thetac * one_over_24*laplace_3d(momz,p);
+          tau_pv(p.I)  =  tau(p.I) - thetac * one_over_24*laplace_3d(tau,p);
+          DYe_pv(p.I)  =  DYe(p.I) - thetac * one_over_24*laplace_3d(DYe,p);
+          DEnt_pv(p.I) =  DEnt(p.I) - thetac * one_over_24*laplace_3d(DEnt,p);
 
         });
 

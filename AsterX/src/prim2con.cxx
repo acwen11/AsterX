@@ -57,7 +57,7 @@ extern "C" void AsterX_Prim2Con_Initial(CCTK_ARGUMENTS) {
           tau_pv(p.I) = cv.tau;
           DYe_pv(p.I) = cv.DYe;
           DEnt_pv(p.I) = cv.DEnt;
-	} else {
+	      } else {
           dens_pv(p.I) = 0.0;
           momx_pv(p.I) = 0.0;
           momy_pv(p.I) = 0.0;
@@ -105,6 +105,54 @@ DECLARE_CCTK_PARAMETERS;
         DEnt(p.I) =  DEnt_pv(p.I);
 
       });
+}
+
+extern "C" void AsterX_SetLineAvgAvec_Initial(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_SetLineAvgAvec_Initial;
+  DECLARE_CCTK_PARAMETERS;
+
+  constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
+  // NOTE! We are just using E as temporary storage for the line averaged <A>
+  // before copying to the Avec gridfunctions themselves.
+  grid.loop_int_device<1, 0, 0>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p)
+          CCTK_ATTRIBUTE_ALWAYS_INLINE { 
+          Ex(p.I) = Avec_x(p.I) + one_over_24 * laplace_1d<0>(Avec_x, p);
+      });
+  grid.loop_int_device<0, 1, 0>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p)
+          CCTK_ATTRIBUTE_ALWAYS_INLINE { 
+          Ey(p.I) = Avec_y(p.I) + one_over_24 * laplace_1d<1>(Avec_y, p);
+      });
+  grid.loop_int_device<0, 0, 1>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p)
+          CCTK_ATTRIBUTE_ALWAYS_INLINE { 
+          Ez(p.I) = Avec_z(p.I) + one_over_24 * laplace_1d<2>(Avec_z, p);
+      });
+
+  grid.loop_int_device<1, 0, 0>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p)
+          CCTK_ATTRIBUTE_ALWAYS_INLINE { 
+          Avec_x(p.I) = Ex(p.I);
+      });
+  grid.loop_int_device<0, 1, 0>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p)
+          CCTK_ATTRIBUTE_ALWAYS_INLINE { 
+          Avec_y(p.I) = Ey(p.I);
+      });
+  grid.loop_int_device<0, 0, 1>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p)
+          CCTK_ATTRIBUTE_ALWAYS_INLINE { 
+          Avec_z(p.I) = Ez(p.I);
+      });
+  // Now, the Avec_i gridfunctions have assumed their rightful roles
+  // storing the line averaged <A>.
 }
 
 extern "C" void AsterX_PsiZero_Initial(CCTK_ARGUMENTS) {

@@ -298,7 +298,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
     // End atmosphere
 
     // Check shock detection flag
-    if (LOflag(p.I) || LOflag(p.I - p.DI[dir_i]))
+    if (shock_recon_fallback && (LOflag(p.I) || LOflag(p.I - p.DI[dir_i])))
       useLO = true;
 
     if (reconstruct_with_temperature) {
@@ -1303,51 +1303,52 @@ extern "C" void AsterX_Fluxes(CCTK_ARGUMENTS) {
   }
 }
 
+// I don't think this is thread safe
 // Calculate FV HO correction in direction `dir`
-template <int dir_i>
-void CalcFluxFVHO(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_AsterX_FluxesFVHO;
-  DECLARE_CCTK_PARAMETERS;
-
-  /* grid functions for fluxes */
-  const vec<GF3D2<CCTK_REAL>, dim> fluxdenss{fxdens, fydens, fzdens};
-  const vec<GF3D2<CCTK_REAL>, dim> fluxDEnts{fxDEnt, fyDEnt, fzDEnt};
-  const vec<GF3D2<CCTK_REAL>, dim> fluxmomxs{fxmomx, fymomx, fzmomx};
-  const vec<GF3D2<CCTK_REAL>, dim> fluxmomys{fxmomy, fymomy, fzmomy};
-  const vec<GF3D2<CCTK_REAL>, dim> fluxmomzs{fxmomz, fymomz, fzmomz};
-  const vec<GF3D2<CCTK_REAL>, dim> fluxtaus{fxtau, fytau, fztau};
-  const vec<GF3D2<CCTK_REAL>, dim> fluxDYes{fxDYe, fyDYe, fzDYe};
-
-  // Face-centred grid functions (in direction `dir_i`)
-  constexpr array<int, dim> face_centred = {!(dir_i == 0), !(dir_i == 1),
-                                            !(dir_i == 2)};
-
-  constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
-
-  grid.loop_int_device<
-      face_centred[0], face_centred[1],
-      face_centred
-          [2]>(grid.nghostzones, [=] CCTK_DEVICE(const PointDesc &p) {
-
-      // Eq. (30) from https://arxiv.org/pdf/2310.11831
-      fluxdenss(dir_i)(p.I) += one_over_24*laplace_perp<dir_i>(fluxdenss(dir_i),p);
-      fluxDEnts(dir_i)(p.I) += one_over_24*laplace_perp<dir_i>(fluxDEnts(dir_i),p);
-      fluxmomxs(dir_i)(p.I) += one_over_24*laplace_perp<dir_i>(fluxmomxs(dir_i),p);
-      fluxmomys(dir_i)(p.I) += one_over_24*laplace_perp<dir_i>(fluxmomys(dir_i),p);
-      fluxmomzs(dir_i)(p.I) += one_over_24*laplace_perp<dir_i>(fluxmomzs(dir_i),p);
-      fluxtaus(dir_i)(p.I)  += one_over_24*laplace_perp<dir_i>(fluxtaus(dir_i),p);
-      fluxDYes(dir_i)(p.I)  += one_over_24*laplace_perp<dir_i>(fluxDYes(dir_i),p);
-  });
-}
-
-extern "C" void AsterX_FluxesFVHO(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTS_AsterX_FluxesFVHO;
-  DECLARE_CCTK_PARAMETERS;
-
-  CalcFluxFVHO<0>(cctkGH);
-  CalcFluxFVHO<1>(cctkGH);
-  CalcFluxFVHO<2>(cctkGH);
-}
+// template <int dir_i>
+// void CalcFluxFVHO(CCTK_ARGUMENTS) {
+//   DECLARE_CCTK_ARGUMENTSX_AsterX_FluxesFVHO;
+//   DECLARE_CCTK_PARAMETERS;
+// 
+//   /* grid functions for fluxes */
+//   const vec<GF3D2<CCTK_REAL>, dim> fluxdenss{fxdens, fydens, fzdens};
+//   const vec<GF3D2<CCTK_REAL>, dim> fluxDEnts{fxDEnt, fyDEnt, fzDEnt};
+//   const vec<GF3D2<CCTK_REAL>, dim> fluxmomxs{fxmomx, fymomx, fzmomx};
+//   const vec<GF3D2<CCTK_REAL>, dim> fluxmomys{fxmomy, fymomy, fzmomy};
+//   const vec<GF3D2<CCTK_REAL>, dim> fluxmomzs{fxmomz, fymomz, fzmomz};
+//   const vec<GF3D2<CCTK_REAL>, dim> fluxtaus{fxtau, fytau, fztau};
+//   const vec<GF3D2<CCTK_REAL>, dim> fluxDYes{fxDYe, fyDYe, fzDYe};
+// 
+//   // Face-centred grid functions (in direction `dir_i`)
+//   constexpr array<int, dim> face_centred = {!(dir_i == 0), !(dir_i == 1),
+//                                             !(dir_i == 2)};
+// 
+//   constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
+// 
+//   grid.loop_int_device<
+//       face_centred[0], face_centred[1],
+//       face_centred
+//           [2]>(grid.nghostzones, [=] CCTK_DEVICE(const PointDesc &p) {
+// 
+//       // Eq. (30) from https://arxiv.org/pdf/2310.11831
+//       fluxdenss(dir_i)(p.I) += one_over_24*laplace_perp<dir_i>(fluxdenss(dir_i),p);
+//       fluxDEnts(dir_i)(p.I) += one_over_24*laplace_perp<dir_i>(fluxDEnts(dir_i),p);
+//       fluxmomxs(dir_i)(p.I) += one_over_24*laplace_perp<dir_i>(fluxmomxs(dir_i),p);
+//       fluxmomys(dir_i)(p.I) += one_over_24*laplace_perp<dir_i>(fluxmomys(dir_i),p);
+//       fluxmomzs(dir_i)(p.I) += one_over_24*laplace_perp<dir_i>(fluxmomzs(dir_i),p);
+//       fluxtaus(dir_i)(p.I)  += one_over_24*laplace_perp<dir_i>(fluxtaus(dir_i),p);
+//       fluxDYes(dir_i)(p.I)  += one_over_24*laplace_perp<dir_i>(fluxDYes(dir_i),p);
+//   });
+// }
+// 
+// extern "C" void AsterX_FluxesFVHO(CCTK_ARGUMENTS) {
+//   DECLARE_CCTK_ARGUMENTS_AsterX_FluxesFVHO;
+//   DECLARE_CCTK_PARAMETERS;
+// 
+//   CalcFluxFVHO<0>(cctkGH);
+//   CalcFluxFVHO<1>(cctkGH);
+//   CalcFluxFVHO<2>(cctkGH);
+// }
 
 template <int i, bool use_uct>
 void CalcE_impl(CCTK_ARGUMENTS, const reconstruction_t reconstruction,
@@ -1381,7 +1382,7 @@ void CalcE_impl(CCTK_ARGUMENTS, const reconstruction_t reconstruction,
 
   // edge centered loop
   if constexpr (use_uct) { // upwind-CT
-    grid.loop_int_device<i == 0, i == 1, i == 2>(
+    grid.loop_mix_device<i == 0, i == 1, i == 2>(
         grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
           // reconstruct in k-dir

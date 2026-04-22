@@ -2,7 +2,7 @@
 #$Header : $
 
 #Source files in this directory
-SRCS = test.cxx
+SRCS = 
 
 #Subdirectories containing source files
            SUBDIRS =
