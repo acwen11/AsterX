@@ -63,7 +63,7 @@ SCHEDULE GROUP AsterX_InitialGroup AT initial IN ODESolvers_Initial AFTER HydroB
 {
 } "Initialize conservative variables"
 
-SCHEDULE AsterX_InitLOFlag AT CCTK_POSTINITIAL BEFORE AsterX_Con2PrimGroup
+SCHEDULE AsterX_InitLOFlag IN AsterX_InitialGroup
 {
 	LANG: C
 	WRITES: LOflag(everywhere)
@@ -436,6 +436,7 @@ SCHEDULE AsterX_RHS IN AsterX_RHSGroup AFTER AsterX_SourceTerms
   READS: Fbeta(everywhere)
   READS: Fx_stag(everywhere) Fy_stag(everywhere) Fz_stag(everywhere)
   READS: theta_x(everywhere) theta_y(everywhere) theta_z(everywhere)
+  READS: LOflag(everywhere) 
   WRITES: rhs_vector(interior)
   WRITES: theta_tot(interior)
   WRITES: Avec_x_rhs(interior) Avec_y_rhs(interior) Avec_z_rhs(interior) Psi_rhs(interior)
