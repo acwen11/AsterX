@@ -283,11 +283,11 @@ SCHEDULE AsterX_InitCAC2PFlag IN AsterX_Con2PrimGroup BEFORE AsterX_Con2Prim
   WRITES: CA_C2P(everywhere)
 } "Determine if we are performing C2P on cell averages or point values"
 
-SCHEDULE AsterX_InitPointValues IN AsterX_Con2PrimGroup BEFORE AsterX_Con2Prim
-{
-  LANG: C
-  WRITES: cons_vector_pv(everywhere)
-} "Set point value cons to zero so they are marked as valid"
+# SCHEDULE AsterX_InitPointValues IN AsterX_Con2PrimGroup BEFORE AsterX_Con2Prim
+# {
+#   LANG: C
+#   WRITES: cons_vector_pv(everywhere)
+# } "Set point value cons to zero so they are marked as valid"
 
 SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBstag
 {
@@ -400,6 +400,26 @@ if (use_ho_fv) {
     LANG: C
     OPTIONS: global
   } "Apply CarpetX boundary conditions on primitive variables"
+
+  SCHEDULE AsterX_InitPointValues AT CCTK_POST_RECOVER_VARIABLES BEFORE ODESolvers_PostStep
+  {
+    LANG: C
+    WRITES: cons_vector_pv(everywhere)
+  } "Set point value cons to zero so they are marked as valid before 1st C2P, where they are not used. They will be correctly set at 2nd C2P."
+
+  SCHEDULE AsterX_InitPointValues AT CCTK_POSTREGRID BEFORE ODESolvers_PostStep
+  {
+    LANG: C
+    WRITES: cons_vector_pv(everywhere)
+  } "Set point value cons to zero so they are marked as valid before 1st C2P, where they are not used. They will be correctly set at 2nd C2P."
+}
+else
+{
+  SCHEDULE AsterX_InitPointValues IN AsterX_Con2PrimGroup BEFORE AsterX_Con2Prim
+  {
+    LANG: C
+    WRITES: cons_vector_pv(everywhere)
+  } "Set point value cons to zero so they are marked as valid"
 }
 
 SCHEDULE GROUP AsterX_RHSGroup IN ODESolvers_RHS

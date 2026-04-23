@@ -666,7 +666,8 @@ extern "C" void AsterX_SetPointValues(CCTK_ARGUMENTS) {
 
   constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
 
-  if (use_ho_fv) {
+  // if (use_ho_fv) {
+  if (cctk_iteration != 0) { // use ID values at iteration 0
          
     grid.loop_allmn_device<1, 1, 1>(
         grid.nghostzones, 1,
@@ -700,21 +701,22 @@ extern "C" void AsterX_SetPointValues(CCTK_ARGUMENTS) {
         });
 
   } else {
+    // Do nothing
+    return;
+    // grid.loop_all_device<1, 1, 1>(
+    //     grid.nghostzones,
+    //     [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+    //      
+    //       // Set to zero for now
+    //       dens_pv(p.I) = 0.0;
+    //       momx_pv(p.I) = 0.0;
+    //       momy_pv(p.I) = 0.0;
+    //       momz_pv(p.I) = 0.0;
+    //       tau_pv(p.I)  = 0.0;
+    //       DYe_pv(p.I)  = 0.0;
+    //       DEnt_pv(p.I) = 0.0;
 
-    grid.loop_all_device<1, 1, 1>(
-        grid.nghostzones,
-        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-         
-          // Set to zero for now
-          dens_pv(p.I) = 0.0;
-          momx_pv(p.I) = 0.0;
-          momy_pv(p.I) = 0.0;
-          momz_pv(p.I) = 0.0;
-          tau_pv(p.I)  = 0.0;
-          DYe_pv(p.I)  = 0.0;
-          DEnt_pv(p.I) = 0.0;
-
-        });
+    //     });
   }
 }
 
