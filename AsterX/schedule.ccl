@@ -312,13 +312,6 @@ SCHEDULE AsterX_ApplyOuterBCOnPrim IN AsterX_Con2PrimGroup AFTER AsterX_Con2Prim
   OPTIONS: global
 } "Apply CarpetX boundary conditions on primitive variables"
 
-SCHEDULE AsterX_UpdateCAC2PFlag IN AsterX_Con2PrimGroup BEFORE AsterX_Con2Prim
-{
-  LANG: C
-  OPTIONS: global
-  WRITES: CA_C2P(everywhere)
-} "Determine if we are performing C2P on cell averages or point values"
-
 if (use_deriv_shock_detector)
 {
   SCHEDULE AsterX_SetLOFlag IN AsterX_InitialGroup AFTER AsterX_CheckPrims
@@ -347,6 +340,13 @@ if (use_deriv_shock_detector)
 }
 
 if (use_ho_fv) {
+  SCHEDULE AsterX_UpdateCAC2PFlag IN AsterX_Con2PrimGroup AFTER AsterX_Con2Prim
+  {
+    LANG: C
+    OPTIONS: global
+    WRITES: CA_C2P(everywhere)
+  } "Determine if we are performing C2P on cell averages or point values"
+
   SCHEDULE GROUP AsterX_PVCon2PrimGroup IN ODESolvers_PostStep AFTER AsterX_Con2PrimGroup 
   {
   } "Compute point valued primitive variables"
@@ -388,6 +388,12 @@ if (use_ho_fv) {
     WRITES: svec(everywhere)
     WRITES: cons_vector(everywhere) dB(everywhere)
   } "Calculate primitive variables from conservative variables"
+
+  SCHEDULE AsterX_ApplyOuterBCOnPrim IN AsterX_PVCon2PrimGroup AFTER AsterX_Con2Prim
+  {
+    LANG: C
+    OPTIONS: global
+  } "Apply CarpetX boundary conditions on primitive variables"
 }
 
 SCHEDULE GROUP AsterX_RHSGroup IN ODESolvers_RHS
