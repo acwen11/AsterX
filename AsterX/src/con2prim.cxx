@@ -639,6 +639,27 @@ extern "C" void AsterX_UpdateCAC2PFlag(CCTK_ARGUMENTS) {
   return;
 }
 
+extern "C" void AsterX_InitPointValues(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_InitPointValues;
+  DECLARE_CCTK_PARAMETERS;
+
+  grid.loop_all_device<1, 1, 1>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+       
+        // Set to zero to make them valid for CA C2P,
+        // where they will not be used.
+        dens_pv(p.I) = 0.0;
+        momx_pv(p.I) = 0.0;
+        momy_pv(p.I) = 0.0;
+        momz_pv(p.I) = 0.0;
+        tau_pv(p.I)  = 0.0;
+        DYe_pv(p.I)  = 0.0;
+        DEnt_pv(p.I) = 0.0;
+
+      });
+}
+
 extern "C" void AsterX_SetPointValues(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_SetPointValues;
   DECLARE_CCTK_PARAMETERS;

@@ -283,6 +283,12 @@ SCHEDULE AsterX_InitCAC2PFlag IN AsterX_Con2PrimGroup BEFORE AsterX_Con2Prim
   WRITES: CA_C2P(everywhere)
 } "Determine if we are performing C2P on cell averages or point values"
 
+SCHEDULE AsterX_InitPointValues IN AsterX_Con2PrimGroup BEFORE AsterX_Con2Prim
+{
+  LANG: C
+  WRITES: cons_vector_pv(everywhere)
+} "Set point value cons to zero so they are marked as valid"
+
 SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBstag
 {
   LANG: C
