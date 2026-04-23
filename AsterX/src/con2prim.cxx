@@ -215,7 +215,7 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     bool write_back_cons = true;
     cons_vars cv;
 
-    if (use_ho_fv) {
+    if (use_ho_fv && !*CA_C2P) {
       write_back_cons = false;
       // Note that cv are densitized, i.e. they all include sqrt_detg
       cv = cons_vars{dens_pv(p.I), {momx_pv(p.I), momy_pv(p.I), momz_pv(p.I)},
@@ -486,6 +486,9 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     CCTK_REAL Ex, Ey, Ez;
 
     // Write back pv
+    // HO FV note: if CA_C2P is true, these prims are 2nd order cell averages. They will
+    // be used to calculate the low-order flag, and immediately overwritten by
+    // point values.
     pv.scatter(rho(p.I), eps(p.I), Ye(p.I), press(p.I), temperature(p.I),
                entropy(p.I), velx(p.I), vely(p.I), velz(p.I), wlor, Bvecx(p.I),
                Bvecy(p.I), Bvecz(p.I), Ex, Ey, Ez);
@@ -512,12 +515,14 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     }
 
     // Update saved prims
-    saved_rho(p.I) = rho(p.I);
-    saved_velx(p.I) = velx(p.I);
-    saved_vely(p.I) = vely(p.I);
-    saved_velz(p.I) = velz(p.I);
-    saved_eps(p.I) = eps(p.I);
-    saved_Ye(p.I) = Ye(p.I);
+    if (!*CA_C2P) {
+      saved_rho(p.I) = rho(p.I);
+      saved_velx(p.I) = velx(p.I);
+      saved_vely(p.I) = vely(p.I);
+      saved_velz(p.I) = velz(p.I);
+      saved_eps(p.I) = eps(p.I);
+      saved_Ye(p.I) = Ye(p.I);
+    }
 
     // Compute diagnostics
     v_low = calc_contraction(glo, pv.vel);
@@ -616,6 +621,22 @@ extern "C" void AsterX_Con2Prim(CCTK_ARGUMENTS) {
   default:
     assert(0);
   }
+}
+
+extern "C" void AsterX_InitCAC2PFlag(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_InitCAC2PFlag;
+  DECLARE_CCTK_PARAMETERS;
+
+  *CA_C2P = use_ho_fv;
+  return;
+}
+
+extern "C" void AsterX_UpdateCAC2PFlag(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_UpdateCAC2PFlag;
+  DECLARE_CCTK_PARAMETERS;
+
+  *CA_C2P = 0;
+  return;
 }
 
 extern "C" void AsterX_SetPointValues(CCTK_ARGUMENTS) {

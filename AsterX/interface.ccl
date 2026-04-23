@@ -121,6 +121,8 @@ CCTK_REAL dBx_stag_fa TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"' "x-componen
 CCTK_REAL dBy_stag_fa TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"' "y-component of staggered densitized magnetic field"
 CCTK_REAL dBz_stag_fa TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"' "z-component of staggered densitized magnetic field"
 
+CCTK_INT CA_C2P type=SCALAR tags='checkpoint="no"' "Flag to indicate if C2P is performed on cell averaged or point value conservatives"
+
 # ----- staggered gauge functions
 
 CCTK_REAL Psi TYPE=gf TIMELEVELS=2 CENTERING={vvv} TAGS='rhs="Psi_rhs" ks="Psi_k1 Psi_k2 Psi_k3 Psi_k4" prolongation_type="hermite" prolongation_order=5' "t-component of vector potential: sqrt(det(gamma_ij))*Phi"
