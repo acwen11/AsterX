@@ -747,8 +747,8 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
     const auto Im = p.I - p.DI[dir_i];
 
     vec<CCTK_REAL, 2> rho_ppl = {rho(Im), rho(Ip)};
-    const bool ppl_atmo = ((rho_ppl(0) <= rho_atm(0) * 1.00001) &&
-                           (rho_ppl(1) <= rho_atm(1) * 1.00001));
+    const bool ppl_atmo = ((rho_ppl(0) <= rho_atm(0) * (1 + atmo_tol)) &&
+                           (rho_ppl(1) <= rho_atm(1) * (1 + atmo_tol)));
 
     if (use_pplim && !ppl_atmo) {
 
