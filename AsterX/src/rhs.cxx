@@ -141,17 +141,27 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
       [=] CCTK_DEVICE(const vec<GF3D2<const CCTK_REAL>, dim> &gf_fluxes,
                       const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         if (use_ho_fv) {
-          constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
-          vec<CCTK_REAL, 3> dfluxes{calc_fd_forward_midpoint<0>(gf_fluxes(0), p, 2)
-                                    + (one_over_24 / p.DX[0]) * (laplace_perp<0>(gf_fluxes(0), p, p.I + p.DI[0]) 
-                                                      - laplace_perp<0>(gf_fluxes(0), p, p.I)),
-                                    calc_fd_forward_midpoint<1>(gf_fluxes(1), p, 2)
-                                    + (one_over_24 / p.DX[1]) * (laplace_perp<1>(gf_fluxes(1), p, p.I + p.DI[1]) 
-                                                      - laplace_perp<1>(gf_fluxes(1), p, p.I)),
-                                    calc_fd_forward_midpoint<2>(gf_fluxes(2), p, 2)
-                                    + (one_over_24 / p.DX[2]) * (laplace_perp<2>(gf_fluxes(2), p, p.I + p.DI[2]) 
-                                                      - laplace_perp<2>(gf_fluxes(2), p, p.I))};
-          return -(dfluxes(0) + dfluxes(1) + dfluxes(2));
+          // constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
+          // vec<CCTK_REAL, 3> dfluxes{calc_fd_forward_midpoint<0>(gf_fluxes(0), p, 2)
+          //                           + (one_over_24 / p.DX[0]) * (laplace_perp<0>(gf_fluxes(0), p, p.I + p.DI[0]) 
+          //                                             - laplace_perp<0>(gf_fluxes(0), p, p.I)),
+          //                           calc_fd_forward_midpoint<1>(gf_fluxes(1), p, 2)
+          //                           + (one_over_24 / p.DX[1]) * (laplace_perp<1>(gf_fluxes(1), p, p.I + p.DI[1]) 
+          //                                             - laplace_perp<1>(gf_fluxes(1), p, p.I)),
+          //                           calc_fd_forward_midpoint<2>(gf_fluxes(2), p, 2)
+          //                           + (one_over_24 / p.DX[2]) * (laplace_perp<2>(gf_fluxes(2), p, p.I + p.DI[2]) 
+          //                                             - laplace_perp<2>(gf_fluxes(2), p, p.I))};
+          if (shock_pv_fallback){
+            vec<CCTK_REAL, 3> dfluxes{calc_FV_flux<0>(gf_fluxes(0), p, LOflag),
+                                      calc_FV_flux<1>(gf_fluxes(1), p, LOflag),
+                                      calc_FV_flux<2>(gf_fluxes(2), p, LOflag)};
+            return -(dfluxes(0) + dfluxes(1) + dfluxes(2));
+          } else {
+            vec<CCTK_REAL, 3> dfluxes{calc_FV_flux<0>(gf_fluxes(0), p),
+                                      calc_FV_flux<1>(gf_fluxes(1), p),
+                                      calc_FV_flux<2>(gf_fluxes(2), p)};
+            return -(dfluxes(0) + dfluxes(1) + dfluxes(2));
+          }
         }
         else {
           vec<CCTK_REAL, 3> dfluxes{calc_fd_forward_midpoint<0>(

@@ -219,6 +219,29 @@ CCTK_DEVICE CCTK_HOST
          inv12dx;
 }
 
+// Convenience functions for calculating divided difference of face averaged fluxes at cell center
+// Eq. (30) in https://arxiv.org/pdf/2310.11831
+template <int dir>
+CCTK_DEVICE CCTK_HOST inline CCTK_REAL 
+calc_FV_flux(const GF3D2<const CCTK_REAL> flux, const PointDesc &p) {
+  constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
+  return calc_fd_forward_midpoint<dir>(flux, p, 2)
+            + (one_over_24 / p.DX[dir]) * (laplace_perp<dir>(flux, p, p.I + p.DI[dir])
+            - laplace_perp<dir>(flux, p, p.I));
+}
+
+// Overload with order reduction at flagged points
+template <int dir>
+CCTK_DEVICE CCTK_HOST inline CCTK_REAL 
+calc_FV_flux(const GF3D2<const CCTK_REAL> flux, const PointDesc &p, const GF3D2<const CCTK_REAL> flag) {
+  const bool thetafm = flag(p.I - p.DI[dir]) || flag(p.I);
+  const bool thetafp = flag(p.I + p.DI[dir]) || flag(p.I);
+  constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
+  return calc_fd_forward_midpoint<dir>(flux, p, 2)
+            + (one_over_24 / p.DX[dir]) * (thetafp * laplace_perp<dir>(flux, p, p.I + p.DI[dir])
+            - thetafm * laplace_perp<dir>(flux, p, p.I));
+}
+
 } // namespace AsterUtils
 
 #endif // ASTER_FD_HXX

@@ -58,7 +58,7 @@ BOOLEAN loworder_flux "Fall back to Lax-Friedrichs flux on flagged points?" STEE
 {
 } "no"
 
-BOOLEAN shock_pv_fallback "In HO FV scheme, disable 4th order conversion of cell avgs. to point values when shocks are detected?" STEERABLE=always
+BOOLEAN shock_pv_fallback "In HO FV scheme, disable 4th order cell/face averaging when shocks are detected?" STEERABLE=always
 {
 } no
 
