@@ -15,10 +15,6 @@ if(use_subcycling_wip) {
   STORAGE: k2_vector Avec_x_k2 Avec_y_k2 Avec_z_k2 Psi_k2
   STORAGE: k3_vector Avec_x_k3 Avec_y_k3 Avec_z_k3 Psi_k3
   STORAGE: k4_vector Avec_x_k4 Avec_y_k4 Avec_z_k4 Psi_k4
-
-  SCHEDULE GROUP AsterX_Con2PrimGroup IN ODESolvers_PostSubStep BEFORE TmunuBaseX_SetTmunuVars AFTER ADMBaseX_SetADMVars
-  {
-  } "Compute primitive variables"
 }
 
 
