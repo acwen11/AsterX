@@ -33,6 +33,11 @@ CCTK_REAL rhs_vector TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "RHSs of con
   densrhs, momxrhs, momyrhs, momzrhs, taurhs, DYe_rhs, DEntrhs
 } "Conserved density, momenta, internal energy, electron fraction and entropy RHS"
 
+CCTK_REAL rhs_vector_pv TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Point-valued source terms of conserved momentum and energy"
+{
+  momx_pvrhs, momy_pvrhs, momz_pvrhs, tau_pvrhs
+} "Temporary storage for point-valued source terms"
+
 # DEnt is the conserved "evolved" entropy.
 # The corresponding primitive is stored in HydroBaseX::entropy.
 # However, note that this gf stores the "evolved" entropy which is 

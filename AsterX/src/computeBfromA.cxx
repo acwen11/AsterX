@@ -154,11 +154,11 @@ extern "C" void AsterX_ComputedBstagFromA(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_ComputedBstagFromA;
   DECLARE_CCTK_PARAMETERS;
 
-  if (use_ho_fv) {
-    ComputeStaggeredFaceAvgB<0>(cctkGH);
-    ComputeStaggeredFaceAvgB<1>(cctkGH);
-    ComputeStaggeredFaceAvgB<2>(cctkGH);
-  }
+  // If FV is not used, face avg is set to 0 here
+  ComputeStaggeredFaceAvgB<0>(cctkGH);
+  ComputeStaggeredFaceAvgB<1>(cctkGH);
+  ComputeStaggeredFaceAvgB<2>(cctkGH);
+
   ComputeStaggeredB<0>(cctkGH);
   ComputeStaggeredB<1>(cctkGH);
   ComputeStaggeredB<2>(cctkGH);

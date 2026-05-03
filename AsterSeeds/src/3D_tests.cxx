@@ -35,7 +35,7 @@ extern "C" void Tests3D_Initialize(CCTK_ARGUMENTS) {
     const CCTK_REAL rho_in    = 1e-2;
     const CCTK_REAL rho_out   = 1e-4;
     const CCTK_REAL press_in  = 1.0;
-    const CCTK_REAL press_out = 3e-5;
+    const CCTK_REAL press_out = 5e-3;
 
     const CCTK_REAL rin  = shock_radius * (1.0 - 0.2); // 0.8 * shock_radius
     const CCTK_REAL rout = shock_radius;

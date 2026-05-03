@@ -503,8 +503,10 @@ SCHEDULE AsterX_SourceTerms IN AsterX_RHSGroup AFTER AsterX_Fluxes
   READS: HydroBaseX::vel(everywhere)
   READS: zvec_x(everywhere), zvec_y(everywhere), zvec_z(everywhere)
   READS: svec_x(everywhere), svec_y(everywhere), svec_z(everywhere)
+  READS: LOflag(everywhere)
   READS: HydroBaseX::Bvec(everywhere)
   WRITES: rhs_vector(interior)
+  WRITES: rhs_vector_pv(interior)
 } "Calculate the source terms and compute the RHS of the hydro equations"
 
 SCHEDULE AsterX_RHS IN AsterX_RHSGroup AFTER AsterX_SourceTerms

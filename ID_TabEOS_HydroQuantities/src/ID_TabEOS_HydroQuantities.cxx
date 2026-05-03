@@ -120,9 +120,14 @@ extern "C" void ID_TabEOS_HydroQuantities_initial_temp_ent(CCTK_ARGUMENTS) {
 
         switch (ts_ID) {
         case TS_ID_t::Temperature: {
-          temperature(p.I) = temp_atm;
+          // TODO: revert hack for Tab EOS shock test
+          if (rhoL > 9e-6)
+            temperature(p.I) = 10;
+          else
+            temperature(p.I) = 0.05;
+            
           CCTK_REAL ent_val =
-              eos_3p_tab3d->entropy_from_rho_temp_ye(rhoL, temp_atm, yeL);
+              eos_3p_tab3d->entropy_from_rho_temp_ye(rhoL, temperature(p.I), yeL);
           entropy(p.I) = ent_val;
           break;
         }

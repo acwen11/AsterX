@@ -234,8 +234,8 @@ calc_FV_flux(const GF3D2<const CCTK_REAL> flux, const PointDesc &p) {
 template <int dir>
 CCTK_DEVICE CCTK_HOST inline CCTK_REAL 
 calc_FV_flux(const GF3D2<const CCTK_REAL> flux, const PointDesc &p, const GF3D2<const CCTK_REAL> flag) {
-  const bool thetafm = flag(p.I - p.DI[dir]) || flag(p.I);
-  const bool thetafp = flag(p.I + p.DI[dir]) || flag(p.I);
+  const bool thetafm = !(flag(p.I - p.DI[dir]) || flag(p.I));
+  const bool thetafp = !(flag(p.I + p.DI[dir]) || flag(p.I));
   constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
   return calc_fd_forward_midpoint<dir>(flux, p, 2)
             + (one_over_24 / p.DX[dir]) * (thetafp * laplace_perp<dir>(flux, p, p.I + p.DI[dir])

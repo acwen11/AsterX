@@ -159,12 +159,37 @@ template <int FDORDER> void SourceTerms(CCTK_ARGUMENTS) {
         /* Update the RHS grid functions */
         densrhs(p.I) = 0.0;
         DEntrhs(p.I) = 0.0;
-        momxrhs(p.I) = alp_avg * sqrt_detg * mom_source(0);
-        momyrhs(p.I) = alp_avg * sqrt_detg * mom_source(1);
-        momzrhs(p.I) = alp_avg * sqrt_detg * mom_source(2);
-        taurhs(p.I) = alp_avg * sqrt_detg * tau_source;
         DYe_rhs(p.I) = 0.0;
+        if (use_ho_fv) {
+          momx_pvrhs(p.I) = alp_avg * sqrt_detg * mom_source(0);
+          momy_pvrhs(p.I) = alp_avg * sqrt_detg * mom_source(1);
+          momz_pvrhs(p.I) = alp_avg * sqrt_detg * mom_source(2);
+          tau_pvrhs(p.I) = alp_avg * sqrt_detg * tau_source;
+        }
+        else {
+          momxrhs(p.I) = alp_avg * sqrt_detg * mom_source(0);
+          momyrhs(p.I) = alp_avg * sqrt_detg * mom_source(1);
+          momzrhs(p.I) = alp_avg * sqrt_detg * mom_source(2);
+          taurhs(p.I) = alp_avg * sqrt_detg * tau_source;
+
+          momx_pvrhs(p.I) = 0.0; 
+          momy_pvrhs(p.I) = 0.0; 
+          momz_pvrhs(p.I) = 0.0; 
+          tau_pvrhs(p.I) = 0.0;
+        }
       }); // end of loop over grid
+  
+  // Volume average source term
+  if (use_ho_fv) {
+    grid.loop_int_device<1, 1, 1>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+          momxrhs(p.I) += (1 - LOflag(p.I)) * laplace_3d(momx_pvrhs, p);
+          momyrhs(p.I) += (1 - LOflag(p.I)) * laplace_3d(momy_pvrhs, p);
+          momzrhs(p.I) += (1 - LOflag(p.I)) * laplace_3d(momz_pvrhs, p);
+          taurhs(p.I) += (1 - LOflag(p.I)) * laplace_3d(tau_pvrhs, p);
+    });
+  }
 }
 
 extern "C" void AsterX_SourceTerms(CCTK_ARGUMENTS) {
