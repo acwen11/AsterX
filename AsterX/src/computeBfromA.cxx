@@ -33,22 +33,52 @@ template <int dir> void ComputeStaggeredFaceAvgB(CCTK_ARGUMENTS) {
         if (dir == 0) {
           /* <dB>x is curl(<A>) at (i-1/2,j,k) */
           dBx_stag_fa(p.I) =
-              calc_fd_forward_midpoint<1>(Avec_z, p, 2) -
-              calc_fd_forward_midpoint<2>(Avec_y, p, 2);
+              calc_fd_forward_midpoint<1>(Avec_z_la, p, 2) -
+              calc_fd_forward_midpoint<2>(Avec_y_la, p, 2);
           // Also init PV, will be overwritten
           dBx_stag(p.I) = 0.0;
         } else if (dir == 1) {
           /* <dB>y is curl(<A>) at (i,j-1/2,k) */
           dBy_stag_fa(p.I) =
-              calc_fd_forward_midpoint<2>(Avec_x, p, 2) -
-              calc_fd_forward_midpoint<0>(Avec_z, p, 2);
+              calc_fd_forward_midpoint<2>(Avec_x_la, p, 2) -
+              calc_fd_forward_midpoint<0>(Avec_z_la, p, 2);
           dBy_stag(p.I) = 0.0;
         } else if (dir == 2) {
           /* <dB>z is curl(<A>) at (i,j,z-1/2) */
           dBz_stag_fa(p.I) =
+              calc_fd_forward_midpoint<0>(Avec_y_la, p, 2) -
+              calc_fd_forward_midpoint<1>(Avec_x_la, p, 2);
+          dBz_stag(p.I) = 0.0;
+        }
+      });
+}
+
+template <int dir> void ComputeStaggeredB_LO(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_ComputedBstagLO;
+  DECLARE_CCTK_PARAMETERS;
+
+  static_assert(dir >= 0 && dir < 3, "");
+
+  constexpr array<int, dim> face_centred = {!(dir == 0), !(dir == 1),
+                                            !(dir == 2)};
+  grid.loop_all_device<face_centred[0], face_centred[1], face_centred[2]>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        if (dir == 0) {
+          /* <dB>x is curl(<A>) at (i-1/2,j,k) */
+          dBx_stag_aux(p.I) =
+              calc_fd_forward_midpoint<1>(Avec_z, p, 2) -
+              calc_fd_forward_midpoint<2>(Avec_y, p, 2);
+        } else if (dir == 1) {
+          /* <dB>y is curl(<A>) at (i,j-1/2,k) */
+          dBy_stag_aux(p.I) =
+              calc_fd_forward_midpoint<2>(Avec_x, p, 2) -
+              calc_fd_forward_midpoint<0>(Avec_z, p, 2);
+        } else if (dir == 2) {
+          /* <dB>z is curl(<A>) at (i,j,z-1/2) */
+          dBz_stag_aux(p.I) =
               calc_fd_forward_midpoint<0>(Avec_y, p, 2) -
               calc_fd_forward_midpoint<1>(Avec_x, p, 2);
-          dBz_stag(p.I) = 0.0;
         }
       });
 }
@@ -121,11 +151,11 @@ template <int dir> void SetdBstagnMinus1(CCTK_ARGUMENTS) {
        grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
           if (dir == 0) {
-            dBx_stag_nm1(p.I) = dBx_stag_fa(p.I);
+            dBx_stag_aux(p.I) = dBx_stag_fa(p.I);
           } else if (dir == 1) {
-            dBy_stag_nm1(p.I) = dBy_stag_fa(p.I);
+            dBy_stag_aux(p.I) = dBy_stag_fa(p.I);
           } else if (dir == 2) {
-            dBz_stag_nm1(p.I) = dBz_stag_fa(p.I);
+            dBz_stag_aux(p.I) = dBz_stag_fa(p.I);
           }
         });
   } else {
@@ -133,11 +163,11 @@ template <int dir> void SetdBstagnMinus1(CCTK_ARGUMENTS) {
        grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
           if (dir == 0) {
-            dBx_stag_nm1(p.I) = dBx_stag(p.I);
+            dBx_stag_aux(p.I) = dBx_stag(p.I);
           } else if (dir == 1) {
-            dBy_stag_nm1(p.I) = dBy_stag(p.I);
+            dBy_stag_aux(p.I) = dBy_stag(p.I);
           } else if (dir == 2) {
-            dBz_stag_nm1(p.I) = dBz_stag(p.I);
+            dBz_stag_aux(p.I) = dBz_stag(p.I);
           }
         });
   }
@@ -162,11 +192,11 @@ template <int dir> void ComputeStaggeredPointValB(CCTK_ARGUMENTS) {
      grid.nghostzones, 1,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         if (dir == 0) {
-          dBx_stag(p.I) = dBx_stag_fa(p.I) + fac * one_over_24 * laplace_perp<0>(dBx_stag_nm1, p);
+          dBx_stag(p.I) = dBx_stag_fa(p.I) + fac * one_over_24 * laplace_perp<0>(dBx_stag_aux, p);
         } else if (dir == 1) {
-          dBy_stag(p.I) = dBy_stag_fa(p.I) + fac * one_over_24 * laplace_perp<1>(dBy_stag_nm1, p);
+          dBy_stag(p.I) = dBy_stag_fa(p.I) + fac * one_over_24 * laplace_perp<1>(dBy_stag_aux, p);
         } else if (dir == 2) {
-          dBz_stag(p.I) = dBz_stag_fa(p.I) + fac * one_over_24 * laplace_perp<2>(dBz_stag_nm1, p);
+          dBz_stag(p.I) = dBz_stag_fa(p.I) + fac * one_over_24 * laplace_perp<2>(dBz_stag_aux, p);
         }
       });
 
@@ -246,6 +276,15 @@ extern "C" void AsterX_DecdBstagIter(CCTK_ARGUMENTS) {
 
     SyncGroupsByDirINoRestrict(cctkGH, groups.size(), groups.data(), nullptr);
   }
+}
+
+extern "C" void AsterX_ComputedBstagLO(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_ComputedBstagLO;
+  DECLARE_CCTK_PARAMETERS;
+
+  ComputeStaggeredB_LO<0>(cctkGH);
+  ComputeStaggeredB_LO<1>(cctkGH);
+  ComputeStaggeredB_LO<2>(cctkGH);
 }
 /* End Point Value dBstag Calculation */
 

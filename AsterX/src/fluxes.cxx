@@ -90,6 +90,8 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
   const vec<GF3D2<const CCTK_REAL>, dim> gf_Bvecs{Bvecx, Bvecy, Bvecz};
   const vec<GF3D2<const CCTK_REAL>, dim> gf_dBstags{dBx_stag, dBy_stag,
                                                     dBz_stag};
+  const vec<GF3D2<const CCTK_REAL>, dim> gf_dBstagsLO{dBx_stag_aux, dBy_stag_aux,
+                                                    dBz_stag_aux};
   const vec<GF3D2<const CCTK_REAL>, dim> gf_beta{betax, betay, betaz};
   const smat<GF3D2<const CCTK_REAL>, dim> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
 
@@ -403,7 +405,11 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
     vec<vec<CCTK_REAL, 2>, 3> Bs_rc;
 
     // Assign the value for the primary direction
-    const CCTK_REAL val = gf_dBstags(dir_i)(p.I) / sqrtg;
+    CCTK_REAL val;
+    if (use_ho_fv && useLO)
+      val = gf_dBstagsLO(dir_i)(p.I) / sqrtg;
+    else
+      val = gf_dBstags(dir_i)(p.I) / sqrtg;
     Bs_rc(dir_i)(0) = val;
     Bs_rc(dir_i)(1) = val;
 
@@ -770,7 +776,11 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
       vec<vec<CCTK_REAL, 2>, 3> Bs_ppl;
 
       // Assign the value for the primary direction
-      const CCTK_REAL val = gf_dBstags(dir_i)(p.I) / sqrtg;
+      CCTK_REAL val;
+      if (use_ho_fv && useLO)
+        val = gf_dBstagsLO(dir_i)(p.I) / sqrtg;
+      else
+        val = gf_dBstags(dir_i)(p.I) / sqrtg;
       Bs_ppl(dir_i)(0) = val;
       Bs_ppl(dir_i)(1) = val;
 

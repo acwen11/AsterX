@@ -20,6 +20,8 @@ void CalcRHSofAvec_impl(CCTK_ARGUMENTS, const int order, const bool hofv) {
   const vec<GF3D2<const CCTK_REAL>, dim> gf_E{Ex, Ey, Ez};
   const vec<GF3D2<CCTK_REAL>, dim> gf_Avec_rhs{Avec_x_rhs, Avec_y_rhs,
                                                Avec_z_rhs};
+  const vec<GF3D2<CCTK_REAL>, dim> gf_Avec_la_rhs{Avec_x_la_rhs, Avec_y_la_rhs,
+                                               Avec_z_la_rhs};
   constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
 
   if constexpr (gauge == vector_potential_gauge_t::algebraic) {
@@ -27,11 +29,10 @@ void CalcRHSofAvec_impl(CCTK_ARGUMENTS, const int order, const bool hofv) {
     grid.loop_int_device<i == 0, i == 1, i == 2>(
         grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+          gf_Avec_rhs(i)(p.I) = -gf_E(i)(p.I);
           if (hofv) {
             // Eq. (40) in https://arxiv.org/pdf/2310.11831
-            gf_Avec_rhs(i)(p.I) = -(gf_E(i)(p.I) + one_over_24 * laplace_1d<i>(gf_E(i), p));
-          } else {
-            gf_Avec_rhs(i)(p.I) = -gf_E(i)(p.I);
+            gf_Avec_la_rhs(i)(p.I) = -(gf_E(i)(p.I) + one_over_24 * laplace_1d<i>(gf_E(i), p));
           }
         });
 
@@ -40,13 +41,12 @@ void CalcRHSofAvec_impl(CCTK_ARGUMENTS, const int order, const bool hofv) {
     grid.loop_int_device<i == 0, i == 1, i == 2>(
         grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+          gf_Avec_rhs(i)(p.I) =
+              -gf_E(i)(p.I) - calc_fd_forward_midpoint<i>(G, p, order);
           if (hofv) {
             // Eq. (40) in https://arxiv.org/pdf/2310.11831
-            gf_Avec_rhs(i)(p.I) = -(gf_E(i)(p.I) + one_over_24 * laplace_1d<i>(gf_E(i), p))
+            gf_Avec_la_rhs(i)(p.I) = -(gf_E(i)(p.I) + one_over_24 * laplace_1d<i>(gf_E(i), p))
                 - calc_fd_forward_midpoint<i>(G, p, 4);
-          } else {
-            gf_Avec_rhs(i)(p.I) =
-                -gf_E(i)(p.I) - calc_fd_forward_midpoint<i>(G, p, order);
           }
         });
   }

@@ -80,7 +80,7 @@ if (!use_ho_fv) {
   SCHEDULE AsterX_ComputeAvgdBstagFromAvgA IN AsterX_InitialGroup
   {
     LANG: C
-    READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
+    READS: Avec_x_la(everywhere) Avec_y_la(everywhere) Avec_z_la(everywhere)
     WRITES: dBx_stag_fa(everywhere) dBy_stag_fa(everywhere) dBz_stag_fa(everywhere)
     WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
   } "Calculate <dBstag> from curl of <A>"
@@ -102,14 +102,14 @@ if (!use_ho_fv) {
     READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
     READS: dBx_stag_fa(everywhere) dBy_stag_fa(everywhere) dBz_stag_fa(everywhere)
     READS: dBstag_pv_iter(everywhere)
-    WRITES: dBx_stag_nm1(everywhere) dBy_stag_nm1(everywhere) dBz_stag_nm1(everywhere)
+    WRITES: dBx_stag_aux(everywhere) dBy_stag_aux(everywhere) dBz_stag_aux(everywhere)
   } "Set previous dBstag"
 
   SCHEDULE AsterX_ComputedBstagIter IN AsterX_dBstagPVSolve AFTER AsterX_SetdBstagnMinus1 
   {
     LANG: C
     READS: dBx_stag_fa(everywhere) dBy_stag_fa(everywhere) dBz_stag_fa(everywhere)
-    READS: dBx_stag_nm1(everywhere) dBy_stag_nm1(everywhere) dBz_stag_nm1(everywhere)
+    READS: dBx_stag_aux(everywhere) dBy_stag_aux(everywhere) dBz_stag_aux(everywhere)
     READS: dBstag_pv_iter(everywhere)
     WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
   } "Iterate dBstag"
@@ -120,6 +120,13 @@ if (!use_ho_fv) {
     OPTIONS: global
     WRITES: dBstag_pv_iter(everywhere)
   } "Decrement counter for dBstag iterative calculation"
+
+  SCHEDULE AsterX_ComputedBstagLO IN AsterX_InitialGroup AFTER AsterX_dBstagPVSolve 
+  {
+    LANG: C
+    READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
+    WRITES: dBx_stag_aux(everywhere) dBy_stag_aux(everywhere) dBz_stag_aux(everywhere)
+  } "Calculate 2nd order dBstag from curl of A"
 }
 
 if(!use_subcycling_wip && prolongate_dbstag)
@@ -189,9 +196,8 @@ if (use_ho_fv) {
   {
     LANG: C
     READS: Avec_x(interior) Avec_y(interior) Avec_z(interior) 
-    WRITES: Ex(interior) Ey(interior) Ez(interior) 
-    WRITES: Avec_x(interior) Avec_y(interior) Avec_z(interior) 
-    SYNC: Avec_x Avec_y Avec_z
+    WRITES: Avec_x_la(interior) Avec_y_la(interior) Avec_z_la(interior) 
+    SYNC: Avec_x_la, Avec_y_la, Avec_z_la
   } "Compute line-averages of vector potential"
 
   SCHEDULE AsterX_SetCellAverage IN AsterX_InitialGroup AFTER AsterX_Prim2Con_Initial BEFORE AsterX_CommConsCA
@@ -261,6 +267,7 @@ SCHEDULE AsterX_Sync AT postregrid
   LANG: C
   OPTIONS: global
   SYNC: cons_vector Avec_x Avec_y Avec_z Psi
+  SYNC: Avec_x_la Avec_y_la Avec_z_la 
   SYNC: saved_prims
 } "Synchronize"
 
@@ -269,6 +276,7 @@ SCHEDULE AsterX_Sync IN ODESolvers_PostStep
   LANG: C
   OPTIONS: global
   SYNC: cons_vector Avec_x Avec_y Avec_z Psi
+  SYNC: Avec_x_la Avec_y_la Avec_z_la
 } "Synchronize"
 
 SCHEDULE AsterX_Sync AT post_recover_variables BEFORE ODESolvers_PostStep AFTER AsterX_TouchNonEvolVarsGroup
@@ -309,6 +317,13 @@ if (!use_ho_fv) {
   SCHEDULE GROUP AsterX_dBstagPVSolve IN AsterX_Con2PrimGroup AFTER AsterX_SetdBstagIter WHILE AsterX::dBstag_pv_iter
   {
   } "Iteratively calculate point valued dBstag"
+
+  SCHEDULE AsterX_ComputedBstagLO IN AsterX_Con2PrimGroup AFTER AsterX_dBstagPVSolve 
+  {
+    LANG: C
+    READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
+    WRITES: dBx_stag_aux(everywhere) dBy_stag_aux(everywhere) dBz_stag_aux(everywhere)
+  } "Calculate 2nd order dBstag from curl of A"
 }
 
 if(!use_subcycling_wip && prolongate_dbstag)
@@ -503,6 +518,7 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   READS: HydroBaseX::Bvec(everywhere)
   READS: HydroBaseX::entropy(everywhere)
   READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
+  READS: dBx_stag_aux(everywhere) dBy_stag_aux(everywhere) dBz_stag_aux(everywhere)
   READS: zvec_x(everywhere) zvec_y(everywhere) zvec_z(everywhere)
   READS: svec_x(everywhere) svec_y(everywhere) svec_z(everywhere)
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere) Psi(everywhere)
@@ -591,6 +607,7 @@ SCHEDULE AsterX_RHS IN AsterX_RHSGroup AFTER AsterX_SourceTerms
   WRITES: rhs_vector(interior)
   WRITES: theta_tot(interior)
   WRITES: Avec_x_rhs(interior) Avec_y_rhs(interior) Avec_z_rhs(interior) Psi_rhs(interior)
+  WRITES: Avec_x_la_rhs(interior) Avec_y_la_rhs(interior) Avec_z_la_rhs(interior)
 } "Update the RHS of the hydro equations with the flux contributions"
 
 
