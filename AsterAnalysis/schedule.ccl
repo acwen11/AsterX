@@ -26,6 +26,22 @@ if (compute_MHD) {
     WRITES: mhd_analysis(interior)
   }
   "Compute MHD analysis quantities"
+
+  if (use_ho_fv) {
+    SCHEDULE AsterAnalysis_HOFV AT analysis
+    {
+      LANG: C
+      READS: ADMBaseX::metric(everywhere)
+      READS: AsterX::dBx_stag(everywhere)
+      READS: AsterX::dBy_stag(everywhere)
+      READS: AsterX::dBz_stag(everywhere)
+      READS: AsterX::dBx_stag_fa(everywhere)
+      READS: AsterX::dBy_stag_fa(everywhere)
+      READS: AsterX::dBz_stag_fa(everywhere)
+      WRITES: mhd_analysis_hofv(interior)
+    }
+    "Compute MHD analysis quantities"
+  }
 }
 
 if (compute_MHD_spherical) {

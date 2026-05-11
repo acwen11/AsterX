@@ -107,6 +107,11 @@ BOOLEAN use_ho_fv "HO FV terms" STEERABLE=always
 {
 } no
 
+CCTK_INT n_dBstagpv_iters "Number of times to iteratively correct dBstag point value" STEERABLE=always
+{
+  1:* :: "1 = only calculate from <dBstag>, greater = use Taylor expansion"
+} 5
+
 CCTK_INT mag_correction_order "Order of accuracy for higher order corrections to magnetic field evolution" STEERABLE=never
 {
   2 :: "Second order accurate"

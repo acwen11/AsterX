@@ -69,24 +69,69 @@ SCHEDULE AsterX_InitLOFlag IN AsterX_InitialGroup
 	WRITES: LOflag(everywhere)
 } "Init this flag to 0"
 
-SCHEDULE AsterX_ComputedBstagFromA IN AsterX_InitialGroup
-{
-  LANG: C
-  READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
-  WRITES: dBx_stag_fa(everywhere) dBy_stag_fa(everywhere) dBz_stag_fa(everywhere)
-  WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
-} "Calculate dBstag from curl of A"
+if (!use_ho_fv) {
+  SCHEDULE AsterX_ComputedBstagFromA IN AsterX_InitialGroup
+  {
+    LANG: C
+    READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
+    WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
+  } "Calculate dBstag from curl of A"
+} else {
+  SCHEDULE AsterX_ComputeAvgdBstagFromAvgA IN AsterX_InitialGroup
+  {
+    LANG: C
+    READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
+    WRITES: dBx_stag_fa(everywhere) dBy_stag_fa(everywhere) dBz_stag_fa(everywhere)
+    WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
+  } "Calculate <dBstag> from curl of <A>"
+
+  SCHEDULE AsterX_SetdBstagIter IN AsterX_InitialGroup AFTER AsterX_ComputeAvgdBstagFromAvgA 
+  {
+    LANG: C
+    OPTIONS: global
+    WRITES: dBstag_pv_iter(everywhere)
+  } "Start counter for dBstag iterative calculation"
+
+  SCHEDULE GROUP AsterX_dBstagPVSolve IN AsterX_InitialGroup AFTER AsterX_SetdBstagIter WHILE AsterX::dBstag_pv_iter
+  {
+  } "Iteratively calculate point valued dBstag"
+
+  SCHEDULE AsterX_SetdBstagnMinus1 IN AsterX_dBstagPVSolve 
+  {
+    LANG: C
+    READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
+    READS: dBx_stag_fa(everywhere) dBy_stag_fa(everywhere) dBz_stag_fa(everywhere)
+    READS: dBstag_pv_iter(everywhere)
+    WRITES: dBx_stag_nm1(everywhere) dBy_stag_nm1(everywhere) dBz_stag_nm1(everywhere)
+  } "Set previous dBstag"
+
+  SCHEDULE AsterX_ComputedBstagIter IN AsterX_dBstagPVSolve AFTER AsterX_SetdBstagnMinus1 
+  {
+    LANG: C
+    READS: dBx_stag_fa(everywhere) dBy_stag_fa(everywhere) dBz_stag_fa(everywhere)
+    READS: dBx_stag_nm1(everywhere) dBy_stag_nm1(everywhere) dBz_stag_nm1(everywhere)
+    READS: dBstag_pv_iter(everywhere)
+    WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
+  } "Iterate dBstag"
+
+  SCHEDULE AsterX_DecdBstagIter IN AsterX_dBstagPVSolve AFTER AsterX_ComputedBstagIter 
+  {
+    LANG: C
+    OPTIONS: global
+    WRITES: dBstag_pv_iter(everywhere)
+  } "Decrement counter for dBstag iterative calculation"
+}
 
 if(!use_subcycling_wip && prolongate_dbstag)
 {
-  SCHEDULE AsterX_ProlongatedBstag IN AsterX_InitialGroup AFTER AsterX_ComputedBstagFromA BEFORE AsterX_ComputedBFromdBstag
+  SCHEDULE AsterX_ProlongatedBstag IN AsterX_InitialGroup AFTER AsterX_ComputedBstagFromA AFTER AsterX_dBstagPVSolve BEFORE AsterX_ComputedBFromdBstag
   {
     LANG: C
     OPTIONS: global
   } "Prolongate dBstag only"
 }
 
-SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_InitialGroup AFTER AsterX_ComputedBstagFromA
+SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_InitialGroup AFTER AsterX_ComputedBstagFromA AFTER AsterX_dBstagPVSolve 
 {
   LANG: C
   READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
@@ -95,7 +140,7 @@ SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_InitialGroup AFTER AsterX_Computed
 
 # Extra interprocessor syncs only for higher order stencils
 if ((mag_correction_order > 2) || use_ho_fv) {
-  SCHEDULE AsterX_CommdBstag IN AsterX_InitialGroup AFTER AsterX_ComputedBstagFromA BEFORE AsterX_ProlongatedBstag BEFORE AsterX_ComputedBFromdBstag 
+  SCHEDULE AsterX_CommdBstag IN AsterX_InitialGroup AFTER AsterX_ComputedBstagFromA AFTER AsterX_dBstagPVSolve BEFORE AsterX_ProlongatedBstag BEFORE AsterX_ComputedBFromdBstag 
   {
     LANG: C
     OPTIONS: global
@@ -140,7 +185,7 @@ SCHEDULE AsterX_Prim2Con_Initial IN AsterX_InitialGroup AFTER AsterX_CheckPrims
 } "Compute conserved variables from primitive variables at initial"
 
 if (use_ho_fv) {
-  SCHEDULE AsterX_SetLineAvgAvec_Initial IN AsterX_InitialGroup BEFORE AsterX_ComputedBstagFromA 
+  SCHEDULE AsterX_SetLineAvgAvec_Initial IN AsterX_InitialGroup BEFORE AsterX_ComputeAvgdBstagFromAvgA 
   {
     LANG: C
     READS: Avec_x(interior) Avec_y(interior) Avec_z(interior) 
@@ -237,24 +282,45 @@ SCHEDULE GROUP AsterX_Con2PrimGroup IN ODESolvers_PostStep BEFORE TmunuBaseX_Set
 {
 } "Compute primitive variables"
 
-SCHEDULE AsterX_ComputedBstagFromA IN AsterX_Con2PrimGroup
-{
-  LANG: C
-  READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
-  WRITES: dBx_stag_fa(everywhere) dBy_stag_fa(everywhere) dBz_stag_fa(everywhere)
-  WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
-} "Calculate dBstag from curl of A"
+if (!use_ho_fv) {
+  SCHEDULE AsterX_ComputedBstagFromA IN AsterX_Con2PrimGroup
+  {
+    LANG: C
+    READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
+    WRITES: dBx_stag_fa(everywhere) dBy_stag_fa(everywhere) dBz_stag_fa(everywhere)
+    WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
+  } "Calculate dBstag from curl of A"
+} else {
+  SCHEDULE AsterX_ComputeAvgdBstagFromAvgA IN AsterX_Con2PrimGroup
+  {
+    LANG: C
+    READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
+    WRITES: dBx_stag_fa(everywhere) dBy_stag_fa(everywhere) dBz_stag_fa(everywhere)
+    WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
+  } "Calculate <dBstag> from curl of <A>"
+
+  SCHEDULE AsterX_SetdBstagIter IN AsterX_Con2PrimGroup AFTER AsterX_ComputeAvgdBstagFromAvgA 
+  {
+    LANG: C
+    OPTIONS: global
+    WRITES: dBstag_pv_iter(everywhere)
+  } "Start counter for dBstag iterative calculation"
+
+  SCHEDULE GROUP AsterX_dBstagPVSolve IN AsterX_Con2PrimGroup AFTER AsterX_SetdBstagIter WHILE AsterX::dBstag_pv_iter
+  {
+  } "Iteratively calculate point valued dBstag"
+}
 
 if(!use_subcycling_wip && prolongate_dbstag)
 {
-  SCHEDULE AsterX_ProlongatedBstag IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBstagFromA BEFORE AsterX_ComputedBFromdBstag
+  SCHEDULE AsterX_ProlongatedBstag IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBstagFromA AFTER AsterX_dBstagPVSolve BEFORE AsterX_ComputedBFromdBstag
   {
     LANG: C
     OPTIONS: global
   } "Prolongate dBstag only"
 }
 
-SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBstagFromA
+SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBstagFromA AFTER AsterX_dBstagPVSolve 
 {
   LANG: C
   READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
@@ -263,7 +329,7 @@ SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_Con2PrimGroup AFTER AsterX_Compute
 
 # Extra interprocessor syncs only for higher order stencils
 if ((mag_correction_order > 2) || use_ho_fv) {
-  SCHEDULE AsterX_CommdBstag IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBstagFromA BEFORE AsterX_ProlongatedBstag BEFORE AsterX_ComputedBFromdBstag 
+  SCHEDULE AsterX_CommdBstag IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBstagFromA AFTER AsterX_dBstagPVSolve BEFORE AsterX_ProlongatedBstag BEFORE AsterX_ComputedBFromdBstag 
   {
     LANG: C
     OPTIONS: global

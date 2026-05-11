@@ -126,6 +126,14 @@ CCTK_REAL dBx_stag_fa TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"' "x-componen
 CCTK_REAL dBy_stag_fa TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"' "y-component of staggered densitized magnetic field"
 CCTK_REAL dBz_stag_fa TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"' "z-component of staggered densitized magnetic field"
 
+# ----- staggered magnetic field used for iterative solve for point values in HO FV.
+
+CCTK_REAL dBx_stag_nm1 TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"' "x-component of staggered densitized magnetic field"
+CCTK_REAL dBy_stag_nm1 TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"' "y-component of staggered densitized magnetic field"
+CCTK_REAL dBz_stag_nm1 TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"' "z-component of staggered densitized magnetic field"
+
+CCTK_INT dBstag_pv_iter type=SCALAR tags='checkpoint="no"' "Flag to indicate if C2P is performed on cell averaged or point value conservatives"
+
 CCTK_INT CA_C2P type=SCALAR tags='checkpoint="no"' "Flag to indicate if C2P is performed on cell averaged or point value conservatives"
 
 # ----- staggered gauge functions

@@ -193,4 +193,45 @@ extern "C" void AsterAnalysis_MHD(CCTK_ARGUMENTS) {
       }); /* end grid loop */
 }
 
+extern "C" void AsterAnalysis_HOFV(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterAnalysis_HOFV;
+  DECLARE_CCTK_PARAMETERS;
+
+  /* handy aliases for grid functions */
+  // const vec<GF3D2<const CCTK_REAL>, 3> gf_beta{betax, betay, betaz};
+  const smat<GF3D2<const CCTK_REAL>, 3> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
+  // const vec<GF3D2<const CCTK_REAL>, 3> gf_Avec{Avec_x, Avec_y, Avec_z};
+  // const vec<GF3D2<const CCTK_REAL>, 3> gf_Bvec{Bvecx, Bvecy, Bvecz};
+  // const vec<GF3D2<const CCTK_REAL>, 3> gf_vel{velx, vely, velz};
+
+  /* inverse grid spacings (assumed uniform) */
+  const CCTK_REAL idx = 1.0 / CCTK_DELTA_SPACE(0);
+  const CCTK_REAL idy = 1.0 / CCTK_DELTA_SPACE(1);
+  const CCTK_REAL idz = 1.0 / CCTK_DELTA_SPACE(2);
+
+  grid.loop_int_device<1, 1, 1>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        /* ---- metric averages at cell center ---- */
+        // const CCTK_REAL alp_avg = calc_avg_v2c(alp, p);
+        // const vec<CCTK_REAL, 3> beta_avg(
+        //     [&](int i) ARITH_INLINE { return calc_avg_v2c(gf_beta(i), p); });
+        const smat<CCTK_REAL, 3> g_avg([&](int i, int j) ARITH_INLINE {
+          return calc_avg_v2c(gf_g(i, j), p);
+        });
+        const CCTK_REAL detg = calc_det(g_avg);
+        const CCTK_REAL sqrt_detg = sqrt(detg);
+
+        /* ---- divB (CT, densitized faces) ---- */
+        const CCTK_REAL divB_val =
+            idx * (dBx_stag_fa(p.I + p.DI[0]) - dBx_stag_fa(p.I)) +
+            idy * (dBy_stag_fa(p.I + p.DI[1]) - dBy_stag_fa(p.I)) +
+            idz * (dBz_stag_fa(p.I + p.DI[2]) - dBz_stag_fa(p.I));
+        divB_FA(p.I) = divB_val / sqrt_detg;
+
+        divB_fromPV(p.I) = calc_FV_flux<0>(dBx_stag, p) 
+          + calc_FV_flux<1>(dBy_stag, p) 
+          + calc_FV_flux<2>(dBz_stag, p);
+      }); /* end grid loop */
+}
 } /* namespace AsterAnalysis */
