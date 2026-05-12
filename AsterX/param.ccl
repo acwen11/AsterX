@@ -66,6 +66,10 @@ BOOLEAN shock_recon_fallback "Use low order reconstruction method when shocks ar
 {
 } no
 
+BOOLEAN shock_Bstag_fallback "In HO FV scheme, use low order Bstag when shocks are detected?" STEERABLE=always
+{
+} no
+
 BOOLEAN local_estimate_error "Use error estimation criteria of this thorn" STEERABLE=always
 {
 } yes

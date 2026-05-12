@@ -13,7 +13,7 @@ divA, A_norm, divB, mean_B_numerator, mean_B_denominator, mhd_press_ratio, mhd_e
 
 CCTK_REAL mhd_analysis_hofv TYPE=gf CENTERING={ccc} tags='checkpoint="no"'
 {
-divB_FA, divB_fromPV
+divB_FA, divB_fromPV, divB_LO
 } "Variables used for analysis of 4th order finite volume scheme"
 
 CCTK_REAL mhd_spherical TYPE=gf CENTERING={ccc} tags='checkpoint="no"'

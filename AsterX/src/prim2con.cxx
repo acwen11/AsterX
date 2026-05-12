@@ -81,13 +81,14 @@ DECLARE_CCTK_PARAMETERS;
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
 
         // Eq. (17) from https://arxiv.org/pdf/2310.11831 
-        dens(p.I) =  dens_pv(p.I) + one_over_24*laplace_3d(dens_pv,p);
-        momx(p.I) =  momx_pv(p.I) + one_over_24*laplace_3d(momx_pv,p);
-        momy(p.I) =  momy_pv(p.I) + one_over_24*laplace_3d(momy_pv,p);
-        momz(p.I) =  momz_pv(p.I) + one_over_24*laplace_3d(momz_pv,p);
-        tau(p.I)  =  tau_pv(p.I) + one_over_24*laplace_3d(tau_pv,p);
-        DYe(p.I)  =  DYe_pv(p.I) + one_over_24*laplace_3d(DYe_pv,p);
-        DEnt(p.I) =  DEnt_pv(p.I) + one_over_24*laplace_3d(DEnt_pv,p);
+        bool thetac = (!LOflag(p.I) || !shock_pv_fallback);
+        dens(p.I) =  dens_pv(p.I) + thetac * one_over_24*laplace_3d(dens_pv,p);
+        momx(p.I) =  momx_pv(p.I) + thetac * one_over_24*laplace_3d(momx_pv,p);
+        momy(p.I) =  momy_pv(p.I) + thetac * one_over_24*laplace_3d(momy_pv,p);
+        momz(p.I) =  momz_pv(p.I) + thetac * one_over_24*laplace_3d(momz_pv,p);
+        tau(p.I)  =  tau_pv(p.I) + thetac * one_over_24*laplace_3d(tau_pv,p);
+        DYe(p.I)  =  DYe_pv(p.I) + thetac * one_over_24*laplace_3d(DYe_pv,p);
+        DEnt(p.I) =  DEnt_pv(p.I) + thetac * one_over_24*laplace_3d(DEnt_pv,p);
 
       });
 
@@ -115,24 +116,45 @@ extern "C" void AsterX_SetLineAvgAvec_Initial(CCTK_ARGUMENTS) {
   // NOTE! Not anymore vvv
   // NOTE! We are just using E as temporary storage for the line averaged <A>
   // before copying to the Avec gridfunctions themselves.
-  grid.loop_int_device<1, 0, 0>(
-      grid.nghostzones,
-      [=] CCTK_DEVICE(const PointDesc &p)
-          CCTK_ATTRIBUTE_ALWAYS_INLINE { 
-          Avec_x_la(p.I) = Avec_x(p.I) + one_over_24 * laplace_1d<0>(Avec_x, p);
-      });
-  grid.loop_int_device<0, 1, 0>(
-      grid.nghostzones,
-      [=] CCTK_DEVICE(const PointDesc &p)
-          CCTK_ATTRIBUTE_ALWAYS_INLINE { 
-          Avec_y_la(p.I) = Avec_y(p.I) + one_over_24 * laplace_1d<1>(Avec_y, p);
-      });
-  grid.loop_int_device<0, 0, 1>(
-      grid.nghostzones,
-      [=] CCTK_DEVICE(const PointDesc &p)
-          CCTK_ATTRIBUTE_ALWAYS_INLINE { 
-          Avec_z_la(p.I) = Avec_z(p.I) + one_over_24 * laplace_1d<2>(Avec_z, p);
-      });
+  if (use_ho_fv) {
+    grid.loop_int_device<1, 0, 0>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p)
+            CCTK_ATTRIBUTE_ALWAYS_INLINE { 
+            Avec_x_la(p.I) = Avec_x(p.I) + one_over_24 * laplace_1d<0>(Avec_x, p);
+        });
+    grid.loop_int_device<0, 1, 0>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p)
+            CCTK_ATTRIBUTE_ALWAYS_INLINE { 
+            Avec_y_la(p.I) = Avec_y(p.I) + one_over_24 * laplace_1d<1>(Avec_y, p);
+        });
+    grid.loop_int_device<0, 0, 1>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p)
+            CCTK_ATTRIBUTE_ALWAYS_INLINE { 
+            Avec_z_la(p.I) = Avec_z(p.I) + one_over_24 * laplace_1d<2>(Avec_z, p);
+        });
+  } else {
+    grid.loop_int_device<1, 0, 0>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p)
+            CCTK_ATTRIBUTE_ALWAYS_INLINE { 
+            Avec_x_la(p.I) = Avec_x(p.I);
+        });
+    grid.loop_int_device<0, 1, 0>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p)
+            CCTK_ATTRIBUTE_ALWAYS_INLINE { 
+            Avec_y_la(p.I) = Avec_y(p.I);
+        });
+    grid.loop_int_device<0, 0, 1>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p)
+            CCTK_ATTRIBUTE_ALWAYS_INLINE { 
+            Avec_z_la(p.I) = Avec_z(p.I);
+        });
+  }
 
   // grid.loop_int_device<1, 0, 0>(
   //     grid.nghostzones,

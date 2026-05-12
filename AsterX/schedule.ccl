@@ -75,6 +75,7 @@ if (!use_ho_fv) {
     LANG: C
     READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
     WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
+    WRITES: dBx_stag_aux(everywhere) dBy_stag_aux(everywhere) dBz_stag_aux(everywhere)
   } "Calculate dBstag from curl of A"
 } else {
   SCHEDULE AsterX_ComputeAvgdBstagFromAvgA IN AsterX_InitialGroup
@@ -121,7 +122,7 @@ if (!use_ho_fv) {
     WRITES: dBstag_pv_iter(everywhere)
   } "Decrement counter for dBstag iterative calculation"
 
-  SCHEDULE AsterX_ComputedBstagLO IN AsterX_InitialGroup AFTER AsterX_dBstagPVSolve 
+  SCHEDULE AsterX_ComputedBstagLO IN AsterX_InitialGroup AFTER AsterX_dBstagPVSolve BEFORE AsterX_ComputedBFromdBstag 
   {
     LANG: C
     READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
@@ -191,19 +192,20 @@ SCHEDULE AsterX_Prim2Con_Initial IN AsterX_InitialGroup AFTER AsterX_CheckPrims
   SYNC: cons_vector cons_vector_pv dB 
 } "Compute conserved variables from primitive variables at initial"
 
-if (use_ho_fv) {
-  SCHEDULE AsterX_SetLineAvgAvec_Initial IN AsterX_InitialGroup BEFORE AsterX_ComputeAvgdBstagFromAvgA 
-  {
-    LANG: C
-    READS: Avec_x(interior) Avec_y(interior) Avec_z(interior) 
-    WRITES: Avec_x_la(interior) Avec_y_la(interior) Avec_z_la(interior) 
-    SYNC: Avec_x_la, Avec_y_la, Avec_z_la
-  } "Compute line-averages of vector potential"
+SCHEDULE AsterX_SetLineAvgAvec_Initial IN AsterX_InitialGroup BEFORE AsterX_ComputeAvgdBstagFromAvgA 
+{
+  LANG: C
+  READS: Avec_x(interior) Avec_y(interior) Avec_z(interior) 
+  WRITES: Avec_x_la(interior) Avec_y_la(interior) Avec_z_la(interior) 
+  SYNC: Avec_x_la, Avec_y_la, Avec_z_la
+} "Compute line-averages of vector potential"
 
-  SCHEDULE AsterX_SetCellAverage IN AsterX_InitialGroup AFTER AsterX_Prim2Con_Initial BEFORE AsterX_CommConsCA
+if (use_ho_fv) {
+  SCHEDULE AsterX_SetCellAverage IN AsterX_InitialGroup AFTER AsterX_Prim2Con_Initial AFTER AsterX_SetLOFlag BEFORE AsterX_CommConsCA
   {
     LANG: C
     READS: cons_vector_pv(everywhere) 
+    READS: LOflag(everywhere) 
     WRITES: cons_vector(everywhere)
   } "Compute cell-averages of conserved variables"
 
@@ -295,8 +297,8 @@ if (!use_ho_fv) {
   {
     LANG: C
     READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
-    WRITES: dBx_stag_fa(everywhere) dBy_stag_fa(everywhere) dBz_stag_fa(everywhere)
     WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
+    WRITES: dBx_stag_aux(everywhere) dBy_stag_aux(everywhere) dBz_stag_aux(everywhere)
   } "Calculate dBstag from curl of A"
 } else {
   SCHEDULE AsterX_ComputeAvgdBstagFromAvgA IN AsterX_Con2PrimGroup
@@ -318,7 +320,7 @@ if (!use_ho_fv) {
   {
   } "Iteratively calculate point valued dBstag"
 
-  SCHEDULE AsterX_ComputedBstagLO IN AsterX_Con2PrimGroup AFTER AsterX_dBstagPVSolve 
+  SCHEDULE AsterX_ComputedBstagLO IN AsterX_Con2PrimGroup AFTER AsterX_dBstagPVSolve BEFORE AsterX_ComputedBFromdBstag 
   {
     LANG: C
     READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)

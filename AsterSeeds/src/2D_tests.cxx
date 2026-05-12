@@ -102,9 +102,9 @@ extern "C" void Tests2D_Initialize(CCTK_ARGUMENTS) {
           press(p.I) = 3.;
           eps(p.I) = eos_3p_ig->eps_from_rho_press_ye(
               rho(p.I), press(p.I), dummy_ye);
-          velx(p.I) = 1. / 12.0;
-          vely(p.I) = 1. / 24.;
-          velz(p.I) = axial_vel;
+          velx(p.I) = 1. / 5.0;
+          vely(p.I) = 1. / 10.0;
+          velz(p.I) = 0.0;
         });
 
     grid.loop_all<1, 0, 0>(grid.nghostzones, [=] CCTK_HOST(const PointDesc &p)
@@ -124,7 +124,7 @@ extern "C" void Tests2D_Initialize(CCTK_ARGUMENTS) {
           const CCTK_REAL R_loop = 0.3;
           const CCTK_REAL A_loop = 0.001;
 
-          if (r_cyl < R_loop)
+          if ((r_cyl <= R_loop) && (r_cyl > 0.2 * R_loop))
             Avec_z(p.I) = A_loop * (R_loop - r_cyl);
           else
             Avec_z(p.I) = 0.;

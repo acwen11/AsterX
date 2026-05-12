@@ -101,16 +101,23 @@ template <int dir> void ComputeStaggeredB(CCTK_ARGUMENTS) {
           dBx_stag(p.I) =
               calc_fd_forward_midpoint<1>(Avec_z, p, mag_correction_order) -
               calc_fd_forward_midpoint<2>(Avec_y, p, mag_correction_order);
+
+          // Mark dB_stag_aux as valid for flux calculation
+          dBx_stag_aux(p.I) = 0.0;
         } else if (dir == 1) {
           /* dBy is curl(A) at (i,j-1/2,k) */
           dBy_stag(p.I) =
               calc_fd_forward_midpoint<2>(Avec_x, p, mag_correction_order) -
               calc_fd_forward_midpoint<0>(Avec_z, p, mag_correction_order);
+
+          dBy_stag_aux(p.I) = 0.0;
         } else if (dir == 2) {
           /* dBz is curl(A) at (i,j,z-1/2) */
           dBz_stag(p.I) =
               calc_fd_forward_midpoint<0>(Avec_y, p, mag_correction_order) -
               calc_fd_forward_midpoint<1>(Avec_x, p, mag_correction_order);
+
+          dBz_stag_aux(p.I) = 0.0;
         }
 
         // TODO: need to implement copy conditions?
@@ -125,14 +132,17 @@ template <int dir> void ComputeStaggeredB(CCTK_ARGUMENTS) {
             /* dBx is curl(A) at (i-1/2,j,k) */
             dBx_stag(p.I) = calc_fd_forward_midpoint<1>(Avec_z, p, 2) -
                             calc_fd_forward_midpoint<2>(Avec_y, p, 2);
+            dBx_stag_aux(p.I) = 0.0;
           } else if (dir == 1) {
             /* dBy is curl(A) at (i,j-1/2,k) */
             dBy_stag(p.I) = calc_fd_forward_midpoint<2>(Avec_x, p, 2) -
                             calc_fd_forward_midpoint<0>(Avec_z, p, 2);
+            dBy_stag_aux(p.I) = 0.0;
           } else if (dir == 2) {
             /* dBz is curl(A) at (i,j,z-1/2) */
             dBz_stag(p.I) = calc_fd_forward_midpoint<0>(Avec_y, p, 2) -
                             calc_fd_forward_midpoint<1>(Avec_x, p, 2);
+            dBz_stag_aux(p.I) = 0.0;
           }
         });
   }
@@ -145,7 +155,6 @@ template <int dir> void SetdBstagnMinus1(CCTK_ARGUMENTS) {
   constexpr array<int, dim> face_centred = {!(dir == 0), !(dir == 1),
                                             !(dir == 2)};
 
-  // CCTK_VINFO("Setting dBstag_n-1 on iter %d", *dBstag_pv_iter);
   if (*dBstag_pv_iter == n_dBstagpv_iters) {
     grid.loop_all_device<face_centred[0], face_centred[1], face_centred[2]>(
        grid.nghostzones,
@@ -182,7 +191,6 @@ template <int dir> void ComputeStaggeredPointValB(CCTK_ARGUMENTS) {
   constexpr array<int, dim> face_centred = {!(dir == 0), !(dir == 1),
                                             !(dir == 2)};
 
-  // CCTK_VINFO("Calculating dBstag on iter %d", *dBstag_pv_iter);
   // Here, we have already computed the face averaged <dBi_stag> from <Avec>.
   // Now, we use Equation 21 of https://arxiv.org/pdf/2310.11831 to compute the point value
   // dBi_stag.
@@ -238,7 +246,6 @@ extern "C" void AsterX_SetdBstagIter(CCTK_ARGUMENTS) {
   DECLARE_CCTK_PARAMETERS;
 
   *dBstag_pv_iter = n_dBstagpv_iters;
-  // CCTK_VINFO("Init iter to %d", *dBstag_pv_iter);
 }
 
 extern "C" void AsterX_SetdBstagnMinus1(CCTK_ARGUMENTS) {
@@ -265,11 +272,8 @@ extern "C" void AsterX_DecdBstagIter(CCTK_ARGUMENTS) {
 
   *dBstag_pv_iter -= 1;
 
-  // CCTK_VINFO("Decrementing iter to %d", *dBstag_pv_iter);
   int minghosts = min(cctk_nghostzones[0], min(cctk_nghostzones[1], cctk_nghostzones[2]));
-  // CCTK_VINFO("Iter = %d, sync count = %d", *dBstag_pv_iter, (n_dBstagpv_iters - *dBstag_pv_iter) % minghosts);
   if (*dBstag_pv_iter && ((n_dBstagpv_iters - *dBstag_pv_iter) % minghosts == 0))  {
-    CCTK_VINFO("Syncing dBstag for PV calculation");
     static const std::vector<int> groups = {CCTK_GroupIndex("AsterX::dBx_stag"),
                                         CCTK_GroupIndex("AsterX::dBy_stag"),
                                         CCTK_GroupIndex("AsterX::dBz_stag")};

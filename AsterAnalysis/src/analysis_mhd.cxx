@@ -232,6 +232,13 @@ extern "C" void AsterAnalysis_HOFV(CCTK_ARGUMENTS) {
         divB_fromPV(p.I) = calc_FV_flux<0>(dBx_stag, p) 
           + calc_FV_flux<1>(dBy_stag, p) 
           + calc_FV_flux<2>(dBz_stag, p);
+
+        const CCTK_REAL divB_LOval =
+            idx * (dBx_stag_aux(p.I + p.DI[0]) - dBx_stag_aux(p.I)) +
+            idy * (dBy_stag_aux(p.I + p.DI[1]) - dBy_stag_aux(p.I)) +
+            idz * (dBz_stag_aux(p.I + p.DI[2]) - dBz_stag_aux(p.I));
+        divB_LO(p.I) = divB_LOval / sqrt_detg;
+
       }); /* end grid loop */
 }
 } /* namespace AsterAnalysis */
