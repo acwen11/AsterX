@@ -1,5 +1,10 @@
 # Schedule definitions for thorn TOVSolverX
 
+STORAGE: lapse_cell shift_cell
+STORAGE: metric_cell curv_cell
+
+STORAGE: dtlapse_cell dtshift_cell
+
 # Initial conditions for TOV neutron stars
 #
 
