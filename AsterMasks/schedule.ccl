@@ -3,6 +3,8 @@
 STORAGE: aster_mask_vc
 STORAGE: aster_mask_cc
 
+STORAGE: MaskBool
+
 # ----- CCTK_INITIAL
 
 SCHEDULE AsterMasks_SetToOne IN CCTK_INITIAL BEFORE ODESolvers_Initial {
