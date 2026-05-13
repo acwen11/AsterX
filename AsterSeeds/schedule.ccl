@@ -1,5 +1,15 @@
 #Schedule definitions for thorn AsterSeeds
 
+STORAGE: Avec_cent
+
+STORAGE: CoM_NS1
+STORAGE: CoM_NS2
+STORAGE: vel_NS1
+STORAGE: vel_NS2
+
+STORAGE: SeedNow
+STORAGE: DoneSeeding
+
 #Initial conditions for setting atmosphere test
 
 if (CCTK_Equals(test_type, "Atmosphere")) {

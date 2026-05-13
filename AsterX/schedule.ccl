@@ -1,13 +1,26 @@
 # Schedule definitions for thorn AsterX
 
-STORAGE: cons_vector dB Psi HydroBaseX::Bvec dBx_stag dBy_stag dBz_stag
-STORAGE: flux_x flux_y flux_z
+STORAGE: cons_vector[timelevels]
+STORAGE: Avec_x[timelevels]
+STORAGE: Avec_y[timelevels]
+STORAGE: Avec_z[timelevels]
+STORAGE: Psi[timelevels]
+
 STORAGE: rhs_vector Avec_x_rhs Avec_y_rhs Avec_z_rhs Psi_rhs
-STORAGE: ADMBaseX::metric ADMBaseX::lapse ADMBaseX::shift ADMBaseX::curv
+STORAGE: flux_x flux_y flux_z
+
+STORAGE: dB dBx_stag dBy_stag dBz_stag
 STORAGE: G Fbeta Fx_stag Fy_stag Fz_stag
-STORAGE: TmunuBaseX::eTtt TmunuBaseX::eTti TmunuBaseX::eTij
 STORAGE: Ex Ey Ez
+STORAGE: vbar_xface vbar_yface vbar_zface
+STORAGE: a_xface a_yface a_zface
+
 STORAGE: con2prim_flag diagnostics
+STORAGE: saved_prims
+STORAGE: zvec svec
+STORAGE: LOflag etac
+
+STORAGE: theta_x theta_y theta_z theta_tot
 
 if(use_subcycling_wip) {
   STORAGE: old_vector Avec_x_old Avec_y_old Avec_z_old Psi_old
