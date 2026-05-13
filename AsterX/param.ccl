@@ -150,6 +150,11 @@ CCTK_REAL eps_diss "KO dissipation strength" STEERABLE=always
   0:* :: "Larger than 0 to add dissipation. Might be unstable for values > 1/3"
 } 0.1
 
+CCTK_INT timelevels "Number of time levels for the state" STEERABLE=recover
+{
+  0:4 :: ""
+} 1
+
 
 SHARES: EOSX
 USES CCTK_REAL poly_gamma
