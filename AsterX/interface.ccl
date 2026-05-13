@@ -17,7 +17,7 @@ PUBLIC:
 
 # Note that the prolongation method and order are hard-coded and will
 # supersede parfile choices
-CCTK_REAL cons_vector TYPE=gf CENTERING={ccc} TAGS='rhs="rhs_vector" old="old_vector" ks="k1_vector k2_vector k3_vector k4_vector" dependents="HydroBaseX::rho HydroBaseX::eps HydroBaseX::press HydroBaseX::temperature HydroBaseX::Ye HydroBaseX::Bvec HydroBaseX::vel HydroBaseX::entropy TmunuBaseX::eTtt TmunuBaseX::eTti TmunuBaseX::eTij AsterX::flux_x AsterX::flux_y AsterX::flux_z" prolongation_type="minmod" prolongation_order=1' "Conserved quantities during AsterX evolution"
+CCTK_REAL cons_vector TYPE=gf CENTERING={ccc} TAGS='parities={+1 +1 +1    -1 +1 +1    +1 -1 +1    +1 +1 -1    +1 +1 +1    +1 +1 +1    +1 +1 +1} rhs="rhs_vector" old="old_vector" ks="k1_vector k2_vector k3_vector k4_vector" dependents="HydroBaseX::rho HydroBaseX::eps HydroBaseX::press HydroBaseX::temperature HydroBaseX::Ye HydroBaseX::Bvec HydroBaseX::vel HydroBaseX::entropy TmunuBaseX::eTtt TmunuBaseX::eTti TmunuBaseX::eTij AsterX::flux_x AsterX::flux_y AsterX::flux_z" prolongation_type="minmod" prolongation_order=1' "Conserved quantities during AsterX evolution"
 {
   dens, momx, momy, momz, tau, DYe, DEnt
 } "Conserved density, momenta, internal energy, electron fraction and entropy"
@@ -87,9 +87,9 @@ CCTK_REAL etac TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Shock detector me
 
 # Note that the prolongation method and order are hard-coded and will
 # supersede parfile choices
-CCTK_REAL Avec_x TYPE=gf CENTERING={cvv} TAGS='rhs="Avec_x_rhs" old="Avec_x_old" ks="Avec_x_k1 Avec_x_k2 Avec_x_k3 Avec_x_k4" prolongation_type="hermite" prolongation_order=5' "x-component of vector potential"
-CCTK_REAL Avec_y TYPE=gf CENTERING={vcv} TAGS='rhs="Avec_y_rhs" old="Avec_y_old" ks="Avec_y_k1 Avec_y_k2 Avec_y_k3 Avec_y_k4" prolongation_type="hermite" prolongation_order=5' "y-component of vector potential"
-CCTK_REAL Avec_z TYPE=gf CENTERING={vvc} TAGS='rhs="Avec_z_rhs" old="Avec_z_old" ks="Avec_z_k1 Avec_z_k2 Avec_z_k3 Avec_z_k4" prolongation_type="hermite" prolongation_order=5' "z-component of vector potential"
+CCTK_REAL Avec_x TYPE=gf CENTERING={cvv} TAGS='parities={-1 +1 +1} rhs="Avec_x_rhs" old="Avec_x_old" ks="Avec_x_k1 Avec_x_k2 Avec_x_k3 Avec_x_k4" prolongation_type="hermite" prolongation_order=5' "x-component of vector potential"
+CCTK_REAL Avec_y TYPE=gf CENTERING={vcv} TAGS='parities={+1 -1 +1} rhs="Avec_y_rhs" old="Avec_y_old" ks="Avec_y_k1 Avec_y_k2 Avec_y_k3 Avec_y_k4" prolongation_type="hermite" prolongation_order=5' "y-component of vector potential"
+CCTK_REAL Avec_z TYPE=gf CENTERING={vvc} TAGS='parities={+1 +1 -1} rhs="Avec_z_rhs" old="Avec_z_old" ks="Avec_z_k1 Avec_z_k2 Avec_z_k3 Avec_z_k4" prolongation_type="hermite" prolongation_order=5' "z-component of vector potential"
 
 CCTK_REAL Avec_x_rhs TYPE=gf CENTERING={cvv} TAGS='checkpoint="no"' "x-component of vector potential RHS"
 CCTK_REAL Avec_y_rhs TYPE=gf CENTERING={vcv} TAGS='checkpoint="no"' "y-component of vector potential RHS"
@@ -104,9 +104,9 @@ CCTK_REAL dB TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
 
 # ----- staggered magnetic field (faces)
 
-CCTK_REAL dBx_stag TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"' "x-component of staggered densitized magnetic field"
-CCTK_REAL dBy_stag TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"' "y-component of staggered densitized magnetic field"
-CCTK_REAL dBz_stag TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"' "z-component of staggered densitized magnetic field"
+CCTK_REAL dBx_stag TYPE=gf CENTERING={vcc} TAGS='parities={+1 -1 -1} checkpoint="no"' "x-component of staggered densitized magnetic field"
+CCTK_REAL dBy_stag TYPE=gf CENTERING={cvc} TAGS='parities={-1 +1 -1} checkpoint="no"' "y-component of staggered densitized magnetic field"
+CCTK_REAL dBz_stag TYPE=gf CENTERING={ccv} TAGS='parities={-1 -1 +1} checkpoint="no"' "z-component of staggered densitized magnetic field"
 
 # ----- staggered gauge functions
 
@@ -146,7 +146,7 @@ CCTK_REAL diagnostics TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
 
 # saved_prims are computed only once at the beginning of the simulation
 # at the outer physical boundary because they are not needed afterwards 
-CCTK_REAL saved_prims TYPE=gf CENTERING={ccc}
+CCTK_REAL saved_prims TYPE=gf CENTERING={ccc} TAGS='parities={+1 +1 +1    -1 +1 +1    +1 -1 +1    +1 +1 -1    +1 +1 +1    +1 +1 +1}'
 {
   saved_rho
   saved_velx saved_vely saved_velz
@@ -154,12 +154,12 @@ CCTK_REAL saved_prims TYPE=gf CENTERING={ccc}
   saved_Ye
 } "Saved primitive variables as initial guesses for con2prim"
 
-CCTK_REAL zvec TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
+CCTK_REAL zvec TYPE=gf CENTERING={ccc} TAGS='parities={-1 +1 +1    +1 -1 +1    +1 +1 -1} checkpoint="no"'
 {
   zvec_x, zvec_y, zvec_z
 } ""
 
-CCTK_REAL svec TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
+CCTK_REAL svec TYPE=gf CENTERING={ccc} TAGS='parities={-1 +1 +1    +1 -1 +1    +1 +1 -1} checkpoint="no"'
 {
   svec_x, svec_y, svec_z
 } ""
