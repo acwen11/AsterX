@@ -107,6 +107,7 @@ AsterSeeds::Avec_kappa = 2.0
 #AsterSeeds::B0 = 1e-7
 #AsterSeeds::r0 = 5.0
 
+AsterX::timelevels = 2
 AsterX::debug_mode = "no"
 AsterX::flux_type = "HLLE"
 AsterX::vector_potential_gauge = "generalized Lorenz"
