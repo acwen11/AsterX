@@ -27,6 +27,8 @@ CarpetX::poison_undefined_values = no
 
 CarpetX::use_subcycling_wip = yes
 CarpetX::restrict_during_sync = no
+AsterX::timelevels = 2
+Z4c::timelevels = 2
 
 # Finest grid spacing is 0.15625 
 # To have a symmetric grid along 0, we have odd number of points (257) 
@@ -107,7 +109,6 @@ AsterSeeds::Avec_kappa = 2.0
 #AsterSeeds::B0 = 1e-7
 #AsterSeeds::r0 = 5.0
 
-AsterX::timelevels = 2
 AsterX::debug_mode = "no"
 AsterX::flux_type = "HLLE"
 AsterX::vector_potential_gauge = "generalized Lorenz"
