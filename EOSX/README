@@ -1,11 +1,12 @@
 Cactus Code Thorn EOSX
-Author(s)    : Erik Schnetter <schnetter@gmail.com>
-Maintainer(s): Erik Schnetter <schnetter@gmail.com>
-Licence      : LGPL
+Core Author(s)  : Jay Kalinani <jaykalinani@gmail.com>
+Contributor(s)  : Michail Chabanov <micsma@rit.edu>
+                  Allen Wen <acw6923@rit.edu>
+Maintainer(s)   : Jay Kalinani <jaykalinani@gmail.com>
+Licence         : LGPL
 --------------------------------------------------------------------------
 
 1. Purpose
 
 Provider for various equations of state.
 Inspired by Wolfgang Kastaun's EOS framework.
-
