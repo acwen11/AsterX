@@ -25,6 +25,17 @@
 * `ReconX` – Reconstruction scheme module  
 * `TOVSolverX` – Modified version of the TOVSolver thorn from the Einstein Toolkit  
 
+## Developers
+
+Core:
+* Michail Chabanov <micsma@rit.edu>
+* Liwei Ji <ljsma@rit.edu>
+* Jay Kalinani <jaykalinani@gmail.com>
+* Allen Wen <acw6923@rit.edu>
+
+Contributors:
+* Bing-Jyun Tsao
+
 ## Getting Started
 
 * Instructions for downloading and building AsterX with the Einstein Toolkit are available [here](https://github.com/EinsteinToolkit/CarpetX/wiki/Getting-Started).  
@@ -53,4 +64,3 @@
 
 * [AsterX: A New Open-Source GPU-Accelerated GRMHD Code for Dynamical Spacetimes](https://drive.google.com/file/d/1Z4i--W56mxeNIu598LQTpEEowX56FOoD/view?usp=sharing)  
   Slides from a talk by Jay Kalinani at the APS April Meeting 2023.
-
