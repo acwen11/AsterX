@@ -1,0 +1,11 @@
+Cactus Code Thorn ID_TabEOS_HydroQuantities
+Core Author(s)  : Allen Wen <acw6923@rit.edu>
+Contributor(s)  : Jay Kalinani <jaykalinani@gmail.com>
+Legacy Author(s): Leonardo Werneck
+Maintainer(s)   : Allen Wen <acw6923@rit.edu>
+Licence         : LGPL
+--------------------------------------------------------------------------
+
+1. Purpose
+
+Initialize hydrodynamic quantities for tabulated equations of state.
