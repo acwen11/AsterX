@@ -77,7 +77,6 @@ ADMBaseX::initial_shift      = "tov"
 ADMBaseX::initial_dtlapse    = "zero"
 ADMBaseX::initial_dtshift    = "zero"
 
-Z4c::timelevels    = 1
 Z4c::calc_ADM_vars = yes                  # for Weyl
 Z4c::calc_ADMRHS_vars = no  #yes               # for Weyl
 Z4c::calc_constraints = yes
