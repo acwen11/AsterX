@@ -28,10 +28,10 @@
 ## Developers
 
 Core:
-* Michail Chabanov <micsma@rit.edu>
-* Liwei Ji <ljsma@rit.edu>
-* Jay Kalinani <jaykalinani@gmail.com>
-* Allen Wen <acw6923@rit.edu>
+* Michail Chabanov &lt;<micsma@rit.edu>&gt;
+* Liwei Ji &lt;<ljsma@rit.edu>&gt;
+* Jay Kalinani &lt;<jaykalinani@gmail.com>&gt;
+* Allen Wen &lt;<acw6923@rit.edu>&gt;
 
 Contributors:
 * Bing-Jyun Tsao
