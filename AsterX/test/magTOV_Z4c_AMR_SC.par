@@ -25,6 +25,11 @@ CarpetX::verbose = no
 Cactus::presync_mode = "mixed-error"
 CarpetX::poison_undefined_values = no
 
+CarpetX::use_subcycling_wip = yes
+CarpetX::restrict_during_sync = no
+AsterX::timelevels = 2
+Z4c::timelevels = 2
+
 # Finest grid spacing is 0.15625 
 # To have a symmetric grid along 0, we have odd number of points (257) 
 # along each direction going from -20.078125 to +20.078125 for the finest level
@@ -53,7 +58,7 @@ CarpetX::regrid_every = 128000
 CarpetX::regrid_error_threshold = 0.9
 
 CarpetX::ghost_size = 3
-CarpetX::dtfac = 0.35
+CarpetX::dtfac = 0.25
 
 CarpetX::prolongation_type = "ddf" #"poly-cons3lfb"
 #CarpetX::prolongation_order = 5
