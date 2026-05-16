@@ -35,6 +35,9 @@ Core:
 
 Contributors:
 * Bing-Jyun Tsao
+* Lorenzo Ennoggi
+* Federico G. Lopez Armengol
+* Lucas Timotheo Sanches
 
 ## Getting Started
 
