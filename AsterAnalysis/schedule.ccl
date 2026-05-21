@@ -1,6 +1,7 @@
 # Schedule definitions for thorn AsterAnalysis
 
 if (compute_MHD) {
+  STORAGE: mhd_analysis
   SCHEDULE AsterAnalysis_MHD AT analysis
   {
     LANG: C
@@ -28,6 +29,7 @@ if (compute_MHD) {
 }
 
 if (compute_MHD_spherical) {
+  STORAGE: mhd_spherical
   SCHEDULE AsterAnalysis_MHD_Spherical AT analysis AFTER AsterAnalysis_MHD
   {
     LANG: C
