@@ -75,9 +75,9 @@ if (!use_ho_fv) {
     LANG: C
     READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
     WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
-    WRITES: dBx_stag_aux(everywhere) dBy_stag_aux(everywhere) dBz_stag_aux(everywhere)
   } "Calculate dBstag from curl of A"
 } else {
+  # HO FV: MHD subsystem part 1 - get point val. dB_stag and dB, initially for CA C2P only
   SCHEDULE AsterX_ComputeAvgdBstagFromAvgA IN AsterX_InitialGroup
   {
     LANG: C
@@ -121,13 +121,6 @@ if (!use_ho_fv) {
     OPTIONS: global
     WRITES: dBstag_pv_iter(everywhere)
   } "Decrement counter for dBstag iterative calculation"
-
-  SCHEDULE AsterX_ComputedBstagLO IN AsterX_InitialGroup AFTER AsterX_dBstagPVSolve BEFORE AsterX_ComputedBFromdBstag 
-  {
-    LANG: C
-    READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
-    WRITES: dBx_stag_aux(everywhere) dBy_stag_aux(everywhere) dBz_stag_aux(everywhere)
-  } "Calculate 2nd order dBstag from curl of A"
 }
 
 if(!use_subcycling_wip && prolongate_dbstag)
@@ -180,6 +173,33 @@ SCHEDULE AsterX_CheckPrims IN AsterX_InitialGroup AFTER AsterX_ComputeBFromdB
   WRITES: zvec(everywhere)
   WRITES: svec(everywhere)
 } "Enforce limits on primitive variables"
+
+if (use_deriv_shock_detector)
+{
+  SCHEDULE AsterX_SetLOFlag IN AsterX_InitialGroup AFTER AsterX_CheckPrims
+  {
+    LANG: C
+    READS: ADMBaseX::metric(interior)
+    READS: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::temperature(interior) HydroBaseX::Ye(interior) HydroBaseX::Bvec(interior)
+    WRITES: etac(interior) LOflag(interior)
+    SYNC: LOflag
+  } "Detect shocks, flag for low-order recon fallback"
+
+  SCHEDULE AsterX_SetLOFlag IN AsterX_Con2PrimGroup AFTER AsterX_ApplyOuterBCOnPrim 
+  {
+    LANG: C
+    READS: ADMBaseX::metric(interior)
+    READS: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::temperature(interior) HydroBaseX::Ye(interior) HydroBaseX::Bvec(interior)
+    WRITES: etac(interior) LOflag(interior)
+    SYNC: LOflag
+  } "Detect shocks, flag for low-order recon fallback"
+} else {
+  SCHEDULE AsterX_InitLOFlag IN AsterX_Con2PrimGroup AFTER AsterX_ApplyOuterBCOnPrim 
+  {
+    LANG: C
+    WRITES: LOflag(everywhere)
+  } "Init this flag to 0"
+}
 
 SCHEDULE AsterX_Prim2Con_Initial IN AsterX_InitialGroup AFTER AsterX_CheckPrims
 {
@@ -301,6 +321,7 @@ if (!use_ho_fv) {
     WRITES: dBx_stag_aux(everywhere) dBy_stag_aux(everywhere) dBz_stag_aux(everywhere)
   } "Calculate dBstag from curl of A"
 } else {
+  # HO FV: MHD subsystem part 1 - get point val. dB_stag and dB, initially for CA C2P only
   SCHEDULE AsterX_ComputeAvgdBstagFromAvgA IN AsterX_Con2PrimGroup
   {
     LANG: C
@@ -319,13 +340,6 @@ if (!use_ho_fv) {
   SCHEDULE GROUP AsterX_dBstagPVSolve IN AsterX_Con2PrimGroup AFTER AsterX_SetdBstagIter WHILE AsterX::dBstag_pv_iter
   {
   } "Iteratively calculate point valued dBstag"
-
-  SCHEDULE AsterX_ComputedBstagLO IN AsterX_Con2PrimGroup AFTER AsterX_dBstagPVSolve BEFORE AsterX_ComputedBFromdBstag 
-  {
-    LANG: C
-    READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
-    WRITES: dBx_stag_aux(everywhere) dBy_stag_aux(everywhere) dBz_stag_aux(everywhere)
-  } "Calculate 2nd order dBstag from curl of A"
 }
 
 if(!use_subcycling_wip && prolongate_dbstag)
@@ -351,7 +365,8 @@ if ((mag_correction_order > 2) || use_ho_fv) {
     LANG: C
     OPTIONS: global
   } "Communicate dBstag between processes"
-
+}
+if (mag_correction_order > 2) {
   SCHEDULE AsterX_CommdB IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBstag BEFORE AsterX_Con2Prim 
   {
     LANG: C
@@ -401,34 +416,9 @@ SCHEDULE AsterX_ApplyOuterBCOnPrim IN AsterX_Con2PrimGroup AFTER AsterX_Con2Prim
   OPTIONS: global
 } "Apply CarpetX boundary conditions on primitive variables"
 
-if (use_deriv_shock_detector)
-{
-  SCHEDULE AsterX_SetLOFlag IN AsterX_InitialGroup AFTER AsterX_CheckPrims
-  {
-    LANG: C
-    READS: ADMBaseX::metric(interior)
-    READS: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::temperature(interior) HydroBaseX::Ye(interior) HydroBaseX::Bvec(interior)
-    WRITES: etac(interior) LOflag(interior)
-    SYNC: LOflag
-  } "Detect shocks, flag for low-order recon fallback"
-
-  SCHEDULE AsterX_SetLOFlag IN AsterX_Con2PrimGroup AFTER AsterX_ApplyOuterBCOnPrim 
-  {
-    LANG: C
-    READS: ADMBaseX::metric(interior)
-    READS: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::temperature(interior) HydroBaseX::Ye(interior) HydroBaseX::Bvec(interior)
-    WRITES: etac(interior) LOflag(interior)
-    SYNC: LOflag
-  } "Detect shocks, flag for low-order recon fallback"
-} else {
-  SCHEDULE AsterX_InitLOFlag IN AsterX_Con2PrimGroup AFTER AsterX_ApplyOuterBCOnPrim 
-  {
-    LANG: C
-    WRITES: LOflag(everywhere)
-  } "Init this flag to 0"
-}
-
 if (use_ho_fv) {
+  # HO FV: HD subsystem - Additional C2P to convert 4th order PV Cons to PV Prims; the "real" C2P
+  # HO FV: MHD subsystem part 2 - Fall back to 2nd order divergence-free dBstag at shocks
   SCHEDULE AsterX_UpdateCAC2PFlag IN AsterX_Con2PrimGroup AFTER AsterX_Con2Prim
   {
     LANG: C
@@ -439,6 +429,31 @@ if (use_ho_fv) {
   SCHEDULE GROUP AsterX_PVCon2PrimGroup IN ODESolvers_PostStep AFTER AsterX_Con2PrimGroup 
   {
   } "Compute point valued primitive variables"
+
+  if (shock_Bstag_fallback) {
+    SCHEDULE AsterX_ComputedBstagLO IN AsterX_PVCon2PrimGroup 
+    {
+      LANG: C
+      READS: LOflag(everywhere)
+      READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
+      READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
+      WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
+    } "Calculate 2nd order dBstag from curl of A"
+
+    SCHEDULE AsterX_ComputedBFromdBstag_LOFB IN AsterX_PVCon2PrimGroup AFTER AsterX_ComputedBstagLO 
+    {
+      LANG: C
+      READS: LOflag(everywhere)
+      READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
+      WRITES: dB(everywhere)
+    } "Update centered dB from dBstag with updated low order values"
+  }
+
+  SCHEDULE AsterX_CommdB IN AsterX_PVCon2PrimGroup AFTER AsterX_ComputedBFromdBstag BEFORE AsterX_Con2Prim 
+  {
+    LANG: C
+    OPTIONS: global
+  } "Communicate cell centered dB between processes"
 
   # Convert cell-averages to point values at 4th order
   SCHEDULE AsterX_SetPointValues IN AsterX_PVCon2PrimGroup BEFORE AsterX_Con2Prim
@@ -520,7 +535,6 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   READS: HydroBaseX::Bvec(everywhere)
   READS: HydroBaseX::entropy(everywhere)
   READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
-  READS: dBx_stag_aux(everywhere) dBy_stag_aux(everywhere) dBz_stag_aux(everywhere)
   READS: zvec_x(everywhere) zvec_y(everywhere) zvec_z(everywhere)
   READS: svec_x(everywhere) svec_y(everywhere) svec_z(everywhere)
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere) Psi(everywhere)
