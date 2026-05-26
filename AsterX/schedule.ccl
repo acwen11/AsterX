@@ -22,13 +22,6 @@ STORAGE: LOflag etac
 
 STORAGE: theta_x theta_y theta_z theta_tot
 
-if(use_subcycling_wip) {
-  STORAGE: k1_vector Avec_x_k1 Avec_y_k1 Avec_z_k1 Psi_k1
-  STORAGE: k2_vector Avec_x_k2 Avec_y_k2 Avec_z_k2 Psi_k2
-  STORAGE: k3_vector Avec_x_k3 Avec_y_k3 Avec_z_k3 Psi_k3
-  STORAGE: k4_vector Avec_x_k4 Avec_y_k4 Avec_z_k4 Psi_k4
-}
-
 
 if(unit_test)
 {
