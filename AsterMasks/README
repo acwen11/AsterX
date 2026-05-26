@@ -1,0 +1,10 @@
+Cactus Code Thorn AsterMasks
+Core Author(s)  : Michail Chabanov <micsma@rit.edu>
+Maintainer(s)   : Michail Chabanov <micsma@rit.edu>
+Licence         : LGPL
+--------------------------------------------------------------------------
+
+1. Purpose
+
+Provide cell-centered and vertex-centered mask grid functions for AsterX
+components.

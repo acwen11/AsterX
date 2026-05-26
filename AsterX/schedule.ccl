@@ -22,6 +22,13 @@ STORAGE: LOflag etac
 
 STORAGE: theta_x theta_y theta_z theta_tot
 
+if(use_subcycling_wip) {
+  STORAGE: k1_vector Avec_x_k1 Avec_y_k1 Avec_z_k1 Psi_k1
+  STORAGE: k2_vector Avec_x_k2 Avec_y_k2 Avec_z_k2 Psi_k2
+  STORAGE: k3_vector Avec_x_k3 Avec_y_k3 Avec_z_k3 Psi_k3
+  STORAGE: k4_vector Avec_x_k4 Avec_y_k4 Avec_z_k4 Psi_k4
+}
+
 
 if(unit_test)
 {
@@ -61,7 +68,7 @@ SCHEDULE AsterX_ComputedBstagFromA IN AsterX_InitialGroup
   WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
 } "Calculate dBstag from curl of A"
 
-if(prolongate_dbstag)
+if(!use_subcycling_wip && prolongate_dbstag)
 {
   SCHEDULE AsterX_ProlongatedBstag IN AsterX_InitialGroup AFTER AsterX_ComputedBstagFromA BEFORE AsterX_ComputedBFromdBstag
   {
@@ -203,7 +210,7 @@ SCHEDULE AsterX_ComputedBstagFromA IN AsterX_Con2PrimGroup
   WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
 } "Calculate dBstag from curl of A"
 
-if(prolongate_dbstag)
+if(!use_subcycling_wip && prolongate_dbstag)
 {
   SCHEDULE AsterX_ProlongatedBstag IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBstagFromA BEFORE AsterX_ComputedBFromdBstag
   {
@@ -305,11 +312,13 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
 } "Calculate the hydro fluxes"
 
+if(!use_subcycling_wip) {
 SCHEDULE AsterX_RestrictFluxes IN AsterX_RHSGroup AFTER AsterX_Fluxes BEFORE AsterX_RHS
 {
   LANG: C
   OPTIONS: global
 } "Apply CarpetX boundary conditions on flux variables"
+}
 
 SCHEDULE AsterX_CalcAuxTermsForAvecPsiRHS IN AsterX_RHSGroup AFTER AsterX_Fluxes BEFORE AsterX_SourceTerms
 {
@@ -330,11 +339,13 @@ SCHEDULE AsterX_CalcAuxTermsForAvecPsiRHS IN AsterX_RHSGroup AFTER AsterX_Fluxes
   WRITES: Fx_stag(everywhere) Fy_stag(everywhere) Fz_stag(everywhere)
 } "Calculate the auxiliary terms for the rhs of Avec and Psi"
 
+if(!use_subcycling_wip) {
 SCHEDULE AsterX_RestrictAuxTermsForAvecPsiRHS IN AsterX_RHSGroup AFTER AsterX_CalcAuxTermsForAvecPsiRHS BEFORE AsterX_SourceTerms
 {
   LANG: C
   OPTIONS: global
 } "Restrict the auxiliary terms for the rhs of Avec and Psi"
+}
 
 SCHEDULE AsterX_SourceTerms IN AsterX_RHSGroup AFTER AsterX_Fluxes
 {
@@ -404,7 +415,7 @@ if(update_tmunu){
     READS: HydroBaseX::Bvec(everywhere)
     READS: TmunuBaseX::eTtt(interior) TmunuBaseX::eTti(interior) TmunuBaseX::eTij(interior)
     WRITES: TmunuBaseX::eTtt(interior) TmunuBaseX::eTti(interior) TmunuBaseX::eTij(interior)
-    SYNC: TmunuBaseX::eTtt TmunuBaseX::eTti TmunuBaseX::eTij
+    #SYNC: TmunuBaseX::eTtt TmunuBaseX::eTti TmunuBaseX::eTij
   } "Compute the energy-momentum tensor"
 }
 
