@@ -281,7 +281,7 @@ extern "C" void AsterX_DecdBstagIter(CCTK_ARGUMENTS) {
                                         CCTK_GroupIndex("AsterX::dBy_stag"),
                                         CCTK_GroupIndex("AsterX::dBz_stag")};
 
-    SyncGroupsByDirINoRestrict(cctkGH, groups.size(), groups.data(), nullptr);
+    SyncGroupsByDirISubcycling(cctkGH, groups.size(), groups.data(), nullptr);
   }
 }
 
