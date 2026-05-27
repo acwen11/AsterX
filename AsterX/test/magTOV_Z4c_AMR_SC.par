@@ -25,7 +25,7 @@ CarpetX::verbose = no
 Cactus::presync_mode = "mixed-error"
 CarpetX::poison_undefined_values = no
 
-CarpetX::use_subcycling_wip = yes
+CarpetX::use_subcycling = yes
 CarpetX::restrict_during_sync = no
 
 # Finest grid spacing is 0.15625 

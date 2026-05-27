@@ -61,7 +61,7 @@ SCHEDULE AsterX_ComputedBstagFromA IN AsterX_InitialGroup
   WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
 } "Calculate dBstag from curl of A"
 
-if(!use_subcycling_wip && prolongate_dbstag)
+if(!use_subcycling && prolongate_dbstag)
 {
   SCHEDULE AsterX_ProlongatedBstag IN AsterX_InitialGroup AFTER AsterX_ComputedBstagFromA BEFORE AsterX_ComputedBFromdBstag
   {
@@ -203,7 +203,7 @@ SCHEDULE AsterX_ComputedBstagFromA IN AsterX_Con2PrimGroup
   WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
 } "Calculate dBstag from curl of A"
 
-if(!use_subcycling_wip && prolongate_dbstag)
+if(!use_subcycling && prolongate_dbstag)
 {
   SCHEDULE AsterX_ProlongatedBstag IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBstagFromA BEFORE AsterX_ComputedBFromdBstag
   {
@@ -305,7 +305,7 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
 } "Calculate the hydro fluxes"
 
-if(!use_subcycling_wip) {
+if(!use_subcycling) {
 SCHEDULE AsterX_RestrictFluxes IN AsterX_RHSGroup AFTER AsterX_Fluxes BEFORE AsterX_RHS
 {
   LANG: C
@@ -332,7 +332,7 @@ SCHEDULE AsterX_CalcAuxTermsForAvecPsiRHS IN AsterX_RHSGroup AFTER AsterX_Fluxes
   WRITES: Fx_stag(everywhere) Fy_stag(everywhere) Fz_stag(everywhere)
 } "Calculate the auxiliary terms for the rhs of Avec and Psi"
 
-if(!use_subcycling_wip) {
+if(!use_subcycling) {
 SCHEDULE AsterX_RestrictAuxTermsForAvecPsiRHS IN AsterX_RHSGroup AFTER AsterX_CalcAuxTermsForAvecPsiRHS BEFORE AsterX_SourceTerms
 {
   LANG: C
