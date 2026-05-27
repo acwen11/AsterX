@@ -237,4 +237,4 @@ USES CCTK_BOOLEAN weno_mp
 USES CCTK_REAL mp5_alpha
 
 SHARES: Driver
-USES BOOLEAN use_subcycling_wip
+USES BOOLEAN use_subcycling
