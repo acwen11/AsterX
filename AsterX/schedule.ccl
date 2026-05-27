@@ -23,14 +23,22 @@ STORAGE: LOflag etac
 STORAGE: theta_x theta_y theta_z theta_tot
 
 if(use_subcycling_wip) {
-  STORAGE: k1_vector Avec_x_k1 Avec_y_k1 Avec_z_k1 Psi_k1
-  STORAGE: k2_vector Avec_x_k2 Avec_y_k2 Avec_z_k2 Psi_k2
-  STORAGE: k3_vector Avec_x_k3 Avec_y_k3 Avec_z_k3 Psi_k3
-  STORAGE: k4_vector Avec_x_k4 Avec_y_k4 Avec_z_k4 Psi_k4
+  STORAGE: k1_vector Avec_x_k1 Avec_y_k1 Avec_z_k1 Avec_x_la_k1 Avec_y_la_k1 Avec_z_la_k1 Psi_k1
+  STORAGE: k2_vector Avec_x_k2 Avec_y_k2 Avec_z_k2 Avec_x_la_k2 Avec_y_la_k2 Avec_z_la_k2 Psi_k2
+  STORAGE: k3_vector Avec_x_k3 Avec_y_k3 Avec_z_k3 Avec_x_la_k3 Avec_y_la_k3 Avec_z_la_k3 Psi_k3
+  STORAGE: k4_vector Avec_x_k4 Avec_y_k4 Avec_z_k4 Avec_x_la_k4 Avec_y_la_k4 Avec_z_la_k4 Psi_k4
 }
 
 STORAGE: cons_vector_pv
-
+STORAGE: Avec_x_la[timelevels]
+STORAGE: Avec_y_la[timelevels]
+STORAGE: Avec_z_la[timelevels]
+STORAGE: rhs_vector_pv Avec_x_la_rhs Avec_y_la_rhs Avec_z_la_rhs
+STORAGE: CA_C2P
+if(use_ho_fv) {
+  STORAGE: dBx_stag_fa dBy_stag_fa dBz_stag_fa
+  STORAGE: dBx_stag_aux dBy_stag_aux dBz_stag_aux
+}
 
 if(unit_test)
 {
@@ -318,7 +326,6 @@ if (!use_ho_fv) {
     LANG: C
     READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
     WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
-    WRITES: dBx_stag_aux(everywhere) dBy_stag_aux(everywhere) dBz_stag_aux(everywhere)
   } "Calculate dBstag from curl of A"
 } else {
   # HO FV: MHD subsystem part 1 - get point val. dB_stag and dB, initially for CA C2P only
@@ -380,12 +387,6 @@ SCHEDULE AsterX_InitCAC2PFlag IN AsterX_Con2PrimGroup BEFORE AsterX_Con2Prim
   OPTIONS: global
   WRITES: CA_C2P(everywhere)
 } "Determine if we are performing C2P on cell averages or point values"
-
-# SCHEDULE AsterX_InitPointValues IN AsterX_Con2PrimGroup BEFORE AsterX_Con2Prim
-# {
-#   LANG: C
-#   WRITES: cons_vector_pv(everywhere)
-# } "Set point value cons to zero so they are marked as valid"
 
 SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBstag
 {
@@ -554,15 +555,6 @@ SCHEDULE AsterX_RestrictFluxes IN AsterX_RHSGroup AFTER AsterX_Fluxes BEFORE Ast
 } "Apply CarpetX boundary conditions on flux variables"
 }
 
-if (use_ho_fv) {
-  SCHEDULE AsterX_FluxesFVHO IN AsterX_RHSGroup AFTER AsterX_Fluxes BEFORE AsterX_RestrictFluxes
-  {
-    LANG: C
-    READS: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
-    WRITES: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
-  } "Add HO FV correction to fluxes"
-}
-
 SCHEDULE AsterX_CalcAuxTermsForAvecPsiRHS IN AsterX_RHSGroup AFTER AsterX_Fluxes BEFORE AsterX_SourceTerms
 {
   LANG: C
@@ -601,11 +593,20 @@ SCHEDULE AsterX_SourceTerms IN AsterX_RHSGroup AFTER AsterX_Fluxes
   READS: HydroBaseX::vel(everywhere)
   READS: zvec_x(everywhere), zvec_y(everywhere), zvec_z(everywhere)
   READS: svec_x(everywhere), svec_y(everywhere), svec_z(everywhere)
-  READS: LOflag(everywhere)
   READS: HydroBaseX::Bvec(everywhere)
   WRITES: rhs_vector(interior)
   WRITES: rhs_vector_pv(interior)
 } "Calculate the source terms and compute the RHS of the hydro equations"
+
+if (use_ho_fv) {
+  SCHEDULE AsterX_CellAvgSourceTerms IN AsterX_RHSGroup AFTER AsterX_SourceTerms BEFORE AsterX_RHS
+  {
+    LANG: C
+    READS: LOflag(interior)
+    READS: rhs_vector_pv(interior)
+    WRITES: rhs_vector(interior)
+  } "Cell average source term"
+}
 
 SCHEDULE AsterX_RHS IN AsterX_RHSGroup AFTER AsterX_SourceTerms
 {

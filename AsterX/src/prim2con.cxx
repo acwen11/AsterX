@@ -113,9 +113,6 @@ extern "C" void AsterX_SetLineAvgAvec_Initial(CCTK_ARGUMENTS) {
   DECLARE_CCTK_PARAMETERS;
 
   constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
-  // NOTE! Not anymore vvv
-  // NOTE! We are just using E as temporary storage for the line averaged <A>
-  // before copying to the Avec gridfunctions themselves.
   if (use_ho_fv) {
     grid.loop_int_device<1, 0, 0>(
         grid.nghostzones,
@@ -155,27 +152,6 @@ extern "C" void AsterX_SetLineAvgAvec_Initial(CCTK_ARGUMENTS) {
             Avec_z_la(p.I) = Avec_z(p.I);
         });
   }
-
-  // grid.loop_int_device<1, 0, 0>(
-  //     grid.nghostzones,
-  //     [=] CCTK_DEVICE(const PointDesc &p)
-  //         CCTK_ATTRIBUTE_ALWAYS_INLINE { 
-  //         Avec_x(p.I) = Ex(p.I);
-  //     });
-  // grid.loop_int_device<0, 1, 0>(
-  //     grid.nghostzones,
-  //     [=] CCTK_DEVICE(const PointDesc &p)
-  //         CCTK_ATTRIBUTE_ALWAYS_INLINE { 
-  //         Avec_y(p.I) = Ey(p.I);
-  //     });
-  // grid.loop_int_device<0, 0, 1>(
-  //     grid.nghostzones,
-  //     [=] CCTK_DEVICE(const PointDesc &p)
-  //         CCTK_ATTRIBUTE_ALWAYS_INLINE { 
-  //         Avec_z(p.I) = Ez(p.I);
-  //     });
-  // // Now, the Avec_i gridfunctions have assumed their rightful roles
-  // // storing the line averaged <A>.
 }
 
 extern "C" void AsterX_PsiZero_Initial(CCTK_ARGUMENTS) {

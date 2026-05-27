@@ -180,19 +180,6 @@ template <int FDORDER> void SourceTerms(CCTK_ARGUMENTS) {
           tau_pvrhs(p.I) = 0.0;
         }
       }); // end of loop over grid
-  
-  // Volume average source term
-  if (use_ho_fv) {
-    constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
-    grid.loop_int_device<1, 1, 1>(
-        grid.nghostzones,
-        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-          momxrhs(p.I) = momx_pvrhs(p.I) + (1 - LOflag(p.I)) * one_over_24 * laplace_3d(momx_pvrhs, p);
-          momyrhs(p.I) = momy_pvrhs(p.I) + (1 - LOflag(p.I)) * one_over_24 * laplace_3d(momy_pvrhs, p);
-          momzrhs(p.I) = momz_pvrhs(p.I) + (1 - LOflag(p.I)) * one_over_24 * laplace_3d(momz_pvrhs, p);
-          taurhs(p.I) = tau_pvrhs(p.I) + (1 - LOflag(p.I)) * one_over_24 * laplace_3d(tau_pvrhs, p);
-    });
-  }
 }
 
 extern "C" void AsterX_SourceTerms(CCTK_ARGUMENTS) {
@@ -210,6 +197,22 @@ extern "C" void AsterX_SourceTerms(CCTK_ARGUMENTS) {
   default:
     CCTK_VERROR("local_spatial_order must be set to 2 or 4.");
   }
+}
+
+extern "C" void AsterX_CellAvgSourceTerms(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_CellAvgSourceTerms;
+  DECLARE_CCTK_PARAMETERS;
+
+  constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
+  grid.loop_int_device<1, 1, 1>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        momxrhs(p.I) = momx_pvrhs(p.I) + (1 - LOflag(p.I)) * one_over_24 * laplace_3d(momx_pvrhs, p);
+        momyrhs(p.I) = momy_pvrhs(p.I) + (1 - LOflag(p.I)) * one_over_24 * laplace_3d(momy_pvrhs, p);
+        momzrhs(p.I) = momz_pvrhs(p.I) + (1 - LOflag(p.I)) * one_over_24 * laplace_3d(momz_pvrhs, p);
+        taurhs(p.I) = tau_pvrhs(p.I) + (1 - LOflag(p.I)) * one_over_24 * laplace_3d(tau_pvrhs, p);
+  });
+
 }
 
 } // namespace AsterX

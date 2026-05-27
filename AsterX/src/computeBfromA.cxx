@@ -198,16 +198,15 @@ template <int dir> void ComputeStaggeredPointValB(CCTK_ARGUMENTS) {
   // Now, we use Equation 21 of https://arxiv.org/pdf/2310.11831 to compute the point value
   // dBi_stag.
   constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
-  const CCTK_REAL fac = -1.0; //pow(-1.0, 1 + n_dBstagpv_iters - *dBstag_pv_iter);
   grid.loop_allmn_device<face_centred[0], face_centred[1], face_centred[2]>(
      grid.nghostzones, 1,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         if (dir == 0) {
-          dBx_stag(p.I) = dBx_stag_fa(p.I) + fac * one_over_24 * laplace_perp<0>(dBx_stag_aux, p);
+          dBx_stag(p.I) = dBx_stag_fa(p.I) - one_over_24 * laplace_perp<0>(dBx_stag_aux, p);
         } else if (dir == 1) {
-          dBy_stag(p.I) = dBy_stag_fa(p.I) + fac * one_over_24 * laplace_perp<1>(dBy_stag_aux, p);
+          dBy_stag(p.I) = dBy_stag_fa(p.I) - one_over_24 * laplace_perp<1>(dBy_stag_aux, p);
         } else if (dir == 2) {
-          dBz_stag(p.I) = dBz_stag_fa(p.I) + fac * one_over_24 * laplace_perp<2>(dBz_stag_aux, p);
+          dBz_stag(p.I) = dBz_stag_fa(p.I) - one_over_24 * laplace_perp<2>(dBz_stag_aux, p);
         }
       });
 
@@ -306,7 +305,6 @@ extern "C" void AsterX_ComputedBFromdBstag(CCTK_ARGUMENTS) {
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         /* Interpolation of staggered B components to cell center
          */
-        const int ordL = 
         dBx(p.I) = calc_avg_f2c(dBx_stag, p, 0, interp_order);
         dBy(p.I) = calc_avg_f2c(dBy_stag, p, 1, interp_order);
         dBz(p.I) = calc_avg_f2c(dBz_stag, p, 2, interp_order);
