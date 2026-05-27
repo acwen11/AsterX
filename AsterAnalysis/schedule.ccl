@@ -28,6 +28,7 @@ if (compute_MHD) {
   "Compute MHD analysis quantities"
 
   if (use_ho_fv) {
+    STORAGE: mhd_analysis_hofv
     SCHEDULE AsterAnalysis_HOFV AT analysis
     {
       LANG: C
