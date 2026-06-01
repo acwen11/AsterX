@@ -279,6 +279,8 @@ if (use_deriv_shock_detector)
   } "Detect shocks, flag for low-order recon fallback"
 }
 
+if(!freeze_evolution) {
+
 SCHEDULE GROUP AsterX_RHSGroup IN ODESolvers_RHS
 {
 } "Calculate AsterX RHS"
@@ -423,3 +425,5 @@ if(add_dissipation)
     WRITES: Avec_x_rhs(interior) Avec_y_rhs(interior) Avec_z_rhs(interior) Psi_rhs(interior)
   } "Add KO dissipation"
 }
+
+} # end of if(!freeze_evolution)
