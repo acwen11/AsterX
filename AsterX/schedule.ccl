@@ -279,6 +279,15 @@ if (use_deriv_shock_detector)
   } "Detect shocks, flag for low-order recon fallback"
 }
 
+if(freeze_evolution) {
+SCHEDULE AsterX_FreezeEvolutionRHS IN ODESolvers_RHS
+{
+  LANG: C
+  WRITES: rhs_vector(interior)
+  WRITES: Avec_x_rhs(interior) Avec_y_rhs(interior) Avec_z_rhs(interior) Psi_rhs(interior)
+} "Set AsterX RHS to zero when freeze_evolution is enabled"
+}
+
 if(!freeze_evolution) {
 
 SCHEDULE GROUP AsterX_RHSGroup IN ODESolvers_RHS
