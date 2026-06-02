@@ -63,8 +63,9 @@ extern "C" void ID_TabEOS_HydroQuantities_initial_Y_e(CCTK_ARGUMENTS) {
           if (rho(p.I) > rho_atm * (1 + atmo_tol)) {
             // Interpolate Y_e(rho_i) at gridpoint i
             const CCTK_REAL Y_eL =
+                //id_ye_reader->linear_interp_1D(nrho, rho(p.I));
                 id_ye_reader->interpolate_1d_quantity_as_function_of_rho(
-                    interp_stencil_size, nrho, rho(p.I));
+                  interp_stencil_size, nrho, rho(p.I));
             // Finally, set the Y_e gridfunction
             Ye(p.I) = MIN(MAX(Y_eL, eos_3p_tab3d->interptable->xmin<2>()),
                           eos_3p_tab3d->interptable->xmax<2>());

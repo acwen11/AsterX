@@ -63,6 +63,10 @@ template <typename EOSType> void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p) {
           LOflag(p.I) = 1.0;
           return;
         }
+        if (cctk_iteration <= 1) {
+          LOflag(p.I) = 1.0;
+          return;
+        }
 
         // Store largest etac as diagnostic. Note that this is only truly the
         // largest if all checks pass.

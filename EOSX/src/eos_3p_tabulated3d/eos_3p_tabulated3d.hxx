@@ -233,7 +233,7 @@ public:
   logtemp_from_rho_eps_ye(const CCTK_REAL rho, CCTK_REAL &eps,
                           const CCTK_REAL ye) const {
     // bound inputs
-    eps = std::fmax(eps, rgeps.min);
+    // eps = std::fmax(eps, rgeps.min);
     CCTK_REAL leps = std::log(eps + *energy_shift);
     CCTK_REAL lt = logtemp_from_rho_var_ye<EV::EPS>(rho, leps, ye);
     eps = exp(leps) - *energy_shift;
