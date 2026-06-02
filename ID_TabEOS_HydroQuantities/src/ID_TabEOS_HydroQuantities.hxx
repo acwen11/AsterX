@@ -163,16 +163,17 @@ public:
   }
 
   // Reference: https://en.wikipedia.org/wiki/Linear_interpolation
-  CCTK_HOST CCTK_DEVICE inline CCTK_REAL
-  linear_interp_1D(const int nx, 
-                   const CCTK_REAL x_star) {
+  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
+  linear_interp_1D(const int nx, const CCTK_REAL *restrict x_arr,
+                   const CCTK_REAL *restrict y_arr, const CCTK_REAL x_star,
+                   CCTK_REAL *restrict y_star) {
     // Find the index to the left
-    int idx = bisection_idx_finder(x_star, nx, rho_arr);
+    int idx = bisection_idx_finder(x_star, nx, x_arr);
     // Compute (x0,y0) and (x1,y1)
-    const CCTK_REAL x0 = rho_arr[idx];
-    const CCTK_REAL y0 = Ye_rho_arr[idx];
-    const CCTK_REAL x1 = rho_arr[idx + 1];
-    const CCTK_REAL y1 = Ye_rho_arr[idx + 1];
+    const CCTK_REAL x0 = x_arr[idx];
+    const CCTK_REAL y0 = y_arr[idx];
+    const CCTK_REAL x1 = x_arr[idx + 1];
+    const CCTK_REAL y1 = y_arr[idx + 1];
     // Perform the interpolation. Note that:
     //
     // y_star = y0 + (x_star-x0)*(y1-y0)/(x1-x0)
@@ -185,7 +186,7 @@ public:
     //    | aux = (x_star-x0)/(x1-x0) | .
     //    .---------------------------.
     const CCTK_REAL aux = (x_star - x0) / (x1 - x0);
-    return y0 * (1.0 - aux) + y1 * aux;
+    *y_star = y0 * (1.0 - aux) + y1 * aux;
   }
 };
 

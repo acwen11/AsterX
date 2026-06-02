@@ -268,14 +268,14 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
       press_atm(1) = std::max(eos_3p->press_from_rho_temp_ye(
                                   rho_atm(1), eos_3p->rgtemp.min, Ye_atmo),
                               press_atm(1));
-      temp_atm(0) =
-          eos_3p->temp_from_rho_press_ye(rho_atm(0), press_atm(0), Ye_atmo);
-      temp_atm(1) =
-          eos_3p->temp_from_rho_press_ye(rho_atm(1), press_atm(1), Ye_atmo);
       eps_atm(0) =
-          eos_3p->eps_from_rho_temp_ye(rho_atm(0), temp_atm(0), Ye_atmo);
+          eos_3p->eps_from_rho_press_ye(rho_atm(0), press_atm(0), Ye_atmo);
       eps_atm(1) =
-          eos_3p->eps_from_rho_temp_ye(rho_atm(1), temp_atm(1), Ye_atmo);
+          eos_3p->eps_from_rho_press_ye(rho_atm(1), press_atm(1), Ye_atmo);
+      temp_atm(0) =
+          eos_3p->temp_from_rho_eps_ye(rho_atm(0), eps_atm(0), Ye_atmo);
+      temp_atm(1) =
+          eos_3p->temp_from_rho_eps_ye(rho_atm(1), eps_atm(1), Ye_atmo);
     } else {
       temp_atm(0) = (r_atm(0) > r_atmo)
                         ? (t_atmo * pow(r_atmo / r_atm(0), n_temp_atmo))
@@ -387,10 +387,10 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
 
       // Compute eps_rc and temp_rc using lambdas
       for (int f = 0; f < 2; ++f) {
-        temp_rc(f) =
-            eos_3p->temp_from_rho_press_ye(rho_rc(f), press_rc(f), Ye_rc(f));
         eps_rc(f) =
-            eos_3p->eps_from_rho_temp_ye(rho_rc(f), temp_rc(f), Ye_rc(f));
+            eos_3p->eps_from_rho_press_ye(rho_rc(f), press_rc(f), Ye_rc(f));
+        temp_rc(f) =
+            eos_3p->temp_from_rho_eps_ye(rho_rc(f), eps_rc(f), Ye_rc(f));
       }
     }
 
