@@ -187,7 +187,7 @@ if (use_deriv_shock_detector)
     SYNC: LOflag
   } "Detect shocks, flag for low-order recon fallback"
 
-  SCHEDULE AsterX_SetLOFlag IN AsterX_Con2PrimGroup AFTER AsterX_ApplyOuterBCOnPrim 
+  SCHEDULE AsterX_SetLOFlag IN ODESolvers_PostStep AFTER AsterX_Con2PrimGroup AFTER AsterX_PVCon2PrimGroup 
   {
     LANG: C
     READS: ADMBaseX::metric(interior)
