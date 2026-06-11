@@ -28,6 +28,14 @@ CCTK_REAL cons_vector_pv TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Cell-ce
   dens_pv, momx_pv, momy_pv, momz_pv, tau_pv, DYe_pv, DEnt_pv
 } "Conserved density, momenta, internal energy, electron fraction and entropy"
 
+# Placeholder conservatives used only for iterative PV solve for HO FV
+CCTK_REAL cons_aux TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Cell-centered point values of the conservatives"
+{
+  dens_aux, momx_aux, momy_aux, momz_aux, tau_aux, DYe_aux, DEnt_aux
+} "Conserved density, momenta, internal energy, electron fraction and entropy"
+
+CCTK_INT cons_pv_iter type=SCALAR tags='checkpoint="no"' "counter for iterative PV cons solve"
+
 CCTK_REAL rhs_vector TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "RHSs of conserved variables"
 {
   densrhs, momxrhs, momyrhs, momzrhs, taurhs, DYe_rhs, DEntrhs
@@ -142,7 +150,7 @@ CCTK_REAL dBx_stag_aux TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"' "x-compone
 CCTK_REAL dBy_stag_aux TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"' "y-component of staggered densitized magnetic field"
 CCTK_REAL dBz_stag_aux TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"' "z-component of staggered densitized magnetic field"
 
-CCTK_INT dBstag_pv_iter type=SCALAR tags='checkpoint="no"' "Flag to indicate if C2P is performed on cell averaged or point value conservatives"
+CCTK_INT dBstag_pv_iter type=SCALAR tags='checkpoint="no"' "counter for iterative PV dBstag solve"
 
 CCTK_INT CA_C2P type=SCALAR tags='checkpoint="no"' "Flag to indicate if C2P is performed on cell averaged or point value conservatives"
 

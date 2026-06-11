@@ -116,6 +116,11 @@ CCTK_INT n_dBstagpv_iters "Number of times to iteratively correct dBstag point v
   1:* :: "1 = only calculate from <dBstag>, greater = use Taylor expansion"
 } 5
 
+CCTK_INT n_conspv_iters "Number of times to iteratively correct cons point value" STEERABLE=always
+{
+  1:* :: "1 = only calculate from <U>, greater = use Taylor expansion"
+} 5
+
 CCTK_INT mag_correction_order "Order of accuracy for higher order corrections to magnetic field evolution" STEERABLE=never
 {
   2 :: "Second order accurate"

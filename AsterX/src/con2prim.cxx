@@ -14,6 +14,8 @@
 #include "aster_utils.hxx"
 #include "setup_eos.hxx"
 
+#include "../../../CarpetX/CarpetX/src/schedule.hxx"
+
 namespace AsterX {
 using namespace std;
 using namespace Loop;
@@ -505,13 +507,17 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
         (pv.rho + pv.rho * pv.eps + pv.press) * wlor * wlor * pv.vel(2);
 
     // Write back cv
-    if (write_back_cons) {
+    if (*CA_C2P) {
       cv.scatter(dens(p.I), momx(p.I), momy(p.I), momz(p.I), tau(p.I), DYe(p.I),
                  DEnt(p.I), dBx(p.I), dBy(p.I), dBz(p.I));
+    }
+    else if (!*CA_C2P && write_back_cons) {
+      cv.scatter(dens_pv(p.I), momx_pv(p.I), momy_pv(p.I), momz_pv(p.I), tau_pv(p.I), DYe_pv(p.I),
+                 DEnt_pv(p.I), dBx(p.I), dBy(p.I), dBz(p.I));
     } else if (c2p_flag_code == C2P_PRIME || c2p_flag_code == C2P_SECOND) {
-      DEnt(p.I) = cv.DEnt;
+      DEnt_pv(p.I) = cv.DEnt;
     } else if (c2p_flag_code == C2P_ENTROPY) {
-      tau(p.I)  = cv.tau; 
+      tau_pv(p.I)  = cv.tau; 
     }
 
     // Update saved prims
@@ -660,50 +666,96 @@ extern "C" void AsterX_InitPointValues(CCTK_ARGUMENTS) {
       });
 }
 
+/* BEGIN ITERATIVE POINT VALUED CONSERVATIVES CALCULATION */
+extern "C" void AsterX_SetConsIter(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_SetConsIter;
+  DECLARE_CCTK_PARAMETERS;
+
+  *cons_pv_iter = n_conspv_iters;
+}
+
+extern "C" void AsterX_SetPVConsnMinus1(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_SetPVConsnMinus1;
+  DECLARE_CCTK_PARAMETERS;
+
+  if (*cons_pv_iter == n_conspv_iters) {
+    grid.loop_all_device<1, 1, 1>(
+       grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+          dens_aux(p.I) =  dens(p.I);
+          momx_aux(p.I) =  momx(p.I);
+          momy_aux(p.I) =  momy(p.I);
+          momz_aux(p.I) =  momz(p.I);
+          tau_aux(p.I)  =  tau(p.I);
+          DYe_aux(p.I)  =  DYe(p.I);
+          DEnt_aux(p.I) =  DEnt(p.I);
+        });
+  } else {
+    grid.loop_all_device<1, 1, 1>(
+       grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+          dens_aux(p.I) =  dens_pv(p.I);
+          momx_aux(p.I) =  momx_pv(p.I);
+          momy_aux(p.I) =  momy_pv(p.I);
+          momz_aux(p.I) =  momz_pv(p.I);
+          tau_aux(p.I)  =  tau_pv(p.I);
+          DYe_aux(p.I)  =  DYe_pv(p.I);
+          DEnt_aux(p.I) =  DEnt_pv(p.I);
+        });
+  }
+}
+
 extern "C" void AsterX_SetPointValues(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_SetPointValues;
   DECLARE_CCTK_PARAMETERS;
 
   constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
 
-  if (cctk_iteration != 0) { // use ID values at iteration 0
-         
-    grid.loop_allmn_device<1, 1, 1>(
-        grid.nghostzones, 1,
-        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+  grid.loop_allmn_device<1, 1, 1>(
+      grid.nghostzones, 1,
+      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
 
-	  // Eq. (16) from https://arxiv.org/pdf/2310.11831 
-          bool thetac = (!LOflag(p.I) || !shock_pv_fallback);
-          dens_pv(p.I) =  dens(p.I) - thetac * one_over_24*laplace_3d(dens,p);
-          momx_pv(p.I) =  momx(p.I) - thetac * one_over_24*laplace_3d(momx,p);
-          momy_pv(p.I) =  momy(p.I) - thetac * one_over_24*laplace_3d(momy,p);
-          momz_pv(p.I) =  momz(p.I) - thetac * one_over_24*laplace_3d(momz,p);
-          tau_pv(p.I)  =  tau(p.I) - thetac * one_over_24*laplace_3d(tau,p);
-          DYe_pv(p.I)  =  DYe(p.I) - thetac * one_over_24*laplace_3d(DYe,p);
-          DEnt_pv(p.I) =  DEnt(p.I) - thetac * one_over_24*laplace_3d(DEnt,p);
+        bool thetac = (!LOflag(p.I) || !shock_pv_fallback);
+        dens_pv(p.I) =  dens(p.I) - thetac * one_over_24*laplace_3d(dens_aux,p);
+        momx_pv(p.I) =  momx(p.I) - thetac * one_over_24*laplace_3d(momx_aux,p);
+        momy_pv(p.I) =  momy(p.I) - thetac * one_over_24*laplace_3d(momy_aux,p);
+        momz_pv(p.I) =  momz(p.I) - thetac * one_over_24*laplace_3d(momz_aux,p);
+        tau_pv(p.I)  =  tau(p.I) - thetac * one_over_24*laplace_3d(tau_aux,p);
+        DYe_pv(p.I)  =  DYe(p.I) - thetac * one_over_24*laplace_3d(DYe_aux,p);
+        DEnt_pv(p.I) =  DEnt(p.I) - thetac * one_over_24*laplace_3d(DEnt_aux,p);
 
-        });
+      });
 
-    grid.loop_outer_n_device<1, 1, 1>(
-        grid.nghostzones, 1,
-        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+  grid.loop_outer_n_device<1, 1, 1>(
+      grid.nghostzones, 1,
+      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
 
-	  // Use 2nd order accurate conversion at boundary
-          dens_pv(p.I) =  dens(p.I);
-          momx_pv(p.I) =  momx(p.I);
-          momy_pv(p.I) =  momy(p.I);
-          momz_pv(p.I) =  momz(p.I);
-          tau_pv(p.I)  =  tau(p.I);
-          DYe_pv(p.I)  =  DYe(p.I);
-          DEnt_pv(p.I) =  DEnt(p.I);
+  // Use 2nd order accurate conversion at boundary
+        dens_pv(p.I) =  dens(p.I);
+        momx_pv(p.I) =  momx(p.I);
+        momy_pv(p.I) =  momy(p.I);
+        momz_pv(p.I) =  momz(p.I);
+        tau_pv(p.I)  =  tau(p.I);
+        DYe_pv(p.I)  =  DYe(p.I);
+        DEnt_pv(p.I) =  DEnt(p.I);
 
-        });
+      });
+}
 
-  } else {
-    // Do nothing
-    return;
+extern "C" void AsterX_DecConsIter(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_DecConsIter;
+  DECLARE_CCTK_PARAMETERS;
+
+  *cons_pv_iter -= 1;
+
+  int minghosts = min(cctk_nghostzones[0], min(cctk_nghostzones[1], cctk_nghostzones[2]));
+  if (*cons_pv_iter && ((n_conspv_iters - *cons_pv_iter) % minghosts == 0))  {
+    static const std::vector<int> groups = {CCTK_GroupIndex("AsterX::cons_vector_pv")};
+
+    SyncGroupsByDirISubcycling(cctkGH, groups.size(), groups.data(), nullptr);
   }
 }
+/* END ITERATIVE POINT VALUED CONSERVATIVE VECTORY CALCULATION */
 
 extern "C" void AsterX_Con2Prim_Interpolate_Failed(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_Con2Prim_Interpolate_Failed;
