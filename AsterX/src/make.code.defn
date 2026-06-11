@@ -2,6 +2,7 @@
 
 # Source files in this directory
 SRCS = \
+  ca_pv_conversions.cxx \
   computeBfromA.cxx \
   con2prim.cxx \
   dissipation.cxx \

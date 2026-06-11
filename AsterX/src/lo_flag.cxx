@@ -79,10 +79,10 @@ template <typename EOSType> void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p) {
         }
 
         // Check P/T
-        if (use_temperature)
-          etacL = LOFlagVar(temperature, temperature(p.I), p);
-        else
-          etacL = LOFlagVar(press, press(p.I), p);
+        // if (use_temperature)
+        //   etacL = LOFlagVar(temperature, temperature(p.I), p);
+        // else
+        etacL = LOFlagVar(press, press(p.I), p);
         if (etacL > etac_tot)
           etac_tot = etacL;
         if (etacL > eta_thresh) {

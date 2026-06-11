@@ -30,9 +30,10 @@ enum C2PFlag : CCTK_INT {
   C2P_PRIME = 1,   // first solver succeeded
   C2P_SECOND = 2,  // second solver succeeded
   C2P_ENTROPY = 3, // 1‑D Entropy (kappa) solver succeeded
-  C2P_ATMO = 4,    // when (cv.dens <= sqrt_detg * rho_atmo_cut) is true
-  C2P_AVG = 5,     // primitives obtained by neighbour‑averaging
-  C2P_FAIL = 6     // when C2P fails
+  C2P_ATMO = 5,    // when (cv.dens <= sqrt_detg * rho_atmo_cut) is true
+  C2P_ADJ = 6,     // Point Val C2P succeeded with adjustment to cons
+  C2P_AVG = 7,     // primitives obtained by neighbour‑averaging
+  C2P_FAIL = 8     // when C2P fails
 };
 
 template <typename EOSIDType, typename EOSType>
@@ -505,13 +506,17 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
         (pv.rho + pv.rho * pv.eps + pv.press) * wlor * wlor * pv.vel(2);
 
     // Write back cv
-    if (write_back_cons) {
+    if (*CA_C2P) {
       cv.scatter(dens(p.I), momx(p.I), momy(p.I), momz(p.I), tau(p.I), DYe(p.I),
                  DEnt(p.I), dBx(p.I), dBy(p.I), dBz(p.I));
+    } else if (!*CA_C2P && write_back_cons) {
+      cv.scatter(dens_pv(p.I), momx_pv(p.I), momy_pv(p.I), momz_pv(p.I), tau_pv(p.I), DYe_pv(p.I),
+                 DEnt_pv(p.I), dBx(p.I), dBy(p.I), dBz(p.I));
+      con2prim_flag(p.I) = C2P_ADJ;
     } else if (c2p_flag_code == C2P_PRIME || c2p_flag_code == C2P_SECOND) {
-      DEnt(p.I) = cv.DEnt;
+      DEnt_pv(p.I) = cv.DEnt;
     } else if (c2p_flag_code == C2P_ENTROPY) {
-      tau(p.I)  = cv.tau; 
+      tau_pv(p.I)  = cv.tau; 
     }
 
     // Update saved prims
@@ -637,72 +642,6 @@ extern "C" void AsterX_UpdateCAC2PFlag(CCTK_ARGUMENTS) {
 
   *CA_C2P = 0;
   return;
-}
-
-extern "C" void AsterX_InitPointValues(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_AsterX_InitPointValues;
-  DECLARE_CCTK_PARAMETERS;
-
-  grid.loop_all_device<1, 1, 1>(
-      grid.nghostzones,
-      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-       
-        // Set to zero to make them valid for CA C2P,
-        // where they will not be used.
-        dens_pv(p.I) = 0.0;
-        momx_pv(p.I) = 0.0;
-        momy_pv(p.I) = 0.0;
-        momz_pv(p.I) = 0.0;
-        tau_pv(p.I)  = 0.0;
-        DYe_pv(p.I)  = 0.0;
-        DEnt_pv(p.I) = 0.0;
-
-      });
-}
-
-extern "C" void AsterX_SetPointValues(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_AsterX_SetPointValues;
-  DECLARE_CCTK_PARAMETERS;
-
-  constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
-
-  if (cctk_iteration != 0) { // use ID values at iteration 0
-         
-    grid.loop_allmn_device<1, 1, 1>(
-        grid.nghostzones, 1,
-        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-
-	  // Eq. (16) from https://arxiv.org/pdf/2310.11831 
-          bool thetac = (!LOflag(p.I) || !shock_pv_fallback);
-          dens_pv(p.I) =  dens(p.I) - thetac * one_over_24*laplace_3d(dens,p);
-          momx_pv(p.I) =  momx(p.I) - thetac * one_over_24*laplace_3d(momx,p);
-          momy_pv(p.I) =  momy(p.I) - thetac * one_over_24*laplace_3d(momy,p);
-          momz_pv(p.I) =  momz(p.I) - thetac * one_over_24*laplace_3d(momz,p);
-          tau_pv(p.I)  =  tau(p.I) - thetac * one_over_24*laplace_3d(tau,p);
-          DYe_pv(p.I)  =  DYe(p.I) - thetac * one_over_24*laplace_3d(DYe,p);
-          DEnt_pv(p.I) =  DEnt(p.I) - thetac * one_over_24*laplace_3d(DEnt,p);
-
-        });
-
-    grid.loop_outer_n_device<1, 1, 1>(
-        grid.nghostzones, 1,
-        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-
-	  // Use 2nd order accurate conversion at boundary
-          dens_pv(p.I) =  dens(p.I);
-          momx_pv(p.I) =  momx(p.I);
-          momy_pv(p.I) =  momy(p.I);
-          momz_pv(p.I) =  momz(p.I);
-          tau_pv(p.I)  =  tau(p.I);
-          DYe_pv(p.I)  =  DYe(p.I);
-          DEnt_pv(p.I) =  DEnt(p.I);
-
-        });
-
-  } else {
-    // Do nothing
-    return;
-  }
 }
 
 extern "C" void AsterX_Con2Prim_Interpolate_Failed(CCTK_ARGUMENTS) {
