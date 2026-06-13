@@ -29,6 +29,8 @@ STORAGE: Avec_z_la[timelevels]
 STORAGE: rhs_vector_pv Avec_x_la_rhs Avec_y_la_rhs Avec_z_la_rhs
 STORAGE: CA_C2P
 if(use_ho_fv) {
+  STORAGE: cons_aux
+  STORAGE: cons_pv_iter
   STORAGE: dBx_stag_fa dBy_stag_fa dBz_stag_fa
   STORAGE: dBx_stag_aux dBy_stag_aux dBz_stag_aux
   STORAGE: dBstag_pv_iter
@@ -113,7 +115,6 @@ if (!use_ho_fv) {
     LANG: C
     READS: dBx_stag_fa(everywhere) dBy_stag_fa(everywhere) dBz_stag_fa(everywhere)
     READS: dBx_stag_aux(everywhere) dBy_stag_aux(everywhere) dBz_stag_aux(everywhere)
-    READS: dBstag_pv_iter(everywhere)
     WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
   } "Iterate dBstag"
 
@@ -462,12 +463,45 @@ if (use_ho_fv) {
   } "Communicate cell centered dB between processes"
 
   # Convert cell-averages to point values at 4th order
-  SCHEDULE AsterX_SetPointValues IN AsterX_PVCon2PrimGroup BEFORE AsterX_Con2Prim
+  SCHEDULE AsterX_SetConsIter IN AsterX_PVCon2PrimGroup BEFORE AsterX_PVConsSolve
   {
     LANG: C
-    READS: cons_vector(everywhere) LOflag(everywhere)
+    OPTIONS: global
+    WRITES: cons_pv_iter(everywhere)
+  } "Start counter for PV cons iterative calculation"
+
+  SCHEDULE GROUP AsterX_PVConsSolve IN AsterX_PVCon2PrimGroup BEFORE AsterX_Con2Prim WHILE AsterX::cons_pv_iter
+  {
+  } "Iteratively calculate point valued cons"
+
+  SCHEDULE AsterX_SetPVConsnMinus1 IN AsterX_PVConsSolve 
+  {
+    LANG: C
+    READS: cons_vector(everywhere) cons_vector_pv(everywhere)
+    READS: cons_pv_iter(everywhere)
+    WRITES: cons_aux(everywhere)
+  } "Set previous cons vector"
+
+  SCHEDULE AsterX_SetPointValues IN AsterX_PVConsSolve AFTER AsterX_SetPVConsnMinus1 
+  {
+    LANG: C
+    READS: cons_vector(everywhere) cons_aux(everywhere) LOflag(everywhere)
     WRITES: cons_vector_pv(everywhere)
-  } "Convert cell-averages to point values at 4th order."
+  } "Iterate cons"
+
+  SCHEDULE AsterX_DecConsIter IN AsterX_PVConsSolve AFTER AsterX_ComputeConsIter 
+  {
+    LANG: C
+    OPTIONS: global
+    WRITES: cons_pv_iter(everywhere)
+  } "Decrement counter for cons iterative calculation"
+
+  # SCHEDULE AsterX_SetPointValues IN AsterX_PVCon2PrimGroup BEFORE AsterX_Con2Prim
+  # {
+  #   LANG: C
+  #   READS: cons_vector(everywhere) LOflag(everywhere)
+  #   WRITES: cons_vector_pv(everywhere)
+  # } "Convert cell-averages to point values at 4th order."
 
   # Extra interprocessor syncs only for higher order FV code
   SCHEDULE AsterX_CommConsPV IN AsterX_PVCon2PrimGroup AFTER AsterX_SetPointValues BEFORE AsterX_Con2Prim 
