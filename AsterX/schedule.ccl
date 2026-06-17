@@ -27,7 +27,7 @@ STORAGE: Avec_x_la[timelevels]
 STORAGE: Avec_y_la[timelevels]
 STORAGE: Avec_z_la[timelevels]
 STORAGE: rhs_vector_pv Avec_x_la_rhs Avec_y_la_rhs Avec_z_la_rhs
-STORAGE: CA_C2P
+# STORAGE: CA_C2P
 if(use_ho_fv) {
   STORAGE: cons_aux
   STORAGE: cons_pv_iter
@@ -378,21 +378,27 @@ if ((mag_correction_order > 2) || use_ho_fv) {
     LANG: C
     OPTIONS: global
   } "Communicate dBstag between processes"
-}
-if (mag_correction_order > 2) {
+
   SCHEDULE AsterX_CommdB IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBstag BEFORE AsterX_Con2Prim 
   {
     LANG: C
     OPTIONS: global
   } "Communicate cell centered dB between processes"
 }
+# if (mag_correction_order > 2) {
+#   SCHEDULE AsterX_CommdB IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBstag BEFORE AsterX_Con2Prim 
+#   {
+#     LANG: C
+#     OPTIONS: global
+#   } "Communicate cell centered dB between processes"
+# }
 
-SCHEDULE AsterX_InitCAC2PFlag IN AsterX_Con2PrimGroup BEFORE AsterX_Con2Prim
-{
-  LANG: C
-  OPTIONS: global
-  WRITES: CA_C2P(everywhere)
-} "Determine if we are performing C2P on cell averages or point values"
+# SCHEDULE AsterX_InitCAC2PFlag IN AsterX_Con2PrimGroup BEFORE AsterX_Con2Prim
+# {
+#   LANG: C
+#   OPTIONS: global
+#   WRITES: CA_C2P(everywhere)
+# } "Determine if we are performing C2P on cell averages or point values"
 
 SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBstag
 {
@@ -405,7 +411,7 @@ SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBsta
   READS: ADMBaseX::shift(everywhere)
   READS: saved_prims(everywhere)
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
-  READS: CA_C2P(everywhere)
+  # READS: CA_C2P(everywhere)
   WRITES: con2prim_flag(everywhere)
   WRITES: diagnostics(everywhere)
   WRITES: AsterMasks::aster_mask_cc(everywhere)
@@ -426,19 +432,19 @@ SCHEDULE AsterX_ApplyOuterBCOnPrim IN AsterX_Con2PrimGroup AFTER AsterX_Con2Prim
 if (use_ho_fv) {
   # HO FV: HD subsystem - Additional C2P to convert 4th order PV Cons to PV Prims; the "real" C2P
   # HO FV: MHD subsystem part 2 - Fall back to 2nd order divergence-free dBstag at shocks
-  SCHEDULE AsterX_UpdateCAC2PFlag IN AsterX_Con2PrimGroup AFTER AsterX_Con2Prim
-  {
-    LANG: C
-    OPTIONS: global
-    WRITES: CA_C2P(everywhere)
-  } "Determine if we are performing C2P on cell averages or point values"
+  # SCHEDULE AsterX_UpdateCAC2PFlag IN AsterX_Con2PrimGroup AFTER AsterX_Con2Prim
+  # {
+  #   LANG: C
+  #   OPTIONS: global
+  #   WRITES: CA_C2P(everywhere)
+  # } "Determine if we are performing C2P on cell averages or point values"
 
-  SCHEDULE GROUP AsterX_PVCon2PrimGroup IN ODESolvers_PostStep AFTER AsterX_Con2PrimGroup 
-  {
-  } "Compute point valued primitive variables"
+  # SCHEDULE GROUP AsterX_PVCon2PrimGroup IN ODESolvers_PostStep AFTER AsterX_Con2PrimGroup 
+  # {
+  # } "Compute point valued primitive variables"
 
   if (shock_Bstag_fallback) {
-    SCHEDULE AsterX_ComputedBstagLO IN AsterX_PVCon2PrimGroup 
+    SCHEDULE AsterX_ComputedBstagLO IN AsterX_Con2PrimGroup 
     {
       LANG: C
       READS: LOflag(everywhere)
@@ -447,7 +453,7 @@ if (use_ho_fv) {
       WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
     } "Calculate 2nd order dBstag from curl of A"
 
-    SCHEDULE AsterX_ComputedBFromdBstag_LOFB IN AsterX_PVCon2PrimGroup AFTER AsterX_ComputedBstagLO 
+    SCHEDULE AsterX_ComputedBFromdBstag_LOFB IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBstagLO 
     {
       LANG: C
       READS: LOflag(everywhere)
@@ -456,21 +462,21 @@ if (use_ho_fv) {
     } "Update centered dB from dBstag with updated low order values"
   }
 
-  SCHEDULE AsterX_CommdB IN AsterX_PVCon2PrimGroup AFTER AsterX_ComputedBFromdBstag BEFORE AsterX_Con2Prim 
-  {
-    LANG: C
-    OPTIONS: global
-  } "Communicate cell centered dB between processes"
+  # SCHEDULE AsterX_CommdB IN AsterX_PVCon2PrimGroup AFTER AsterX_ComputedBFromdBstag BEFORE AsterX_Con2Prim 
+  # {
+  #   LANG: C
+  #   OPTIONS: global
+  # } "Communicate cell centered dB between processes"
 
   # Convert cell-averages to point values at 4th order
-  SCHEDULE AsterX_SetConsIter IN AsterX_PVCon2PrimGroup BEFORE AsterX_PVConsSolve
+  SCHEDULE AsterX_SetConsIter IN AsterX_Con2PrimGroup BEFORE AsterX_PVConsSolve
   {
     LANG: C
     OPTIONS: global
     WRITES: cons_pv_iter(everywhere)
   } "Start counter for PV cons iterative calculation"
 
-  SCHEDULE GROUP AsterX_PVConsSolve IN AsterX_PVCon2PrimGroup BEFORE AsterX_Con2Prim WHILE AsterX::cons_pv_iter
+  SCHEDULE GROUP AsterX_PVConsSolve IN AsterX_Con2PrimGroup BEFORE AsterX_Con2Prim WHILE AsterX::cons_pv_iter
   {
   } "Iteratively calculate point valued cons"
 
@@ -504,36 +510,36 @@ if (use_ho_fv) {
   # } "Convert cell-averages to point values at 4th order."
 
   # Extra interprocessor syncs only for higher order FV code
-  SCHEDULE AsterX_CommConsPV IN AsterX_PVCon2PrimGroup AFTER AsterX_SetPointValues BEFORE AsterX_Con2Prim 
+  SCHEDULE AsterX_CommConsPV IN AsterX_Con2PrimGroup AFTER AsterX_SetPointValues BEFORE AsterX_Con2Prim 
   {
     LANG: C
     OPTIONS: global
   } "Communicate cons_vector_pv between processes"
 
-  SCHEDULE AsterX_Con2Prim IN AsterX_PVCon2PrimGroup 
-  {
-    LANG: C
-    READS: AsterMasks::aster_mask_vc(everywhere)
-    READS: ADMBaseX::metric(everywhere)
-    READS: ADMBaseX::lapse(everywhere)
-    READS: cons_vector(everywhere) dB(everywhere)
-    READS: cons_vector_pv(everywhere)
-    READS: ADMBaseX::shift(everywhere)
-    READS: saved_prims(everywhere)
-    READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
-    READS: CA_C2P(everywhere)
-    WRITES: con2prim_flag(everywhere)
-    WRITES: diagnostics(everywhere)
-    WRITES: AsterMasks::aster_mask_cc(everywhere)
-    WRITES: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::Bvec(everywhere)
-    WRITES: HydroBaseX::temperature(everywhere) HydroBaseX::entropy(everywhere) HydroBaseX::Ye(everywhere)
-    WRITES: saved_prims(everywhere)
-    WRITES: zvec(everywhere)
-    WRITES: svec(everywhere)
-    WRITES: cons_vector(everywhere) cons_vector_pv(everywhere) dB(everywhere)
-  } "Calculate primitive variables from conservative variables"
+  # SCHEDULE AsterX_Con2Prim IN AsterX_PVCon2PrimGroup 
+  # {
+  #   LANG: C
+  #   READS: AsterMasks::aster_mask_vc(everywhere)
+  #   READS: ADMBaseX::metric(everywhere)
+  #   READS: ADMBaseX::lapse(everywhere)
+  #   READS: cons_vector(everywhere) dB(everywhere)
+  #   READS: cons_vector_pv(everywhere)
+  #   READS: ADMBaseX::shift(everywhere)
+  #   READS: saved_prims(everywhere)
+  #   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
+  #   READS: CA_C2P(everywhere)
+  #   WRITES: con2prim_flag(everywhere)
+  #   WRITES: diagnostics(everywhere)
+  #   WRITES: AsterMasks::aster_mask_cc(everywhere)
+  #   WRITES: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::Bvec(everywhere)
+  #   WRITES: HydroBaseX::temperature(everywhere) HydroBaseX::entropy(everywhere) HydroBaseX::Ye(everywhere)
+  #   WRITES: saved_prims(everywhere)
+  #   WRITES: zvec(everywhere)
+  #   WRITES: svec(everywhere)
+  #   WRITES: cons_vector(everywhere) cons_vector_pv(everywhere) dB(everywhere)
+  # } "Calculate primitive variables from conservative variables"
 
-  SCHEDULE AsterX_SetCellAverage IN AsterX_PVCon2PrimGroup AFTER AsterX_Con2Prim
+  SCHEDULE AsterX_SetCellAverage IN AsterX_Con2PrimGroup AFTER AsterX_Con2Prim
   {
     LANG: C
     READS: cons_vector_pv(everywhere) 
@@ -541,17 +547,17 @@ if (use_ho_fv) {
     WRITES: cons_vector(everywhere)
   } "Compute cell-averages of conserved variables"
 
-  SCHEDULE AsterX_CommConsCA IN AsterX_PVCon2PrimGroup AFTER AsterX_SetCellAverage
+  SCHEDULE AsterX_CommConsCA IN AsterX_Con2PrimGroup AFTER AsterX_SetCellAverage
   {
     LANG: C
     OPTIONS: global
   } "Communicate conservatives between processes"
 
-  SCHEDULE AsterX_ApplyOuterBCOnPrim IN AsterX_PVCon2PrimGroup AFTER AsterX_Con2Prim
-  {
-    LANG: C
-    OPTIONS: global
-  } "Apply CarpetX boundary conditions on primitive variables"
+  # SCHEDULE AsterX_ApplyOuterBCOnPrim IN AsterX_Con2PrimGroup AFTER AsterX_Con2Prim
+  # {
+  #   LANG: C
+  #   OPTIONS: global
+  # } "Apply CarpetX boundary conditions on primitive variables"
 
   SCHEDULE AsterX_InitPointValues AT CCTK_POST_RECOVER_VARIABLES BEFORE ODESolvers_PostStep
   {

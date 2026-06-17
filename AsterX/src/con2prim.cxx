@@ -216,7 +216,7 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     bool write_back_cons = true;
     cons_vars cv;
 
-    if (use_ho_fv && !*CA_C2P) {
+    if (use_ho_fv) {
       write_back_cons = false;
       // Note that cv are densitized, i.e. they all include sqrt_detg
       cv = cons_vars{dens_pv(p.I), {momx_pv(p.I), momy_pv(p.I), momz_pv(p.I)},
@@ -487,7 +487,7 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     CCTK_REAL Ex, Ey, Ez;
 
     // Write back pv
-    // HO FV note: if CA_C2P is true, these prims are 2nd order cell averages. They will
+    // OLD HO FV note, NOT TRUE FOR NOW: if CA_C2P is true, these prims are 2nd order cell averages. They will
     // be used to calculate the low-order flag, and immediately overwritten by
     // point values.
     pv.scatter(rho(p.I), eps(p.I), Ye(p.I), press(p.I), temperature(p.I),
@@ -506,10 +506,10 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
         (pv.rho + pv.rho * pv.eps + pv.press) * wlor * wlor * pv.vel(2);
 
     // Write back cv
-    if (*CA_C2P) {
+    if (!use_ho_fv) {
       cv.scatter(dens(p.I), momx(p.I), momy(p.I), momz(p.I), tau(p.I), DYe(p.I),
                  DEnt(p.I), dBx(p.I), dBy(p.I), dBz(p.I));
-    } else if (!*CA_C2P && write_back_cons) {
+    } else if (use_ho_fv && write_back_cons) {
       cv.scatter(dens_pv(p.I), momx_pv(p.I), momy_pv(p.I), momz_pv(p.I), tau_pv(p.I), DYe_pv(p.I),
                  DEnt_pv(p.I), dBx(p.I), dBy(p.I), dBz(p.I));
       con2prim_flag(p.I) = C2P_ADJ;
@@ -520,14 +520,12 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     }
 
     // Update saved prims
-    if (!*CA_C2P) {
-      saved_rho(p.I) = rho(p.I);
-      saved_velx(p.I) = velx(p.I);
-      saved_vely(p.I) = vely(p.I);
-      saved_velz(p.I) = velz(p.I);
-      saved_eps(p.I) = eps(p.I);
-      saved_Ye(p.I) = Ye(p.I);
-    }
+    saved_rho(p.I) = rho(p.I);
+    saved_velx(p.I) = velx(p.I);
+    saved_vely(p.I) = vely(p.I);
+    saved_velz(p.I) = velz(p.I);
+    saved_eps(p.I) = eps(p.I);
+    saved_Ye(p.I) = Ye(p.I);
 
     // Compute diagnostics
     v_low = calc_contraction(glo, pv.vel);
@@ -628,21 +626,21 @@ extern "C" void AsterX_Con2Prim(CCTK_ARGUMENTS) {
   }
 }
 
-extern "C" void AsterX_InitCAC2PFlag(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_AsterX_InitCAC2PFlag;
-  DECLARE_CCTK_PARAMETERS;
-
-  *CA_C2P = use_ho_fv;
-  return;
-}
-
-extern "C" void AsterX_UpdateCAC2PFlag(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_AsterX_UpdateCAC2PFlag;
-  DECLARE_CCTK_PARAMETERS;
-
-  *CA_C2P = 0;
-  return;
-}
+// extern "C" void AsterX_InitCAC2PFlag(CCTK_ARGUMENTS) {
+//   DECLARE_CCTK_ARGUMENTSX_AsterX_InitCAC2PFlag;
+//   DECLARE_CCTK_PARAMETERS;
+// 
+//   *CA_C2P = use_ho_fv;
+//   return;
+// }
+// 
+// extern "C" void AsterX_UpdateCAC2PFlag(CCTK_ARGUMENTS) {
+//   DECLARE_CCTK_ARGUMENTSX_AsterX_UpdateCAC2PFlag;
+//   DECLARE_CCTK_PARAMETERS;
+// 
+//   *CA_C2P = 0;
+//   return;
+// }
 
 extern "C" void AsterX_Con2Prim_Interpolate_Failed(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_Con2Prim_Interpolate_Failed;

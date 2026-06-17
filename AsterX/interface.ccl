@@ -152,7 +152,7 @@ CCTK_REAL dBz_stag_aux TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"' "z-compone
 
 CCTK_INT dBstag_pv_iter type=SCALAR tags='checkpoint="no"' "counter for iterative PV dBstag solve"
 
-CCTK_INT CA_C2P type=SCALAR tags='checkpoint="no"' "Flag to indicate if C2P is performed on cell averaged or point value conservatives"
+# CCTK_INT CA_C2P type=SCALAR tags='checkpoint="no"' "Flag to indicate if C2P is performed on cell averaged or point value conservatives"
 
 # ----- staggered gauge functions
 

@@ -205,8 +205,6 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
 
     // Booleans controlling reconstruction fallbacks
     bool useLO = false;
-    bool resetL = false;
-    bool resetR = false;
 
     // Reconstruct density
     auto rho_rc = reconstruct_pt(rho, p, true, true);
@@ -227,9 +225,9 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
     vec<CCTK_REAL, 2> r2_atm = {0.0, 0.0};
     vec<CCTK_REAL, 2> rho_atm;
     vec<CCTK_REAL, 2> rho_cut;
-    vec<CCTK_REAL, 2> press_atm;
-    vec<CCTK_REAL, 2> eps_atm;
-    vec<CCTK_REAL, 2> temp_atm;
+    // vec<CCTK_REAL, 2> press_atm;
+    // vec<CCTK_REAL, 2> eps_atm;
+    // vec<CCTK_REAL, 2> temp_atm;
 
     // Get coordinates at neighboring cell centers
     for (int ii = 0; ii < 3; ii++) {
@@ -255,46 +253,46 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
     rho_cut(1) = rho_atm(1) * recon_thresh;
 
     // Grading temperature or pressure
-    if (use_press_atmo) {
-      press_atm(0) = (r_atm(0) > r_atmo)
-                         ? (p_atmo * pow(r_atmo / r_atm(0), n_press_atmo))
-                         : p_atmo;
-      press_atm(0) = std::max(eos_3p->press_from_rho_temp_ye(
-                                  rho_atm(0), eos_3p->rgtemp.min, Ye_atmo),
-                              press_atm(0));
-      press_atm(1) = (r_atm(1) > r_atmo)
-                         ? (p_atmo * pow(r_atmo / r_atm(1), n_press_atmo))
-                         : p_atmo;
-      press_atm(1) = std::max(eos_3p->press_from_rho_temp_ye(
-                                  rho_atm(1), eos_3p->rgtemp.min, Ye_atmo),
-                              press_atm(1));
-      eps_atm(0) =
-          eos_3p->eps_from_rho_press_ye(rho_atm(0), press_atm(0), Ye_atmo);
-      eps_atm(1) =
-          eos_3p->eps_from_rho_press_ye(rho_atm(1), press_atm(1), Ye_atmo);
-      temp_atm(0) =
-          eos_3p->temp_from_rho_eps_ye(rho_atm(0), eps_atm(0), Ye_atmo);
-      temp_atm(1) =
-          eos_3p->temp_from_rho_eps_ye(rho_atm(1), eps_atm(1), Ye_atmo);
-    } else {
-      temp_atm(0) = (r_atm(0) > r_atmo)
-                        ? (t_atmo * pow(r_atmo / r_atm(0), n_temp_atmo))
-                        : t_atmo;
-      temp_atm(0) = std::max(eos_3p->rgtemp.min, temp_atm(0));
+    // if (use_press_atmo) {
+    //   press_atm(0) = (r_atm(0) > r_atmo)
+    //                      ? (p_atmo * pow(r_atmo / r_atm(0), n_press_atmo))
+    //                      : p_atmo;
+    //   press_atm(0) = std::max(eos_3p->press_from_rho_temp_ye(
+    //                               rho_atm(0), eos_3p->rgtemp.min, Ye_atmo),
+    //                           press_atm(0));
+    //   press_atm(1) = (r_atm(1) > r_atmo)
+    //                      ? (p_atmo * pow(r_atmo / r_atm(1), n_press_atmo))
+    //                      : p_atmo;
+    //   press_atm(1) = std::max(eos_3p->press_from_rho_temp_ye(
+    //                               rho_atm(1), eos_3p->rgtemp.min, Ye_atmo),
+    //                           press_atm(1));
+    //   eps_atm(0) =
+    //       eos_3p->eps_from_rho_press_ye(rho_atm(0), press_atm(0), Ye_atmo);
+    //   eps_atm(1) =
+    //       eos_3p->eps_from_rho_press_ye(rho_atm(1), press_atm(1), Ye_atmo);
+    //   temp_atm(0) =
+    //       eos_3p->temp_from_rho_eps_ye(rho_atm(0), eps_atm(0), Ye_atmo);
+    //   temp_atm(1) =
+    //       eos_3p->temp_from_rho_eps_ye(rho_atm(1), eps_atm(1), Ye_atmo);
+    // } else {
+    //   temp_atm(0) = (r_atm(0) > r_atmo)
+    //                     ? (t_atmo * pow(r_atmo / r_atm(0), n_temp_atmo))
+    //                     : t_atmo;
+    //   temp_atm(0) = std::max(eos_3p->rgtemp.min, temp_atm(0));
 
-      temp_atm(1) = (r_atm(1) > r_atmo)
-                        ? (t_atmo * pow(r_atmo / r_atm(1), n_temp_atmo))
-                        : t_atmo;
-      temp_atm(1) = std::max(eos_3p->rgtemp.min, temp_atm(1));
-      press_atm(0) =
-          eos_3p->press_from_rho_temp_ye(rho_atm(0), temp_atm(0), Ye_atmo);
-      press_atm(1) =
-          eos_3p->press_from_rho_temp_ye(rho_atm(1), temp_atm(1), Ye_atmo);
-      eps_atm(0) =
-          eos_3p->eps_from_rho_temp_ye(rho_atm(0), temp_atm(0), Ye_atmo);
-      eps_atm(1) =
-          eos_3p->eps_from_rho_temp_ye(rho_atm(1), temp_atm(1), Ye_atmo);
-    }
+    //   temp_atm(1) = (r_atm(1) > r_atmo)
+    //                     ? (t_atmo * pow(r_atmo / r_atm(1), n_temp_atmo))
+    //                     : t_atmo;
+    //   temp_atm(1) = std::max(eos_3p->rgtemp.min, temp_atm(1));
+    //   press_atm(0) =
+    //       eos_3p->press_from_rho_temp_ye(rho_atm(0), temp_atm(0), Ye_atmo);
+    //   press_atm(1) =
+    //       eos_3p->press_from_rho_temp_ye(rho_atm(1), temp_atm(1), Ye_atmo);
+    //   eps_atm(0) =
+    //       eos_3p->eps_from_rho_temp_ye(rho_atm(0), temp_atm(0), Ye_atmo);
+    //   eps_atm(1) =
+    //       eos_3p->eps_from_rho_temp_ye(rho_atm(1), temp_atm(1), Ye_atmo);
+    // }
     // End atmosphere
 
     // Check shock detection flag
@@ -318,28 +316,25 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
         entropy_rc = reconstruct_loworder(entropy, p, false, false);
         Ye_rc = reconstruct_loworder(Ye, p, false, false);
         temp_rc = reconstruct_loworder(temperature, p, false, false);
-      }
 
-      // If reconstructed rho is still <= atmo, flag for reset
-      if (rho_rc(0) <= rho_cut(0)) {
-        resetL = true;
-        rho_rc(0) = rho_atm(0);
-        entropy_rc(0) =
-            eos_3p->kappa_from_rho_eps_ye(rho_atm(0), eps_atm(0), Ye_atmo);
-        temp_rc(0) = temp_atm(0);
-        Ye_rc(0) = Ye_atmo;
-      }
-      if (rho_rc(1) <= rho_cut(1)) {
-        resetR = true;
-        rho_rc(1) = rho_atm(1);
-        entropy_rc(1) =
-            eos_3p->kappa_from_rho_eps_ye(rho_atm(1), eps_atm(1), Ye_atmo);
-        temp_rc(1) = temp_atm(1);
-        Ye_rc(1) = Ye_atmo;
+        // If reconstructed prims are still unphysical, force Godunov
+        if ((rho_rc(0) <= rho_cut(0)) || (entropy_rc(0) <= 0.0) ||
+            (Ye_rc(0) <= 0.0) || (temp_rc(0) <= 0.0) ||
+            (rho_rc(1) <= rho_cut(1)) || (entropy_rc(1) <= 0.0) ||
+            (Ye_rc(1) <= 0.0) || (temp_rc(1) <= 0.0)) {
+          rho_rc(0) = rho(p.I - p.DI[dir_i]);
+          temp_rc(0) = temperature(p.I - p.DI[dir_i]);
+          Ye_rc(0) = Ye(p.I - p.DI[dir_i]);
+          entropy_rc(0) = entropy(p.I - p.DI[dir_i]);
+          rho_rc(1) = rho(p.I);
+          temp_rc(1) = temperature(p.I);
+          Ye_rc(1) = Ye(p.I);
+          entropy_rc(1) = entropy(p.I);
+        }
       }
       // End lower-order
 
-      // Compute eps_rc and press_rc using lambdas
+      // Compute eps_rc and press_rc
       for (int f = 0; f < 2; ++f) {
         eps_rc(f) =
             eos_3p->eps_from_rho_temp_ye(rho_rc(f), temp_rc(f), Ye_rc(f));
@@ -364,24 +359,22 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
         entropy_rc = reconstruct_loworder(entropy, p, false, false);
         Ye_rc = reconstruct_loworder(Ye, p, false, false);
         press_rc = reconstruct_loworder(press, p, false, true);
-      }
 
-      // If reconstructed rho is still <= atmo, flag for reset
-      if (rho_rc(0) <= rho_cut(0)) {
-        resetL = true;
-        rho_rc(0) = rho_atm(0);
-        entropy_rc(0) =
-            eos_3p->kappa_from_rho_eps_ye(rho_atm(0), eps_atm(0), Ye_atmo);
-        press_rc(0) = press_atm(0);
-        Ye_rc(0) = Ye_atmo;
-      }
-      if (rho_rc(1) <= rho_cut(1)) {
-        resetR = true;
-        rho_rc(1) = rho_atm(1);
-        entropy_rc(1) =
-            eos_3p->kappa_from_rho_eps_ye(rho_atm(1), eps_atm(1), Ye_atmo);
-        press_rc(1) = press_atm(1);
-        Ye_rc(1) = Ye_atmo;
+        // If reconstructed prims are still unphysical, force Godunov
+        if ((rho_rc(0) <= rho_cut(0)) || (entropy_rc(0) <= 0.0) ||
+            (Ye_rc(0) <= 0.0) || (press_rc(0) <= 0.0) ||
+            (rho_rc(1) <= rho_cut(1)) || (entropy_rc(1) <= 0.0) ||
+            (Ye_rc(1) <= 0.0) || (press_rc(1) <= 0.0)) {
+
+          rho_rc(0) = rho(p.I - p.DI[dir_i]);
+          press_rc(0) = press(p.I - p.DI[dir_i]);
+          Ye_rc(0) = Ye(p.I - p.DI[dir_i]);
+          entropy_rc(0) = entropy(p.I - p.DI[dir_i]);
+          rho_rc(1) = rho(p.I);
+          press_rc(1) = press(p.I);
+          Ye_rc(1) = Ye(p.I);
+          entropy_rc(1) = entropy(p.I);
+        }
       }
       // End lower-order
 
@@ -545,21 +538,6 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
     };
     }
 
-    // Set vels to 0 if flagged for atm reset
-    if (resetL) {
-      w_lorentz_rc(0) = 1.0;
-      for (int i = 0; i <= 2; ++i) {
-        vels_rc(i)(0) = 0.0;
-        vlows_rc(i)(0) = 0.0;
-      }
-    }
-    if (resetR) {
-      w_lorentz_rc(1) = 1.0;
-      for (int i = 0; i <= 2; ++i) {
-        vels_rc(i)(1) = 0.0;
-        vlows_rc(i)(1) = 0.0;
-      }
-    }
     /* END RECONSTRUCTION */
 
     /* vtilde^i = alpha * v^i - beta^i */
