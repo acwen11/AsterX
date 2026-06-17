@@ -298,7 +298,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
     // End atmosphere
 
     // Check shock detection flag
-    if (shock_recon_fallback && (LOflag(p.I) || LOflag(p.I - p.DI[dir_i])))
+    if (shock_recon_fallback && (LOflag(p.I) != LOflag(p.I - p.DI[dir_i])))
       useLO = true;
 
     if (reconstruct_with_temperature) {
