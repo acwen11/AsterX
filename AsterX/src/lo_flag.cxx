@@ -16,6 +16,7 @@ using namespace EOSX;
 
 enum class eos_3param { IdealGas, Hybrid, Tabulated };
 
+// Calculate low-order flag for a particular gridfunction
 CCTK_DEVICE CCTK_HOST inline CCTK_REAL
 LOFlagVar(const GF3D2<const CCTK_REAL> &gf, const CCTK_REAL ref,
           const PointDesc &p) {
@@ -46,23 +47,22 @@ LOFlagVar(const GF3D2<const CCTK_REAL> &gf, const CCTK_REAL ref,
   return sqrt(etac_sq);
 }
 
-// Calculate low-order flag for a particular gridfunction
 template <typename EOSType> void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p) {
-  DECLARE_CCTK_ARGUMENTSX_AsterX_SetLOFlag;
+  DECLARE_CCTK_ARGUMENTSX_AsterX_SetLOeta;
   DECLARE_CCTK_PARAMETERS;
 
-  const smat<GF3D2<const CCTK_REAL>, dim> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
+  // const smat<GF3D2<const CCTK_REAL>, dim> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
   const vec<GF3D2<const CCTK_REAL>, dim> gf_vels{velx, vely, velz};
-  const vec<GF3D2<const CCTK_REAL>, dim> gf_Bvecs{Bvecx, Bvecy, Bvecz};
+  // const vec<GF3D2<const CCTK_REAL>, dim> gf_Bvecs{Bvecx, Bvecy, Bvecz};
 
   // Loop over the grid
   grid.loop_int_device<1, 1, 1>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        if (rho(p.I) < loworder_rho_thresh) {
-          LOflag(p.I) = 1.0;
-          return;
-        }
+        // if (rho(p.I) < loworder_rho_thresh) {
+        //   LOflag(p.I) = 1.0;
+        //   return;
+        // }
 
         // Store largest etac as diagnostic. Note that this is only truly the
         // largest if all checks pass.
@@ -72,21 +72,21 @@ template <typename EOSType> void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p) {
         CCTK_REAL etacL = LOFlagVar(rho, rho(p.I), p);
         if (etacL > etac_tot)
           etac_tot = etacL;
-        if (etacL > eta_thresh) {
-          etac(p.I) = etac_tot;
-          LOflag(p.I) = 1.0;
-          return;
-        }
+        // if (etacL > eta_thresh) {
+        //   etac(p.I) = etac_tot;
+        //   LOflag(p.I) = 1.0;
+        //   return;
+        // }
 
         // Check pressure
         etacL = LOFlagVar(press, press(p.I), p);
         if (etacL > etac_tot)
           etac_tot = etacL;
-        if (etacL > eta_thresh) {
-          etac(p.I) = etac_tot;
-          LOflag(p.I) = 1.0;
-          return;
-        }
+        // if (etacL > eta_thresh) {
+        //   etac(p.I) = etac_tot;
+        //   LOflag(p.I) = 1.0;
+        //   return;
+        // }
 
         // Calculate c_sound
         const CCTK_REAL cs =
@@ -97,11 +97,11 @@ template <typename EOSType> void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p) {
           etacL = LOFlagVar(gf_vels(dir), cs, p);
           if (etacL > etac_tot)
             etac_tot = etacL;
-          if (etacL > eta_thresh) {
-            etac(p.I) = etac_tot;
-            LOflag(p.I) = 1.0;
-            return;
-          }
+          // if (etacL > eta_thresh) {
+          //   etac(p.I) = etac_tot;
+          //   LOflag(p.I) = 1.0;
+          //   return;
+          // }
         }
 
         /* Disable this for now
@@ -127,12 +127,12 @@ template <typename EOSType> void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p) {
 
         // All checks pass
         etac(p.I) = etac_tot;
-        LOflag(p.I) = 0.0;
+        // LOflag(p.I) = 0.0;
       });
 }
 
-extern "C" void AsterX_SetLOFlag(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_AsterX_SetLOFlag;
+extern "C" void AsterX_SetLOeta(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_SetLOeta;
   DECLARE_CCTK_PARAMETERS;
 
   eos_3param eos_3p_type;
@@ -182,6 +182,33 @@ extern "C" void AsterX_SetLOFlag(CCTK_ARGUMENTS) {
   }
 }
 
+extern "C" void AsterX_SetLOFlag(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_SetLOFlag;
+  DECLARE_CCTK_PARAMETERS;
+
+  // Loop over the grid
+  grid.loop_int_device<1, 1, 1>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p)
+          CCTK_ATTRIBUTE_ALWAYS_INLINE { 
+        if (rho(p.I) < loworder_rho_thresh) {
+          LOflag(p.I) = 1.0;
+          return;
+        }
+        // Check nearest neighbors
+        bool flag = false;
+        for (int kk=-1; kk<2; kk++) { 
+          for (int jj=-1; jj<2; jj++) { 
+            for (int ii=-1; ii<2; ii++) { 
+              const auto II = p.I + ii * p.DI[0] + kk * p.DI[1] + kk * p.DI[2];
+              flag = flag || (etac(II) > eta_thresh);
+            }
+          }
+        }
+        LOflag(p.I) = 1.0 ? flag : 0.0;
+  });
+}
+
 extern "C" void AsterX_InitLOFlag(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_InitLOFlag;
   DECLARE_CCTK_PARAMETERS;
@@ -191,6 +218,19 @@ extern "C" void AsterX_InitLOFlag(CCTK_ARGUMENTS) {
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p)
           CCTK_ATTRIBUTE_ALWAYS_INLINE { LOflag(p.I) = 0.0; });
+}
+
+extern "C" void AsterX_SetLOFlagPostRegridInitial(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_SetLOFlagPostRegridInitial;
+  DECLARE_CCTK_PARAMETERS;
+
+  if (cctk_iteration == 0) {
+    grid.loop_all_device<1, 1, 1>(
+        grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p)
+            CCTK_ATTRIBUTE_ALWAYS_INLINE { LOflag(p.I) = 0.0; });
+  }
+  // else do nothing
 }
 
 } // namespace AsterX

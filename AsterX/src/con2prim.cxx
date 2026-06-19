@@ -216,7 +216,7 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     bool write_back_cons = true;
     cons_vars cv;
 
-    if (use_ho_fv) {
+    if (use_ho_fv && !*CA_C2P) {
       write_back_cons = false;
       // Note that cv are densitized, i.e. they all include sqrt_detg
       cv = cons_vars{dens_pv(p.I), {momx_pv(p.I), momy_pv(p.I), momz_pv(p.I)},
@@ -509,14 +509,11 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     if (!use_ho_fv) {
       cv.scatter(dens(p.I), momx(p.I), momy(p.I), momz(p.I), tau(p.I), DYe(p.I),
                  DEnt(p.I), dBx(p.I), dBy(p.I), dBz(p.I));
-    } else if (use_ho_fv && write_back_cons) {
+    } else if (use_ho_fv && !*CA_C2P) {
       cv.scatter(dens_pv(p.I), momx_pv(p.I), momy_pv(p.I), momz_pv(p.I), tau_pv(p.I), DYe_pv(p.I),
                  DEnt_pv(p.I), dBx(p.I), dBy(p.I), dBz(p.I));
-      con2prim_flag(p.I) = C2P_ADJ;
-    } else if (c2p_flag_code == C2P_PRIME || c2p_flag_code == C2P_SECOND) {
-      DEnt_pv(p.I) = cv.DEnt;
-    } else if (c2p_flag_code == C2P_ENTROPY) {
-      tau_pv(p.I)  = cv.tau; 
+      if (write_back_cons && (c2p_flag_code < 6))
+        con2prim_flag(p.I) = C2P_ADJ;
     }
 
     // Update saved prims
@@ -626,21 +623,21 @@ extern "C" void AsterX_Con2Prim(CCTK_ARGUMENTS) {
   }
 }
 
-// extern "C" void AsterX_InitCAC2PFlag(CCTK_ARGUMENTS) {
-//   DECLARE_CCTK_ARGUMENTSX_AsterX_InitCAC2PFlag;
+// extern "C" void AsterX_CAC2PFlagOn(CCTK_ARGUMENTS) {
+//   DECLARE_CCTK_ARGUMENTSX_AsterX_CAC2PFlagOn;
 //   DECLARE_CCTK_PARAMETERS;
 // 
-//   *CA_C2P = use_ho_fv;
+//   *CA_C2P = 1; //use_ho_fv;
 //   return;
 // }
 // 
-// extern "C" void AsterX_UpdateCAC2PFlag(CCTK_ARGUMENTS) {
-//   DECLARE_CCTK_ARGUMENTSX_AsterX_UpdateCAC2PFlag;
-//   DECLARE_CCTK_PARAMETERS;
-// 
-//   *CA_C2P = 0;
-//   return;
-// }
+extern "C" void AsterX_CAC2PFlagOff(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_CAC2PFlagOff;
+  DECLARE_CCTK_PARAMETERS;
+
+  *CA_C2P = 0;
+  return;
+}
 
 extern "C" void AsterX_Con2Prim_Interpolate_Failed(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_Con2Prim_Interpolate_Failed;
