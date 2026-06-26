@@ -9,7 +9,7 @@ STORAGE: Psi[timelevels]
 STORAGE: rhs_vector Avec_x_rhs Avec_y_rhs Avec_z_rhs Psi_rhs
 STORAGE: flux_x flux_y flux_z
 
-STORAGE: dB dBx_stag dBy_stag dBz_stag
+STORAGE: dB dBx_stag[2] dBy_stag[2] dBz_stag[2]
 STORAGE: G Fbeta Fx_stag Fy_stag Fz_stag
 STORAGE: Ex Ey Ez
 STORAGE: vbar_xface vbar_yface vbar_zface
@@ -18,11 +18,11 @@ STORAGE: a_xface a_yface a_zface
 STORAGE: con2prim_flag diagnostics
 STORAGE: saved_prims
 STORAGE: zvec svec
-STORAGE: LOflag etac
+STORAGE: LOflag[2] etac
 
 STORAGE: theta_x theta_y theta_z theta_tot
 
-STORAGE: cons_vector_pv
+STORAGE: cons_vector_pv[2]
 STORAGE: Avec_x_la[timelevels]
 STORAGE: Avec_y_la[timelevels]
 STORAGE: Avec_z_la[timelevels]
@@ -273,7 +273,7 @@ if (use_deriv_shock_detector)
     SCHEDULE AsterX_PVConsFallback IN CCTK_POSTSTEP AFTER AsterX_LOFlagGroup
     {
       LANG: C
-      READS: LOflag(everywhere) cons_vector_pv(everywhere)
+      READS: LOflag(everywhere) LOflag_p(everywhere) cons_vector_pv(everywhere)
       WRITES: cons_vector(everywhere)
     } "Overwrite CA with point value in presence of flag"
 

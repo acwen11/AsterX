@@ -147,6 +147,15 @@ extern "C" void AsterX_PVConsFallback(CCTK_ARGUMENTS) {
           tau(p.I) = tau_pv(p.I);
           DYe(p.I) = DYe_pv(p.I);
           DEnt(p.I) = DEnt_pv(p.I);
+        } else if (!LOflag(p.I) && LOflag_p(p.I)) {
+          // TODO: add actual cell averaging
+          dens(p.I) = dens_pv(p.I);
+          momx(p.I) = momx_pv(p.I);
+          momy(p.I) = momy_pv(p.I);
+          momz(p.I) = momz_pv(p.I);
+          tau(p.I) = tau_pv(p.I);
+          DYe(p.I) = DYe_pv(p.I);
+          DEnt(p.I) = DEnt_pv(p.I);
         }
 
       });
