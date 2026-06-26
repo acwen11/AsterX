@@ -270,7 +270,7 @@ if (use_deriv_shock_detector)
 
   if (use_ho_fv && shock_pv_fallback)
   {
-    SCHEDULE AsterX_PVConsFallback IN CCTK_POSTSTEP AFTER AsterX_SetLOFlag
+    SCHEDULE AsterX_PVConsFallback IN CCTK_POSTSTEP AFTER AsterX_LOFlagGroup
     {
       LANG: C
       READS: LOflag(everywhere) cons_vector_pv(everywhere)
@@ -312,7 +312,7 @@ SCHEDULE AsterX_SetLineAvgAvec_Initial IN AsterX_InitialGroup BEFORE AsterX_Comp
 } "Compute line-averages of vector potential"
 
 if (use_ho_fv) {
-  SCHEDULE AsterX_SetCellAverage IN AsterX_InitialGroup AFTER AsterX_Prim2Con_Initial AFTER AsterX_SetLOFlag BEFORE AsterX_CommConsCA
+  SCHEDULE AsterX_SetCellAverage IN AsterX_InitialGroup AFTER AsterX_Prim2Con_Initial AFTER AsterX_LOFlagGroup BEFORE AsterX_CommConsCA
   {
     LANG: C
     READS: cons_vector_pv(everywhere) 

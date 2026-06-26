@@ -191,21 +191,22 @@ extern "C" void AsterX_SetLOFlag(CCTK_ARGUMENTS) {
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p)
           CCTK_ATTRIBUTE_ALWAYS_INLINE { 
-        if (rho(p.I) < loworder_rho_thresh) {
-          LOflag(p.I) = 1.0;
-          return;
-        }
+        // if (loworder_rho_thresh > 0) {
+        //   LOflag(p.I) = 1.0 ? (rho(p.I) < loworder_rho_thresh) : 0.0;
+        //   return;
+        // }
         // Check nearest neighbors
-        bool flag = false;
-        for (int kk=-1; kk<2; kk++) { 
-          for (int jj=-1; jj<2; jj++) { 
-            for (int ii=-1; ii<2; ii++) { 
-              const auto II = p.I + ii * p.DI[0] + kk * p.DI[1] + kk * p.DI[2];
-              flag = flag || (etac(II) > eta_thresh);
-            }
-          }
-        }
-        LOflag(p.I) = 1.0 ? flag : 0.0;
+        // bool flag = false;
+        // for (int kk=-1; kk<2; kk++) { 
+        //   for (int jj=-1; jj<2; jj++) { 
+        //     for (int ii=-1; ii<2; ii++) { 
+        //       const auto II = p.I + ii * p.DI[0] + kk * p.DI[1] + kk * p.DI[2];
+        //       flag = flag || (etac(II) > eta_thresh);
+        //     }
+        //   }
+        // }
+        // LOflag(p.I) = 1.0 ? flag : 0.0;
+        LOflag(p.I) = 1.0 ? ((etac(p.I) > eta_thresh) || (rho(p.I) < loworder_rho_thresh)) : 0.0;
   });
 }
 
