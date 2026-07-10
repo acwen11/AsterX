@@ -30,6 +30,22 @@ if [ -n "${GITHUB_ENV:-}" ]; then
     echo "TWOPROC_DIR=${TWOPROC_DIR}" >>"${GITHUB_ENV}"
 fi
 
+# Print the per-schedule timer report to the CI log, so AsterX_Fluxes timing is
+# visible inline without downloading the test-output artifact. The pars set
+# Cactus::cctk_timer_output = "full"; the flesh prints the timer table at
+# shutdown (CCTK_SchedulePrintTimes), ending just before the "Done." sentinel.
+# Each routine row starts with its thorn name, so we surface the header, the
+# AsterX rows (incl. AsterX_Fluxes) and the bin/simulation totals.
+echo '=== AsterX per-schedule timers (cctk_timer_output=full) ==='
+for outfile in $(find "${ONEPROC_DIR}/../.." "${TWOPROC_DIR}/../.." -name '*.out' 2>/dev/null); do
+    report="$(awk '/Scheduled routine in time bin/{f=1} f; /^Done\.$/{f=0}' "${outfile}")"
+    if [ -z "${report}" ]; then continue; fi
+    echo "----- ${outfile} -----"
+    printf '%s\n' "${report}" |
+        grep -E "Scheduled routine in time bin|^AsterX[[:space:]]|Total time for" || true
+done
+echo '================================================================================'
+
 # # Parse results and generate plots
 # cd "$PAGESSPACE"
 # python3 "$ASTERXSPACE/scripts/store.py" "$WORKSPACE/Cactus/repos/AsterX" "$ONEPROC_DIR" "$TWOPROC_DIR"
