@@ -23,6 +23,7 @@ $ncells 	=  24
 
 CarpetX::verbose = no
 Cactus::presync_mode = "mixed-error"
+Cactus::cctk_timer_output = "full"  # per-schedule timers (e.g. AsterX_Fluxes) -> run stdout / CI artifact
 CarpetX::poison_undefined_values = no
 
 CarpetX::use_subcycling = yes

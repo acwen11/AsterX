@@ -87,6 +87,21 @@ jobs:
           python3 "$GITHUB_WORKSPACE/scripts/compare_tsv.py" \
               "$GITHUB_WORKSPACE/AsterX/test" "$ONEPROC_DIR" "$TWOPROC_DIR"
 
+      # Upload the test-run output so the per-schedule timer report
+      # (Cactus::cctk_timer_output = "full", enabled in the evolution test pars)
+      # is retrievable from the run stdout captured under the output dirs.
+      # Runs even on test failure so timing is always available.
+      - name: Upload test output (timers)
+        if: always() && matrix.accelerator == 'cpu' && matrix.real-precision == 'real64' && env.ONEPROC_DIR != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: asterx-test-output
+          path: |
+            ${{env.ONEPROC_DIR}}
+            ${{env.TWOPROC_DIR}}
+          retention-days: 7
+          if-no-files-found: warn
+
       # Set exit code based on test status
       - name: Set exit code
         # Only look at the test results for `carpetx-cpu-real64` runs

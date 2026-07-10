@@ -17,6 +17,7 @@ $ncells = 80
 Cactus::cctk_show_schedule = yes
 
 Cactus::presync_mode = "mixed-error"
+Cactus::cctk_timer_output = "full"  # per-schedule timers (e.g. AsterX_Fluxes) -> run stdout / CI artifact
 
 Cactus::terminate = "time"
 Cactus::cctk_final_time = 0.40
