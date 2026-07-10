@@ -164,9 +164,28 @@ def match_produced(ref_rel, by_pair, by_base):
 
 def compare_file(ref_path, prod_path, rtol, atol, rel_floor):
     """Compare one file pair.  Returns (ok, worst_abs, worst_rel, where,
-    n_missing_rows)."""
+    n_missing_rows).
+
+    The reported relative deviation is normalised by each column's *peak*
+    reference magnitude, not the point's own value.  A point whose value is
+    small but non-trivial (e.g. velx ~ 1e-4 in a shock) would otherwise turn an
+    ordinary ~1e-9 absolute fp difference into a scary ~1e-5 "relative" number;
+    dividing by the column peak measures the error against the field's actual
+    scale.  Columns whose peak is <= rel_floor (genuinely-zero fields) are
+    excluded from the relative statistic and judged by the absolute deviation.
+    """
     _, ref_rows = parse_tsv(ref_path)
     _, prod_rows = parse_tsv(prod_path)
+
+    # Per-column peak |reference|, used as the relative-deviation denominator.
+    col_peak = {}
+    for vals in ref_rows.values():
+        for col, a in vals.items():
+            if math.isfinite(a):
+                av = abs(a)
+                if av > col_peak.get(col, 0.0):
+                    col_peak[col] = av
+
     ok = True
     worst_abs = 0.0
     worst_rel = 0.0
@@ -192,15 +211,17 @@ def compare_file(ref_path, prod_path, rtol, atol, rel_floor):
                         worst_abs = float("inf")
                         where = "%s[%s]" % (col, key)
                 continue
-            scale = max(abs(a), abs(b))
             if ad > worst_abs:
                 worst_abs = ad
-            if scale > rel_floor:
-                rd = ad / scale
+            # relative deviation measured against the column's characteristic
+            # scale (its peak), so small-magnitude points don't dominate
+            peak = col_peak.get(col, 0.0)
+            if peak > rel_floor:
+                rd = ad / peak
                 if rd > worst_rel:
                     worst_rel = rd
                     where = "%s[%s]" % (col, key)
-            # numpy.allclose-style tolerance
+            # numpy.allclose-style pass/fail tolerance
             if ad > atol + rtol * abs(b):
                 ok = False
     return ok, worst_abs, worst_rel, where, n_missing_rows
@@ -217,8 +238,9 @@ def main():
     ap.add_argument("--atol", type=float, default=1e-13,
                     help="absolute tolerance (default 1e-13)")
     ap.add_argument("--rel-floor", type=float, default=1e-9,
-                    help="ignore relative dev where max(|a|,|b|) <= this "
-                         "(reporting only; default 1e-9)")
+                    help="exclude a column from the relative-deviation report "
+                         "when its peak |value| <= this (reporting only; "
+                         "default 1e-9)")
     ap.add_argument("--allow-missing", action="store_true",
                     help="do not fail when a reference file has no produced "
                          "counterpart (default: fail)")
