@@ -47,11 +47,26 @@ jobs:
       - name: Log the triggering commit
         run: echo ${{github.event.client_payload.trigger}}
 
+      - name: Install ccache
+        run: apt-get update -y && apt-get install -y ccache || true
+
+      - name: Restore compiler cache
+        uses: actions/cache@v5
+        with:
+          path: .ccache
+          key: ccache-${{matrix.accelerator}}-${{matrix.real-precision}}-${{github.sha}}
+          restore-keys: |
+            ccache-${{matrix.accelerator}}-${{matrix.real-precision}}-
+
       - name: Download Cactus
         run: /bin/bash $GITHUB_WORKSPACE/scripts/download.sh
+        env:
+          CCACHE_DIR: ${{github.workspace}}/.ccache
 
       - name: Build Cactus
         run: /bin/bash $GITHUB_WORKSPACE/scripts/build.sh
+        env:
+          CCACHE_DIR: ${{github.workspace}}/.ccache
       
       - name: Test Cactus
         if: ${{matrix.accelerator != 'cuda' && matrix.accelerator != 'rocm' && matrix.mode != 'debug'}}
