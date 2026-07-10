@@ -30,20 +30,19 @@ if [ -n "${GITHUB_ENV:-}" ]; then
     echo "TWOPROC_DIR=${TWOPROC_DIR}" >>"${GITHUB_ENV}"
 fi
 
-# Surface the flux/RHS timings to the CI log, so they are visible inline without
-# downloading the artifact. The pars activate TimerReport, which dumps every
-# flesh timer -- including routines driven inside the ODESolvers RHS group that
-# Cactus::cctk_timer_output's schedule-bin view hides -- to
-# AllTimersReadable.txt (one row per timer, ending in the timer name) in each
-# test's output dir. The full timer files (AllTimers.{txt,csv,tsv}, per-proc
+# Surface the per-routine timings (AsterX_Fluxes etc.) to the CI log, so they
+# are readable inline without downloading the artifact. The pars activate
+# TimerReport, which dumps every flesh timer -- including routines driven inside
+# the ODESolvers RHS group that Cactus::cctk_timer_output's schedule-bin view
+# hides -- to AllTimersReadable.txt in each test's output dir. print_timers.py
+# prints, per test, the hottest AsterX routines from the final report block,
+# sorted by wall time. The full timer files (AllTimers.{txt,csv,tsv}, per-proc
 # TimerReport.*.txt) are captured by the CI artifact.
-echo '=== AsterX flux/RHS timers (TimerReport) ==='
-for f in $(find "${ONEPROC_DIR}" "${TWOPROC_DIR}" -name 'AllTimersReadable.txt' 2>/dev/null); do
-    hits="$(grep -iE 'flux|AsterX_RHS|Con2Prim' "${f}" 2>/dev/null | tail -30 || true)"
-    if [ -z "${hits}" ]; then continue; fi
-    echo "----- ${f} -----"
-    printf '%s\n' "${hits}"
-done
+# Quiet xtrace here so the trace does not dump the raw multi-column timer rows.
+set +x
+echo '=== AsterX per-routine timers (TimerReport, final report per test) ==='
+python3 "$ASTERXSPACE/scripts/print_timers.py" "${ONEPROC_DIR}" "${TWOPROC_DIR}" || true
+set -x
 echo '================================================================================'
 
 # # Parse results and generate plots
