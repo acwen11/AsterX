@@ -135,11 +135,14 @@ extern "C" void AsterX_PVConsFallback(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_PVConsFallback;
   DECLARE_CCTK_PARAMETERS;
 
+  constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
+
   grid.loop_all_device<1, 1, 1>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
        
         if (LOflag(p.I)) {
+          // Use point values in flagged cells
           dens(p.I) = dens_pv(p.I);
           momx(p.I) = momx_pv(p.I);
           momy(p.I) = momy_pv(p.I);
@@ -148,6 +151,16 @@ extern "C" void AsterX_PVConsFallback(CCTK_ARGUMENTS) {
           DYe(p.I) = DYe_pv(p.I);
           DEnt(p.I) = DEnt_pv(p.I);
         }
+        else if (!LOflag(p.I) && LOflag_p(p.I)) {
+          // Re-average cells that are no longer flagged
+          dens(p.I) = dens_pv(p.I) + one_over_24*laplace_3d(dens_pv,p);
+          momx(p.I) = momx_pv(p.I) + one_over_24*laplace_3d(momx_pv,p);
+          momy(p.I) = momy_pv(p.I) + one_over_24*laplace_3d(momy_pv,p);
+          momz(p.I) = momz_pv(p.I) + one_over_24*laplace_3d(momz_pv,p);
+          tau(p.I) = tau_pv(p.I) + one_over_24*laplace_3d(tau_pv,p);
+          DYe(p.I) = DYe_pv(p.I) + one_over_24*laplace_3d(DYe_pv,p);
+          DEnt(p.I) = DEnt_pv(p.I) + one_over_24*laplace_3d(DEnt_pv,p);
+        } 
 
       });
 }

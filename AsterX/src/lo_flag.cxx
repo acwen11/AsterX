@@ -220,6 +220,17 @@ extern "C" void AsterX_InitLOFlag(CCTK_ARGUMENTS) {
           CCTK_ATTRIBUTE_ALWAYS_INLINE { LOflag(p.I) = 0.0; });
 }
 
+extern "C" void AsterX_LOFlagCopyTLs(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_LOFlagCopyTLs;
+  DECLARE_CCTK_PARAMETERS;
+
+  // Loop over the grid
+  grid.loop_all_device<1, 1, 1>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p)
+          CCTK_ATTRIBUTE_ALWAYS_INLINE { LOflag_p(p.I) = LOflag(p.I); });
+}
+
 extern "C" void AsterX_SetLOFlagPostRegridInitial(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_SetLOFlagPostRegridInitial;
   DECLARE_CCTK_PARAMETERS;
