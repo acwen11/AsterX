@@ -282,31 +282,13 @@ if (set_temperature_postinitial && !CCTK_Equals(evolution_eos, "Tabulated3d")) {
 }
 
 if (set_entropy_postinitial && !CCTK_Equals(evolution_eos, "Tabulated3d")) {
-  if (set_temperature_postinitial) {
-    SCHEDULE SetEntropy IN HydroBaseX_PostInitial AFTER SetTemp
-    {
-      LANG: C
-      READS: HydroBaseX::rho(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::Ye(everywhere)
-      WRITES: HydroBaseX::entropy(everywhere) HydroBaseX::eps(everywhere)
+  SCHEDULE SetEntropy IN HydroBaseX_PostInitial AFTER SetTemp AFTER SetYe
+  {
+    LANG: C
+    READS: HydroBaseX::rho(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::Ye(everywhere)
+    WRITES: HydroBaseX::entropy(everywhere) HydroBaseX::eps(everywhere)
 
-    } "Set initial entropy"
-  } else if (set_Ye_postinitial) {
-    SCHEDULE SetEntropy IN HydroBaseX_PostInitial AFTER SetYe
-    {
-      LANG: C
-      READS: HydroBaseX::rho(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::Ye(everywhere)
-      WRITES: HydroBaseX::entropy(everywhere) HydroBaseX::eps(everywhere)
-
-    } "Set initial entropy"
-  } else {
-    SCHEDULE SetEntropy IN HydroBaseX_PostInitial
-    {
-      LANG: C
-      READS: HydroBaseX::rho(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::Ye(everywhere)
-      WRITES: HydroBaseX::entropy(everywhere) HydroBaseX::eps(everywhere)
-
-    } "Set initial entropy"
-  }
+  } "Set initial entropy"
 }
 
 if (!CCTK_Equals(ns_perturbation_mode, "none")) {
@@ -317,29 +299,8 @@ if (!CCTK_Equals(ns_perturbation_mode, "none")) {
       READS: HydroBaseX::rho(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::temperature(everywhere) HydroBaseX::Ye(everywhere)
       WRITES: HydroBaseX::rho(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::temperature(everywhere) HydroBaseX::entropy(everywhere)
     } "Apply neutron-star pressure or density perturbation after tabulated-EOS hydro quantities"
-  } else if (set_entropy_postinitial) {
-    SCHEDULE AsterSeeds_PerturbNS IN HydroBaseX_PostInitial AFTER SetEntropy
-    {
-      LANG: C
-      READS: HydroBaseX::rho(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::temperature(everywhere) HydroBaseX::Ye(everywhere)
-      WRITES: HydroBaseX::rho(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::temperature(everywhere) HydroBaseX::entropy(everywhere)
-    } "Apply neutron-star pressure or density perturbation after hydro initial data"
-  } else if (set_temperature_postinitial) {
-    SCHEDULE AsterSeeds_PerturbNS IN HydroBaseX_PostInitial AFTER SetTemp
-    {
-      LANG: C
-      READS: HydroBaseX::rho(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::temperature(everywhere) HydroBaseX::Ye(everywhere)
-      WRITES: HydroBaseX::rho(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::temperature(everywhere) HydroBaseX::entropy(everywhere)
-    } "Apply neutron-star pressure or density perturbation after hydro initial data"
-  } else if (set_Ye_postinitial) {
-    SCHEDULE AsterSeeds_PerturbNS IN HydroBaseX_PostInitial AFTER SetYe
-    {
-      LANG: C
-      READS: HydroBaseX::rho(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::temperature(everywhere) HydroBaseX::Ye(everywhere)
-      WRITES: HydroBaseX::rho(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::temperature(everywhere) HydroBaseX::entropy(everywhere)
-    } "Apply neutron-star pressure or density perturbation after hydro initial data"
   } else {
-    SCHEDULE AsterSeeds_PerturbNS IN HydroBaseX_PostInitial
+    SCHEDULE AsterSeeds_PerturbNS IN HydroBaseX_PostInitial AFTER SetEntropy AFTER SetTemp AFTER SetYe
     {
       LANG: C
       READS: HydroBaseX::rho(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::temperature(everywhere) HydroBaseX::Ye(everywhere)
