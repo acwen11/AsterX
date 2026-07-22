@@ -100,6 +100,10 @@ BOOLEAN unit_test "turn on all the unit tests if set to yes" STEERABLE=always
 {
 } no
 
+BOOLEAN freeze_evolution "Freeze AsterX evolution while retaining initialization and poststep primitive updates" STEERABLE=always
+{
+} no
+
 CCTK_INT unit_test_repetitions "Number of times each unit test should be repeated" STEERABLE=always 
 {
   0:* :: "Must be no smaller than 0"

@@ -664,6 +664,17 @@ else
   } "Set point value cons to zero so they are marked as valid"
 }
 
+if(freeze_evolution) {
+SCHEDULE AsterX_FreezeEvolutionRHS IN ODESolvers_RHS
+{
+  LANG: C
+  WRITES: rhs_vector(interior)
+  WRITES: Avec_x_rhs(interior) Avec_y_rhs(interior) Avec_z_rhs(interior) Psi_rhs(interior)
+} "Set AsterX RHS to zero when freeze_evolution is enabled"
+}
+
+if(!freeze_evolution) {
+
 SCHEDULE GROUP AsterX_RHSGroup IN ODESolvers_RHS
 {
 } "Calculate AsterX RHS"
@@ -820,3 +831,5 @@ if(add_dissipation)
     WRITES: Avec_x_rhs(interior) Avec_y_rhs(interior) Avec_z_rhs(interior) Psi_rhs(interior)
   } "Add KO dissipation"
 }
+
+} # end of if(!freeze_evolution)

@@ -195,4 +195,41 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
   CalcRHSofPsi(CCTK_PASS_CTOC, gauge, lorenz_damp_fac);
 }
 
+extern "C" void AsterX_FreezeEvolutionRHS(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_FreezeEvolutionRHS;
+
+  grid.loop_int_device<1, 1, 1>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        densrhs(p.I) = 0.0;
+        momxrhs(p.I) = 0.0;
+        momyrhs(p.I) = 0.0;
+        momzrhs(p.I) = 0.0;
+        taurhs(p.I) = 0.0;
+        DYe_rhs(p.I) = 0.0;
+        DEntrhs(p.I) = 0.0;
+      });
+
+  grid.loop_int_device<1, 0, 0>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        Avec_x_rhs(p.I) = 0.0;
+      });
+  grid.loop_int_device<0, 1, 0>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        Avec_y_rhs(p.I) = 0.0;
+      });
+  grid.loop_int_device<0, 0, 1>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        Avec_z_rhs(p.I) = 0.0;
+      });
+  grid.loop_int_device<0, 0, 0>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        Psi_rhs(p.I) = 0.0;
+      });
+}
+
 } // namespace AsterX
