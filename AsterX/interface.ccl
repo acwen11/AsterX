@@ -152,8 +152,6 @@ CCTK_REAL dBz_stag_aux TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"' "z-compone
 
 CCTK_INT dBstag_pv_iter type=SCALAR tags='checkpoint="no"' "counter for iterative PV dBstag solve"
 
-CCTK_INT CA_C2P type=SCALAR tags='checkpoint="no"' "Flag to indicate if C2P is performed on cell averaged or point value conservatives"
-
 # ----- staggered gauge functions
 
 CCTK_REAL Psi TYPE=gf CENTERING={vvv} TAGS='rhs="Psi_rhs" prolongation_type="hermite" prolongation_order=5' "t-component of vector potential: sqrt(det(gamma_ij))*Phi"

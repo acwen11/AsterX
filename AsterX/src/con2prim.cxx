@@ -216,7 +216,7 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     bool write_back_cons = true;
     cons_vars cv;
 
-    if (use_ho_fv && !*CA_C2P) {
+    if (use_ho_fv) {
       write_back_cons = false;
       // Note that cv are densitized, i.e. they all include sqrt_detg
       cv = cons_vars{dens_pv(p.I), {momx_pv(p.I), momy_pv(p.I), momz_pv(p.I)},
@@ -487,9 +487,6 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     CCTK_REAL Ex, Ey, Ez;
 
     // Write back pv
-    // OLD HO FV note, NOT TRUE FOR NOW: if CA_C2P is true, these prims are 2nd order cell averages. They will
-    // be used to calculate the low-order flag, and immediately overwritten by
-    // point values.
     pv.scatter(rho(p.I), eps(p.I), Ye(p.I), press(p.I), temperature(p.I),
                entropy(p.I), velx(p.I), vely(p.I), velz(p.I), wlor, Bvecx(p.I),
                Bvecy(p.I), Bvecz(p.I), Ex, Ey, Ez);
@@ -506,14 +503,14 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
         (pv.rho + pv.rho * pv.eps + pv.press) * wlor * wlor * pv.vel(2);
 
     // Write back cv
-    if (!use_ho_fv) {
-      cv.scatter(dens(p.I), momx(p.I), momy(p.I), momz(p.I), tau(p.I), DYe(p.I),
-                 DEnt(p.I), dBx(p.I), dBy(p.I), dBz(p.I));
-    } else if (use_ho_fv && !*CA_C2P) {
+    if (use_ho_fv) {
       cv.scatter(dens_pv(p.I), momx_pv(p.I), momy_pv(p.I), momz_pv(p.I), tau_pv(p.I), DYe_pv(p.I),
                  DEnt_pv(p.I), dBx(p.I), dBy(p.I), dBz(p.I));
       if (write_back_cons && (c2p_flag_code < 6))
         con2prim_flag(p.I) = C2P_ADJ;
+    } else {
+      cv.scatter(dens(p.I), momx(p.I), momy(p.I), momz(p.I), tau(p.I), DYe(p.I),
+                 DEnt(p.I), dBx(p.I), dBy(p.I), dBz(p.I));
     }
 
     // Update saved prims
@@ -621,22 +618,6 @@ extern "C" void AsterX_Con2Prim(CCTK_ARGUMENTS) {
   default:
     assert(0);
   }
-}
-
-// extern "C" void AsterX_CAC2PFlagOn(CCTK_ARGUMENTS) {
-//   DECLARE_CCTK_ARGUMENTSX_AsterX_CAC2PFlagOn;
-//   DECLARE_CCTK_PARAMETERS;
-// 
-//   *CA_C2P = 1; //use_ho_fv;
-//   return;
-// }
-// 
-extern "C" void AsterX_CAC2PFlagOff(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_AsterX_CAC2PFlagOff;
-  DECLARE_CCTK_PARAMETERS;
-
-  *CA_C2P = 0;
-  return;
 }
 
 extern "C" void AsterX_Con2Prim_Interpolate_Failed(CCTK_ARGUMENTS) {
