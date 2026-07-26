@@ -211,6 +211,13 @@ if (use_deriv_shock_detector)
     WRITES: LOflag_p(everywhere)
   } "Initial copy of LOflag to previous timelevels"
 
+  SCHEDULE AsterX_LOFlagCopyTLs IN CCTK_POST_RECOVER_VARIABLES AFTER AsterX_Sync
+  {
+    LANG: C
+    READS: LOflag(everywhere)
+    WRITES: LOflag_p(everywhere)
+  } "Copy of LOflag to previous timelevel after recovery. As PostStep correction was already applied before checkpointing, the value of the previous timelevel is unimportant."
+
   SCHEDULE AsterX_SetLOFlagPostRegridInitial IN CCTK_POSTREGRID BEFORE ODESolvers_PostStep
   {
     LANG: C
