@@ -100,6 +100,10 @@ BOOLEAN unit_test "turn on all the unit tests if set to yes" STEERABLE=always
 {
 } no
 
+BOOLEAN freeze_evolution "Freeze AsterX evolution while retaining initialization and poststep primitive updates" STEERABLE=always
+{
+} no
+
 CCTK_INT unit_test_repetitions "Number of times each unit test should be repeated" STEERABLE=always 
 {
   0:* :: "Must be no smaller than 0"
@@ -114,6 +118,11 @@ BOOLEAN use_ho_fv "HO FV terms" STEERABLE=always
 CCTK_INT n_dBstagpv_iters "Number of times to iteratively correct dBstag point value" STEERABLE=always
 {
   1:* :: "1 = only calculate from <dBstag>, greater = use Taylor expansion"
+} 5
+
+CCTK_INT n_conspv_iters "Number of times to iteratively correct cons point value" STEERABLE=always
+{
+  1:* :: "1 = only calculate from <U>, greater = use Taylor expansion"
 } 5
 
 CCTK_INT mag_correction_order "Order of accuracy for higher order corrections to magnetic field evolution" STEERABLE=never

@@ -140,28 +140,11 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
   const auto calcupdate_hydro =
       [=] CCTK_DEVICE(const vec<GF3D2<const CCTK_REAL>, dim> &gf_fluxes,
                       const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        if (use_ho_fv) {
-          // constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
-          // vec<CCTK_REAL, 3> dfluxes{calc_fd_forward_midpoint<0>(gf_fluxes(0), p, 2)
-          //                           + (one_over_24 / p.DX[0]) * (laplace_perp<0>(gf_fluxes(0), p, p.I + p.DI[0]) 
-          //                                             - laplace_perp<0>(gf_fluxes(0), p, p.I)),
-          //                           calc_fd_forward_midpoint<1>(gf_fluxes(1), p, 2)
-          //                           + (one_over_24 / p.DX[1]) * (laplace_perp<1>(gf_fluxes(1), p, p.I + p.DI[1]) 
-          //                                             - laplace_perp<1>(gf_fluxes(1), p, p.I)),
-          //                           calc_fd_forward_midpoint<2>(gf_fluxes(2), p, 2)
-          //                           + (one_over_24 / p.DX[2]) * (laplace_perp<2>(gf_fluxes(2), p, p.I + p.DI[2]) 
-          //                                             - laplace_perp<2>(gf_fluxes(2), p, p.I))};
-          if (shock_pv_fallback){
-            vec<CCTK_REAL, 3> dfluxes{calc_FV_flux<0>(gf_fluxes(0), p, LOflag),
-                                      calc_FV_flux<1>(gf_fluxes(1), p, LOflag),
-                                      calc_FV_flux<2>(gf_fluxes(2), p, LOflag)};
-            return -(dfluxes(0) + dfluxes(1) + dfluxes(2));
-          } else {
-            vec<CCTK_REAL, 3> dfluxes{calc_FV_flux<0>(gf_fluxes(0), p),
-                                      calc_FV_flux<1>(gf_fluxes(1), p),
-                                      calc_FV_flux<2>(gf_fluxes(2), p)};
-            return -(dfluxes(0) + dfluxes(1) + dfluxes(2));
-          }
+        if (use_ho_fv && !LOflag(p.I)) {
+          vec<CCTK_REAL, 3> dfluxes{calc_FV_flux<0>(gf_fluxes(0), p),
+                                    calc_FV_flux<1>(gf_fluxes(1), p),
+                                    calc_FV_flux<2>(gf_fluxes(2), p)};
+          return -(dfluxes(0) + dfluxes(1) + dfluxes(2));
         }
         else {
           vec<CCTK_REAL, 3> dfluxes{calc_fd_forward_midpoint<0>(
@@ -210,6 +193,43 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
   CalcRHSofAvec<2>(CCTK_PASS_CTOC, gauge, mag_correction_order, use_ho_fv);
 
   CalcRHSofPsi(CCTK_PASS_CTOC, gauge, lorenz_damp_fac);
+}
+
+extern "C" void AsterX_FreezeEvolutionRHS(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_FreezeEvolutionRHS;
+
+  grid.loop_int_device<1, 1, 1>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        densrhs(p.I) = 0.0;
+        momxrhs(p.I) = 0.0;
+        momyrhs(p.I) = 0.0;
+        momzrhs(p.I) = 0.0;
+        taurhs(p.I) = 0.0;
+        DYe_rhs(p.I) = 0.0;
+        DEntrhs(p.I) = 0.0;
+      });
+
+  grid.loop_int_device<1, 0, 0>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        Avec_x_rhs(p.I) = 0.0;
+      });
+  grid.loop_int_device<0, 1, 0>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        Avec_y_rhs(p.I) = 0.0;
+      });
+  grid.loop_int_device<0, 0, 1>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        Avec_z_rhs(p.I) = 0.0;
+      });
+  grid.loop_int_device<0, 0, 0>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        Psi_rhs(p.I) = 0.0;
+      });
 }
 
 } // namespace AsterX
