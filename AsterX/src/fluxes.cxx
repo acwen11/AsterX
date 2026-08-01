@@ -90,6 +90,8 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
   const vec<GF3D2<const CCTK_REAL>, dim> gf_Bvecs{Bvecx, Bvecy, Bvecz};
   const vec<GF3D2<const CCTK_REAL>, dim> gf_dBstags{dBx_stag, dBy_stag,
                                                     dBz_stag};
+  const vec<GF3D2<const CCTK_REAL>, dim> gf_dBstag_fas{dBx_stag_fa, dBy_stag_fa,
+                                                    dBz_stag_fa};
   const vec<GF3D2<const CCTK_REAL>, dim> gf_beta{betax, betay, betaz};
   const smat<GF3D2<const CCTK_REAL>, dim> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
 
@@ -204,6 +206,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
     const CCTK_REAL sqrtg = sqrt(detg_avg);
 
     // Booleans controlling reconstruction fallbacks
+    bool flag = false;
     bool useLO = false;
     bool resetL = false;
     bool resetR = false;
@@ -298,7 +301,8 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
     // End atmosphere
 
     // Check shock detection flag
-    if (shock_recon_fallback && (LOflag(p.I) || LOflag(p.I - p.DI[dir_i])))
+    flag = (LOflag(p.I) || LOflag(p.I - p.DI[dir_i]));
+    if (shock_recon_fallback && flag)
       useLO = true;
 
     if (reconstruct_with_temperature) {
@@ -403,7 +407,12 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
     vec<vec<CCTK_REAL, 2>, 3> Bs_rc;
 
     // Assign the value for the primary direction
-    const CCTK_REAL val = gf_dBstags(dir_i)(p.I) / sqrtg;
+    CCTK_REAL dBstagL;
+    if (flag && shock_Bstag_fallback)
+      dBstagL = gf_dBstag_fas(dir_i)(p.I); // use avg. dBstag if LO flag is used to ensure div(B) = 0 in flux stencil.
+    else
+      dBstagL = gf_dBstags(dir_i)(p.I);
+    const CCTK_REAL val = dBstagL / sqrtg;
     Bs_rc(dir_i)(0) = val;
     Bs_rc(dir_i)(1) = val;
 
@@ -770,7 +779,12 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
       vec<vec<CCTK_REAL, 2>, 3> Bs_ppl;
 
       // Assign the value for the primary direction
-      const CCTK_REAL val = gf_dBstags(dir_i)(p.I) / sqrtg;
+      CCTK_REAL dBstagL;
+      if (flag && shock_Bstag_fallback)
+        dBstagL = gf_dBstag_fas(dir_i)(p.I); // use avg. dBstag if LO flag is used to ensure div(B) = 0 in flux stencil.
+      else
+        dBstagL = gf_dBstags(dir_i)(p.I);
+      const CCTK_REAL val = dBstagL / sqrtg;
       Bs_ppl(dir_i)(0) = val;
       Bs_ppl(dir_i)(1) = val;
 

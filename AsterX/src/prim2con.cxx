@@ -108,50 +108,54 @@ DECLARE_CCTK_PARAMETERS;
       });
 }
 
-extern "C" void AsterX_SetLineAvgAvec_Initial(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_AsterX_SetLineAvgAvec_Initial;
+extern "C" void AsterX_LineAvgAvec_Initial(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_LineAvgAvec_Initial;
   DECLARE_CCTK_PARAMETERS;
 
   constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
-  if (use_ho_fv) {
-    grid.loop_int_device<1, 0, 0>(
-        grid.nghostzones,
-        [=] CCTK_DEVICE(const PointDesc &p)
-            CCTK_ATTRIBUTE_ALWAYS_INLINE { 
-            Avec_x_la(p.I) = Avec_x(p.I) + one_over_24 * laplace_1d<0>(Avec_x, p);
-        });
-    grid.loop_int_device<0, 1, 0>(
-        grid.nghostzones,
-        [=] CCTK_DEVICE(const PointDesc &p)
-            CCTK_ATTRIBUTE_ALWAYS_INLINE { 
-            Avec_y_la(p.I) = Avec_y(p.I) + one_over_24 * laplace_1d<1>(Avec_y, p);
-        });
-    grid.loop_int_device<0, 0, 1>(
-        grid.nghostzones,
-        [=] CCTK_DEVICE(const PointDesc &p)
-            CCTK_ATTRIBUTE_ALWAYS_INLINE { 
-            Avec_z_la(p.I) = Avec_z(p.I) + one_over_24 * laplace_1d<2>(Avec_z, p);
-        });
-  } else {
-    grid.loop_int_device<1, 0, 0>(
-        grid.nghostzones,
-        [=] CCTK_DEVICE(const PointDesc &p)
-            CCTK_ATTRIBUTE_ALWAYS_INLINE { 
-            Avec_x_la(p.I) = Avec_x(p.I);
-        });
-    grid.loop_int_device<0, 1, 0>(
-        grid.nghostzones,
-        [=] CCTK_DEVICE(const PointDesc &p)
-            CCTK_ATTRIBUTE_ALWAYS_INLINE { 
-            Avec_y_la(p.I) = Avec_y(p.I);
-        });
-    grid.loop_int_device<0, 0, 1>(
-        grid.nghostzones,
-        [=] CCTK_DEVICE(const PointDesc &p)
-            CCTK_ATTRIBUTE_ALWAYS_INLINE { 
-            Avec_z_la(p.I) = Avec_z(p.I);
-        });
-  }
+  // Use E GFs as temporary storage
+  grid.loop_int_device<1, 0, 0>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p)
+          CCTK_ATTRIBUTE_ALWAYS_INLINE { 
+          Ex(p.I) = Avec_x(p.I) + one_over_24 * laplace_1d<0>(Avec_x, p);
+      });
+  grid.loop_int_device<0, 1, 0>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p)
+          CCTK_ATTRIBUTE_ALWAYS_INLINE { 
+          Ey(p.I) = Avec_y(p.I) + one_over_24 * laplace_1d<1>(Avec_y, p);
+      });
+  grid.loop_int_device<0, 0, 1>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p)
+          CCTK_ATTRIBUTE_ALWAYS_INLINE { 
+          Ez(p.I) = Avec_z(p.I) + one_over_24 * laplace_1d<2>(Avec_z, p);
+      });
+}
+
+extern "C" void AsterX_CopyLineAvgAvec_Initial(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_CopyLineAvgAvec_Initial;
+  DECLARE_CCTK_PARAMETERS;
+
+  grid.loop_int_device<1, 0, 0>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p)
+          CCTK_ATTRIBUTE_ALWAYS_INLINE { 
+          Avec_x(p.I) = Ex(p.I);
+      });
+  grid.loop_int_device<0, 1, 0>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p)
+          CCTK_ATTRIBUTE_ALWAYS_INLINE { 
+          Avec_y(p.I) = Ey(p.I);
+      });
+  grid.loop_int_device<0, 0, 1>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p)
+          CCTK_ATTRIBUTE_ALWAYS_INLINE { 
+          Avec_z(p.I) = Ez(p.I);
+      });
 }
 
 extern "C" void AsterX_PsiZero_Initial(CCTK_ARGUMENTS) {
