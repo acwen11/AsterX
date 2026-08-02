@@ -123,14 +123,14 @@ extern "C" void AsterX_SetConsIter(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_SetConsIter;
   DECLARE_CCTK_PARAMETERS;
 
-  *cons_pv_iter = n_conspv_iters;
+  *cons_pv_iter = 1 + cctk_iteration;
 }
 
 extern "C" void AsterX_SetPVConsnMinus1(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_SetPVConsnMinus1;
   DECLARE_CCTK_PARAMETERS;
 
-  if (*cons_pv_iter == n_conspv_iters) {
+  if (*cons_pv_iter == 1 + cctk_iteration) {
     grid.loop_all_device<1, 1, 1>(
        grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
@@ -163,37 +163,37 @@ extern "C" void AsterX_SetPointValues(CCTK_ARGUMENTS) {
 
   constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
 
-  if (cctk_iteration != 0) { // use ID values at iteration 0
-    grid.loop_allmn_device<1, 1, 1>(
-        grid.nghostzones, 1,
-        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+  // if (cctk_iteration != 0) { // use ID values at iteration 0 //DISABLING THIS FOR TESTING
+  grid.loop_allmn_device<1, 1, 1>(
+      grid.nghostzones, 1,
+      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
 
-          bool thetac = (!LOflag(p.I) || !shock_pv_fallback);
-          dens_pv(p.I) =  dens(p.I) - thetac * one_over_24*laplace_3d(dens_aux,p);
-          momx_pv(p.I) =  momx(p.I) - thetac * one_over_24*laplace_3d(momx_aux,p);
-          momy_pv(p.I) =  momy(p.I) - thetac * one_over_24*laplace_3d(momy_aux,p);
-          momz_pv(p.I) =  momz(p.I) - thetac * one_over_24*laplace_3d(momz_aux,p);
-          tau_pv(p.I)  =  tau(p.I) - thetac * one_over_24*laplace_3d(tau_aux,p);
-          DYe_pv(p.I)  =  DYe(p.I) - thetac * one_over_24*laplace_3d(DYe_aux,p);
-          DEnt_pv(p.I) =  DEnt(p.I) - thetac * one_over_24*laplace_3d(DEnt_aux,p);
+        bool thetac = (!LOflag(p.I) || !shock_pv_fallback);
+        dens_pv(p.I) =  dens(p.I) - thetac * one_over_24*laplace_3d(dens_aux,p);
+        momx_pv(p.I) =  momx(p.I) - thetac * one_over_24*laplace_3d(momx_aux,p);
+        momy_pv(p.I) =  momy(p.I) - thetac * one_over_24*laplace_3d(momy_aux,p);
+        momz_pv(p.I) =  momz(p.I) - thetac * one_over_24*laplace_3d(momz_aux,p);
+        tau_pv(p.I)  =  tau(p.I) - thetac * one_over_24*laplace_3d(tau_aux,p);
+        DYe_pv(p.I)  =  DYe(p.I) - thetac * one_over_24*laplace_3d(DYe_aux,p);
+        DEnt_pv(p.I) =  DEnt(p.I) - thetac * one_over_24*laplace_3d(DEnt_aux,p);
 
-        });
+      });
 
-    grid.loop_outer_n_device<1, 1, 1>(
-        grid.nghostzones, 1,
-        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+  grid.loop_outer_n_device<1, 1, 1>(
+      grid.nghostzones, 1,
+      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
 
-    // Use 2nd order accurate conversion at boundary
-          dens_pv(p.I) =  dens(p.I);
-          momx_pv(p.I) =  momx(p.I);
-          momy_pv(p.I) =  momy(p.I);
-          momz_pv(p.I) =  momz(p.I);
-          tau_pv(p.I)  =  tau(p.I);
-          DYe_pv(p.I)  =  DYe(p.I);
-          DEnt_pv(p.I) =  DEnt(p.I);
+  // Use 2nd order accurate conversion at boundary
+        dens_pv(p.I) =  dens(p.I);
+        momx_pv(p.I) =  momx(p.I);
+        momy_pv(p.I) =  momy(p.I);
+        momz_pv(p.I) =  momz(p.I);
+        tau_pv(p.I)  =  tau(p.I);
+        DYe_pv(p.I)  =  DYe(p.I);
+        DEnt_pv(p.I) =  DEnt(p.I);
 
-        });
-  }
+      });
+  // }
 }
 
 extern "C" void AsterX_DecConsIter(CCTK_ARGUMENTS) {

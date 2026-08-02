@@ -158,7 +158,7 @@ template <int dir> void SetdBstagnMinus1(CCTK_ARGUMENTS) {
   constexpr array<int, dim> face_centred = {!(dir == 0), !(dir == 1),
                                             !(dir == 2)};
 
-  if (*dBstag_pv_iter == n_dBstagpv_iters) {
+  if (*dBstag_pv_iter == (1 + cctk_iteration)) {
     grid.loop_all_device<face_centred[0], face_centred[1], face_centred[2]>(
        grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
@@ -247,7 +247,7 @@ extern "C" void AsterX_SetdBstagIter(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_SetdBstagIter;
   DECLARE_CCTK_PARAMETERS;
 
-  *dBstag_pv_iter = n_dBstagpv_iters;
+  *dBstag_pv_iter = 1 + cctk_iteration;
 }
 
 extern "C" void AsterX_SetdBstagnMinus1(CCTK_ARGUMENTS) {

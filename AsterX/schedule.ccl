@@ -180,9 +180,9 @@ if (use_deriv_shock_detector)
   {
   } "Detect shocks, flag for low-order recon fallback"
 
-  SCHEDULE GROUP AsterX_LOFlagGroup IN CCTK_POSTSTEP
-  {
-  } "Detect shocks, flag for low-order recon fallback"
+  # SCHEDULE GROUP AsterX_LOFlagGroup IN CCTK_POSTSTEP
+  # {
+  # } "Detect shocks, flag for low-order recon fallback"
 
   SCHEDULE AsterX_SetLOeta IN AsterX_LOFlagGroup
   {
