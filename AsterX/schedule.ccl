@@ -22,8 +22,7 @@ STORAGE: LOflag[2] etac
 
 STORAGE: theta_x theta_y theta_z theta_tot
 
-STORAGE: cons_vector_pv rhs_vector_pv
-STORAGE: CA_C2P
+STORAGE: cons_vector_pv[2] rhs_vector_pv
 if(use_ho_fv) {
   STORAGE: cons_aux
   STORAGE: cons_pv_iter

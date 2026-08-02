@@ -209,6 +209,8 @@ extern "C" void AsterAnalysis_HOFV(CCTK_ARGUMENTS) {
   const CCTK_REAL idy = 1.0 / CCTK_DELTA_SPACE(1);
   const CCTK_REAL idz = 1.0 / CCTK_DELTA_SPACE(2);
 
+  constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
+
   grid.loop_int_device<1, 1, 1>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
@@ -233,11 +235,11 @@ extern "C" void AsterAnalysis_HOFV(CCTK_ARGUMENTS) {
           + calc_FV_flux<1>(dBy_stag, p) 
           + calc_FV_flux<2>(dBz_stag, p);
 
-        const CCTK_REAL divB_LOval =
-            idx * (dBx_stag_aux(p.I + p.DI[0]) - dBx_stag_aux(p.I)) +
-            idy * (dBy_stag_aux(p.I + p.DI[1]) - dBy_stag_aux(p.I)) +
-            idz * (dBz_stag_aux(p.I + p.DI[2]) - dBz_stag_aux(p.I));
-        divB_LO(p.I) = divB_LOval / sqrt_detg;
+        bool thetac = (!LOflag(p.I) || !shock_pv_fallback);
+        const CCTK_REAL tau_reavg = tau_pv(p.I) + thetac * one_over_24*laplace_3d(tau_pv,p);
+        tau_avg_err(p.I) = abs(tau(p.I) - tau_reavg) / tau(p.I);
+
+        flag_weight(p.I) = (!LOflag(p.I)) * dens(p.I);
 
       }); /* end grid loop */
 }

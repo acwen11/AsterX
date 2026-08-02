@@ -70,44 +70,6 @@ extern "C" void AsterX_Prim2Con_Initial(CCTK_ARGUMENTS) {
       });
 }
 
-extern "C" void AsterX_SetCellAverage(CCTK_ARGUMENTS) {
-DECLARE_CCTK_ARGUMENTSX_AsterX_SetCellAverage;
-DECLARE_CCTK_PARAMETERS;
-
-  constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
-
-  grid.loop_allmn_device<1, 1, 1>(
-      grid.nghostzones, 1,
-      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-
-        // Eq. (17) from https://arxiv.org/pdf/2310.11831 
-        bool thetac = (!LOflag(p.I) || !shock_pv_fallback);
-        dens(p.I) =  dens_pv(p.I) + thetac * one_over_24*laplace_3d(dens_pv,p);
-        momx(p.I) =  momx_pv(p.I) + thetac * one_over_24*laplace_3d(momx_pv,p);
-        momy(p.I) =  momy_pv(p.I) + thetac * one_over_24*laplace_3d(momy_pv,p);
-        momz(p.I) =  momz_pv(p.I) + thetac * one_over_24*laplace_3d(momz_pv,p);
-        tau(p.I)  =  tau_pv(p.I) + thetac * one_over_24*laplace_3d(tau_pv,p);
-        DYe(p.I)  =  DYe_pv(p.I) + thetac * one_over_24*laplace_3d(DYe_pv,p);
-        DEnt(p.I) =  DEnt_pv(p.I) + thetac * one_over_24*laplace_3d(DEnt_pv,p);
-
-      });
-
-  grid.loop_outer_n_device<1, 1, 1>(
-      grid.nghostzones, 1,
-      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-
-        // Use 2nd order accurate conversion at boundary
-        dens(p.I) =  dens_pv(p.I);
-        momx(p.I) =  momx_pv(p.I);
-        momy(p.I) =  momy_pv(p.I);
-        momz(p.I) =  momz_pv(p.I);
-        tau(p.I)  =  tau_pv(p.I);
-        DYe(p.I)  =  DYe_pv(p.I);
-        DEnt(p.I) =  DEnt_pv(p.I);
-
-      });
-}
-
 extern "C" void AsterX_LineAvgAvec_Initial(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_LineAvgAvec_Initial;
   DECLARE_CCTK_PARAMETERS;

@@ -58,18 +58,6 @@ BOOLEAN loworder_flux "Fall back to Lax-Friedrichs flux on flagged points?" STEE
 {
 } "no"
 
-BOOLEAN shock_pv_fallback "In HO FV scheme, disable 4th order cell/face averaging when shocks are detected?" STEERABLE=always
-{
-} no
-
-BOOLEAN shock_recon_fallback "Use low order reconstruction method when shocks are detected?" STEERABLE=always
-{
-} no
-
-BOOLEAN shock_Bstag_fallback "In HO FV scheme, use low order Bstag when shocks are detected?" STEERABLE=always
-{
-} no
-
 BOOLEAN local_estimate_error "Use error estimation criteria of this thorn" STEERABLE=always
 {
 } yes
@@ -112,6 +100,18 @@ CCTK_INT unit_test_repetitions "Number of times each unit test should be repeate
 restricted:
 
 BOOLEAN use_ho_fv "HO FV terms" STEERABLE=always
+{
+} no
+
+BOOLEAN shock_pv_fallback "In HO FV scheme, disable 4th order cell/face averaging when shocks are detected?" STEERABLE=always
+{
+} no
+
+BOOLEAN shock_recon_fallback "Use low order reconstruction method when shocks are detected?" STEERABLE=always
+{
+} no
+
+BOOLEAN shock_Bstag_fallback "In HO FV scheme, use low order Bstag when shocks are detected?" STEERABLE=always
 {
 } no
 

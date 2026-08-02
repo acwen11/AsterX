@@ -15,3 +15,4 @@ BOOLEAN verbose "Do we want verbose output?" STEERABLE=always
 SHARES: AsterX
 USES KEYWORD recon_type
 USES BOOLEAN use_ho_fv
+USES BOOLEAN shock_pv_fallback
