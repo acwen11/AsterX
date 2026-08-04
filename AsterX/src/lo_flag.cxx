@@ -185,7 +185,9 @@ extern "C" void AsterX_SetLOeta(CCTK_ARGUMENTS) {
 extern "C" void AsterX_SetLOFlag(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_SetLOFlag;
   DECLARE_CCTK_PARAMETERS;
-
+  
+  if (cctk_iteration != 0 )
+    return;
   // Loop over the grid
   grid.loop_int_device<1, 1, 1>(
       grid.nghostzones,
