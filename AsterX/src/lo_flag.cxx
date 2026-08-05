@@ -205,7 +205,7 @@ extern "C" void AsterX_SetLOFlag(CCTK_ARGUMENTS) {
             }
           }
         }
-        LOflag(p.I) = 1.0 ? flag : 0.0;
+        LOflag(p.I) = flag;
   });
 }
 

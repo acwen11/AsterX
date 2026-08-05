@@ -62,12 +62,6 @@ SCHEDULE GROUP AsterX_InitialGroup AT initial IN ODESolvers_Initial AFTER HydroB
 {
 } "Initialize conservative variables"
 
-SCHEDULE AsterX_InitLOFlag IN AsterX_InitialGroup
-{
-	LANG: C
-	WRITES: LOflag(everywhere)
-} "Init this flag to 0"
-
 if (!use_ho_fv) {
   SCHEDULE AsterX_ComputedBstagFromA IN AsterX_InitialGroup
   {
@@ -176,7 +170,7 @@ SCHEDULE AsterX_CheckPrims IN AsterX_InitialGroup AFTER AsterX_ComputeBFromdB
 
 if (use_deriv_shock_detector)
 {
-  SCHEDULE GROUP AsterX_LOFlagGroup IN AsterX_InitialGroup AFTER AsterX_CheckPrims
+  SCHEDULE GROUP AsterX_LOFlagGroup IN AsterX_InitialGroup BEFORE AsterX_ComputedBFromdBstag 
   {
   } "Detect shocks, flag for low-order recon fallback"
 
@@ -231,6 +225,12 @@ if (use_deriv_shock_detector)
     } "Overwrite CA with point value in presence of flag"
   }
 } else {
+  SCHEDULE AsterX_InitLOFlag IN AsterX_InitialGroup
+  {
+    LANG: C
+    WRITES: LOflag(everywhere)
+  } "Init this flag to 0"
+
   SCHEDULE AsterX_InitLOFlag IN AsterX_Con2PrimGroup AFTER AsterX_ApplyOuterBCOnPrim 
   {
     LANG: C

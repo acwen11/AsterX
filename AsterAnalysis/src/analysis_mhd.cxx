@@ -235,6 +235,8 @@ extern "C" void AsterAnalysis_HOFV(CCTK_ARGUMENTS) {
           + calc_FV_flux<1>(dBy_stag, p) 
           + calc_FV_flux<2>(dBz_stag, p);
 
+        abs_divB_fromPV(p.I) = abs(divB_fromPV(p.I));
+
         bool thetac = (!LOflag(p.I) || !shock_pv_fallback);
         const CCTK_REAL tau_reavg = tau_pv(p.I) + thetac * one_over_24*laplace_3d(tau_pv,p);
         tau_avg_err(p.I) = abs(tau(p.I) - tau_reavg) / tau(p.I);
