@@ -181,9 +181,8 @@ if (use_deriv_shock_detector)
   SCHEDULE AsterX_SetLOeta IN AsterX_LOFlagGroup
   {
     LANG: C
-    READS: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::temperature(interior) HydroBaseX::Ye(interior) #HydroBaseX::Bvec(interior)
-    WRITES: etac(interior)
-    SYNC: etac
+    READS: HydroBaseX::rho(everywhere) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::temperature(interior) HydroBaseX::Ye(interior) #HydroBaseX::Bvec(interior)
+    WRITES: etac(everywhere)
   } "Evaluate smoothness measure eta"
 
   SCHEDULE AsterX_SetLOFlag IN AsterX_LOFlagGroup
