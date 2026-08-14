@@ -66,15 +66,10 @@ template <typename EOSType> void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p) {
                 ? (rho_abs_min * pow((r_atmo / radial_distance), n_rho_atmo))
                 : rho_abs_min;
         rho_atm = std::max(eos_3p->rgrho.min, rho_atm);
-        bool sanity_bool = false;
         if (rho(p.I) <= rho_atm * (1.0 + atmo_tol)) {
-          etac(p.I) = 0.0;
-          sanity_bool = true;
+          etac(p.I) = eta_thresh * 1.001;
           return;
         }
-        // else if (radial_distance > 49.0) {
-        //   printf("Atmo not caught!!! rho = %e, rho_atm = %e\n", rho(p.I), rho_atm);
-        // }
 
         // Store largest etac as diagnostic. Note that this is only truly the
         // largest if all checks pass.
@@ -82,8 +77,6 @@ template <typename EOSType> void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p) {
 
         // Check density
         CCTK_REAL etacL = LOFlagVar(rho, rho(p.I), p);
-        if (sanity_bool)
-          printf("Atmo ignored!!!\n");
         if (etacL > etac_tot) {
           etac_tot = etacL;
           if (etac_tot > eta_thresh) {

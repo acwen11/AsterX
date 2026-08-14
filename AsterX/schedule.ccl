@@ -346,8 +346,9 @@ SCHEDULE AsterX_Sync AT post_recover_variables BEFORE ODESolvers_PostStep AFTER 
 {
   LANG: C
   OPTIONS: global
-  SYNC: saved_prims LOflag 
-} "Synchronize"
+  SYNC: saved_prims LOflag cons_vector_pv
+  SYNC: dBx_stag dBy_stag dBz_stag
+} "Synchronize checkpointed but non-evolved variables"
 
 SCHEDULE GROUP AsterX_Con2PrimGroup IN ODESolvers_PostStep BEFORE TmunuBaseX_SetTmunuVars AFTER AsterX_Sync
 {
@@ -520,11 +521,11 @@ if (use_ho_fv) {
     OPTIONS: global
   } "Communicate conservatives between processes"
 
-  SCHEDULE AsterX_InitPointValues AT CCTK_POST_RECOVER_VARIABLES BEFORE ODESolvers_PostStep
-  {
-    LANG: C
-    WRITES: cons_vector_pv(everywhere)
-  } "Set point value cons to zero so they are marked as valid before PV Cons Solve."
+  # SCHEDULE AsterX_InitPointValues AT CCTK_POST_RECOVER_VARIABLES BEFORE ODESolvers_PostStep
+  # {
+  #   LANG: C
+  #   WRITES: cons_vector_pv(everywhere)
+  # } "Set point value cons to zero so they are marked as valid before PV Cons Solve."
 
   SCHEDULE AsterX_InitPointValues AT CCTK_POSTREGRID BEFORE ODESolvers_PostStep
   {
