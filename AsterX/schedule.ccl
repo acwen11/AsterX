@@ -24,6 +24,7 @@ STORAGE: theta_x theta_y theta_z theta_tot
 
 STORAGE: cons_vector_pv[2] rhs_vector_pv
 if(use_ho_fv) {
+  STORAGE: PostRegridInit_LOFlag
   STORAGE: cons_aux
   STORAGE: cons_pv_iter
   STORAGE: dBx_stag_fa dBy_stag_fa dBz_stag_fa
@@ -208,12 +209,34 @@ if (use_deriv_shock_detector)
     WRITES: LOflag_p(everywhere)
   } "Copy of LOflag to previous timelevel after recovery. As PostStep correction was already applied before checkpointing, the value of the previous timelevel is unimportant."
 
-  SCHEDULE AsterX_SetLOFlagPostRegridInitial IN CCTK_POSTREGRID BEFORE ODESolvers_PostStep
+  # SCHEDULE AsterX_SetLOFlagPostRegridInitial IN CCTK_POSTREGRID BEFORE ODESolvers_PostStep
+  # {
+  #   LANG: C
+  #   WRITES: LOflag(everywhere)
+  # } "Init flag to 0 for grid setup only"
+
+  SCHEDULE AsterX_SetPostRegridInitFlag IN CCTK_POSTREGRID BEFORE AsterX_InitLOFlag 
+  {
+    LANG: C
+    WRITES: PostRegridInit_LOFlag(everywhere)
+  } "This is stupid. Let me know when I don't have to do this anymore."
+
+  SCHEDULE GROUP AsterX_PostRegridInitFlag IN CCTK_POSTREGRID BEFORE AsterX_InitLOFlag WHILE AsterX::PostRegridInit_LOFlag
+  {
+  } "But is it really stupid if it works?"
+
+  SCHEDULE AsterX_InitLOFlag IN AsterX_PostRegridInitFlag 
   {
     LANG: C
     WRITES: LOflag(everywhere)
-  } "Init flag to 0 for grid setup only"
+  } "Init flag to 0 for grid setup only."
 
+  SCHEDULE AsterX_ZeroPostRegridInitFlag IN AsterX_PostRegridInitFlag AFTER AsterX_InitLOFlag
+  {
+    LANG: C
+    WRITES: PostRegridInit_LOFlag(everywhere)
+  } "In this case, it still is."
+  
   if (use_ho_fv && shock_pv_fallback)
   {
     SCHEDULE AsterX_AdjustConsPostStep IN CCTK_POSTSTEP AFTER AsterX_SetLOFlag

@@ -102,6 +102,8 @@ CCTK_REAL theta_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"' "flux limiter i
 CCTK_REAL LOflag TYPE=gf TIMELEVELS=2 CENTERING={ccc} TAGS='checkpoint="yes" evolve="no"' "Shock detector switch"
 CCTK_REAL etac TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Shock detector measure"
 
+CCTK_INT PostRegridInit_LOFlag type=SCALAR tags='checkpoint="no"' "Flag to ensure PostRegrid LO Flag init is only run on iteration 0"
+
 # ----- staggered vector potential (edges)
 
 # Note that the prolongation method and order are hard-coded and will

@@ -21,6 +21,15 @@ extern "C" void AsterX_SetCellAverage(CCTK_ARGUMENTS) {
   grid.loop_allmn_device<1, 1, 1>(
       grid.nghostzones, 1,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+
+        const CCTK_REAL densL =  dens(p.I);
+        const CCTK_REAL momxL =  momx(p.I);
+        const CCTK_REAL momyL =  momy(p.I);
+        const CCTK_REAL momzL =  momz(p.I);
+        const CCTK_REAL tauL =  tau(p.I);
+        const CCTK_REAL DYeL =  DYe(p.I);
+        const CCTK_REAL DEntL =  DEnt(p.I);
+
         const bool c2pflag_stencil = (con2prim_flag(p.I) >= 6) 
           || (con2prim_flag(p.I + p.DI[0]) >= 6) || (con2prim_flag(p.I - p.DI[0]) >= 6)
           || (con2prim_flag(p.I + p.DI[1]) >= 6) || (con2prim_flag(p.I - p.DI[1]) >= 6)
@@ -43,8 +52,15 @@ extern "C" void AsterX_SetCellAverage(CCTK_ARGUMENTS) {
           tau(p.I)  =  tau_pv(p.I) + thetac * one_over_24*laplace_3d(tau_pv,p);
           DYe(p.I)  =  DYe_pv(p.I) + thetac * one_over_24*laplace_3d(DYe_pv,p);
           DEnt(p.I) =  DEnt_pv(p.I) + thetac * one_over_24*laplace_3d(DEnt_pv,p);
+        } else {
+          dens(p.I) =  densL;
+          momx(p.I) =  momxL;
+          momy(p.I) =  momyL;
+          momz(p.I) =  momzL;
+          tau(p.I)  =  tauL;
+          DYe(p.I)  =  DYeL;
+          DEnt(p.I) =  DEntL;
         }
-        // else do nothing, leave cons as is
       });
 
   grid.loop_outer_n_device<1, 1, 1>(
