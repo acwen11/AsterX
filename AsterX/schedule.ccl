@@ -9,7 +9,7 @@ STORAGE: Psi[timelevels]
 STORAGE: rhs_vector Avec_x_rhs Avec_y_rhs Avec_z_rhs Psi_rhs
 STORAGE: flux_x flux_y flux_z
 
-STORAGE: dB dBx_stag[2] dBy_stag[2] dBz_stag[2]
+STORAGE: dB dBx_stag[1] dBy_stag[1] dBz_stag[1]
 STORAGE: G Fbeta Fx_stag Fy_stag Fz_stag
 STORAGE: Ex Ey Ez
 STORAGE: vbar_xface vbar_yface vbar_zface
@@ -22,7 +22,7 @@ STORAGE: LOflag[2] etac
 
 STORAGE: theta_x theta_y theta_z theta_tot
 
-STORAGE: cons_vector_pv[2] rhs_vector_pv
+STORAGE: cons_vector_pv[1] rhs_vector_pv
 if(use_ho_fv) {
   STORAGE: cons_aux
   STORAGE: cons_pv_iter
@@ -133,7 +133,7 @@ SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_InitialGroup AFTER AsterX_Computed
 } "Calculate centered dB from dBstag"
 
 # Extra interprocessor syncs only for higher order stencils
-if ((mag_correction_order > 2) || use_ho_fv) {
+if (mag_correction_order > 2) { # || use_ho_fv) {
   SCHEDULE AsterX_CommdBstag IN AsterX_InitialGroup AFTER AsterX_ComputedBstagFromA AFTER AsterX_dBstagPVSolve BEFORE AsterX_ProlongatedBstag BEFORE AsterX_ComputedBFromdBstag 
   {
     LANG: C
@@ -178,6 +178,10 @@ if (use_deriv_shock_detector)
   {
   } "Detect shocks, flag for low-order recon fallback"
 
+  SCHEDULE GROUP AsterX_LOFlagGroup IN CCTK_POSTREGRID AFTER ODESolvers_PostStep
+  {
+  } "Detect shocks, flag for low-order recon fallback"
+
   SCHEDULE AsterX_SetLOeta IN AsterX_LOFlagGroup
   {
     LANG: C
@@ -208,9 +212,30 @@ if (use_deriv_shock_detector)
     WRITES: LOflag_p(everywhere)
   } "Copy of LOflag to previous timelevel after recovery. As PostStep correction was already applied before checkpointing, the value of the previous timelevel is unimportant."
 
+  SCHEDULE AsterX_LOFlagCopyTLs IN CCTK_POSTSTEP AFTER AsterX_LOFlagGroup
+  {
+    LANG: C
+    READS: LOflag(everywhere)
+    WRITES: LOflag_p(everywhere)
+  } "Copy of LOflag to previous timelevel after step."
+
+  SCHEDULE AsterX_AdjustLOFlagPostRegrid IN CCTK_POSTREGRID AFTER AsterX_Sync BEFORE ODESolvers_PostStep
+  {
+    LANG: C
+    READS: LOflag(everywhere)
+    WRITES: LOflag(everywhere) LOflag_p(everywhere)
+  } "Set LOflag to 0 or 1 after regrid."
+
   if (use_ho_fv && shock_pv_fallback)
   {
-    SCHEDULE AsterX_AdjustConsPostStep IN CCTK_POSTSTEP AFTER AsterX_SetLOFlag
+    SCHEDULE AsterX_AdjustConsPostStep IN CCTK_POSTSTEP AFTER AsterX_LOFlagGroup BEFORE AsterX_LOFlagCopyTLs
+    {
+      LANG: C
+      READS: LOflag(everywhere) LOflag_p(everywhere) cons_vector_pv(everywhere)
+      WRITES: cons_vector(everywhere)
+    } "Overwrite CA with point value in presence of flag"
+
+    SCHEDULE AsterX_AdjustConsPostStep IN CCTK_POSTREGRID AFTER AsterX_LOFlagGroup
     {
       LANG: C
       READS: LOflag(everywhere) LOflag_p(everywhere) cons_vector_pv(everywhere)
@@ -321,12 +346,13 @@ SCHEDULE AsterX_FluxAuxZero_Initial IN AsterX_TouchNonEvolVarsGroup
 ################################################################################
 
 
-SCHEDULE AsterX_Sync AT postregrid
+SCHEDULE AsterX_Sync AT postregrid BEFORE ODESolvers_PostStep
 {
   LANG: C
   OPTIONS: global
   SYNC: cons_vector Avec_x Avec_y Avec_z Psi
-  SYNC: saved_prims LOflag
+  SYNC: saved_prims LOflag cons_vector_pv
+  SYNC: dBx_stag dBy_stag dBz_stag
 } "Synchronize"
 
 SCHEDULE AsterX_Sync IN ODESolvers_PostStep
@@ -395,7 +421,7 @@ SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_Con2PrimGroup AFTER AsterX_Compute
 } "Calculate centered dB from dBstag"
 
 # Extra interprocessor syncs only for higher order stencils
-if ((mag_correction_order > 2) || use_ho_fv) {
+if (mag_correction_order > 2) { # || use_ho_fv) {
   SCHEDULE AsterX_CommdBstag IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBstagFromA AFTER AsterX_dBstagPVSolve BEFORE AsterX_ProlongatedBstag BEFORE AsterX_ComputedBFromdBstag 
   {
     LANG: C
@@ -495,11 +521,11 @@ if (use_ho_fv) {
   } "Decrement counter for cons iterative calculation"
 
   # Extra interprocessor syncs only for higher order FV code
-  SCHEDULE AsterX_CommConsPV IN AsterX_Con2PrimGroup AFTER AsterX_SetPointValues BEFORE AsterX_Con2Prim 
-  {
-    LANG: C
-    OPTIONS: global
-  } "Communicate cons_vector_pv between processes"
+  # SCHEDULE AsterX_CommConsPV IN AsterX_Con2PrimGroup AFTER AsterX_SetPointValues BEFORE AsterX_Con2Prim 
+  # {
+  #   LANG: C
+  #   OPTIONS: global
+  # } "Communicate cons_vector_pv between processes"
 
   SCHEDULE AsterX_SetCellAverage IN AsterX_Con2PrimGroup AFTER AsterX_Con2Prim
   {
@@ -521,11 +547,11 @@ if (use_ho_fv) {
   #   WRITES: cons_vector_pv(everywhere)
   # } "Set point value cons to zero so they are marked as valid before PV Cons Solve."
 
-  SCHEDULE AsterX_InitPointValues AT CCTK_POSTREGRID BEFORE ODESolvers_PostStep
-  {
-    LANG: C
-    WRITES: cons_vector_pv(everywhere)
-  } "Set point value cons to zero so they are marked as valid before PV Cons Solve."
+  # SCHEDULE AsterX_InitPointValues AT CCTK_POSTREGRID BEFORE ODESolvers_PostStep
+  # {
+  #   LANG: C
+  #   WRITES: cons_vector_pv(everywhere)
+  # } "Set point value cons to zero so they are marked as valid before PV Cons Solve."
 }
 else
 {
