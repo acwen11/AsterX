@@ -231,15 +231,15 @@ if (use_deriv_shock_detector)
     SCHEDULE AsterX_AdjustConsPostStep IN CCTK_POSTSTEP AFTER AsterX_LOFlagGroup BEFORE AsterX_LOFlagCopyTLs
     {
       LANG: C
-      READS: LOflag(everywhere) LOflag_p(everywhere) cons_vector_pv(everywhere)
-      WRITES: cons_vector(everywhere)
+      READS: LOflag(interior) LOflag_p(interior) cons_vector_pv(everywhere)
+      WRITES: cons_vector(interior)
     } "Overwrite CA with point value in presence of flag"
 
     SCHEDULE AsterX_AdjustConsPostStep IN CCTK_POSTREGRID AFTER AsterX_LOFlagGroup
     {
       LANG: C
-      READS: LOflag(everywhere) LOflag_p(everywhere) cons_vector_pv(everywhere)
-      WRITES: cons_vector(everywhere)
+      READS: LOflag(interior) LOflag_p(interior) cons_vector_pv(everywhere)
+      WRITES: cons_vector(interior)
     } "Overwrite CA with point value in presence of flag"
   }
 } else {
@@ -280,22 +280,17 @@ SCHEDULE AsterX_CopyLineAvgAvec_Initial IN AsterX_InitialGroup BEFORE AsterX_Com
   READS: Ex(interior) Ey(interior) Ez(interior) 
   WRITES: Avec_x(interior) Avec_y(interior) Avec_z(interior) 
   SYNC: Avec_x Avec_y Avec_z
-} "Compute line-averages of vector potential, temporarily store them in E gridfunctions"
+} "Copy line-averages of vector potential from E gridfunctions"
 
 if (use_ho_fv) {
-  SCHEDULE AsterX_SetCellAverage IN AsterX_InitialGroup AFTER AsterX_Prim2Con_Initial AFTER AsterX_SetLOFlag BEFORE AsterX_CommConsCA
+  SCHEDULE AsterX_SetCellAverage IN AsterX_InitialGroup AFTER (AsterX_Prim2Con_Initial AsterX_SetLOFlag)
   {
     LANG: C
     READS: cons_vector_pv(everywhere) 
-    READS: LOflag(everywhere) con2prim_flag(everywhere)
-    WRITES: cons_vector(everywhere)
+    READS: LOflag(interior) con2prim_flag(interior)
+    WRITES: cons_vector(interior)
+    SYNC: cons_vector
   } "Compute cell-averages of conserved variables"
-
-  SCHEDULE AsterX_CommConsCA IN AsterX_InitialGroup AFTER AsterX_SetCellAverage BEFORE AsterX_TouchNonEvolVarsGroup 
-  {
-    LANG: C
-    OPTIONS: global
-  } "Communicate conservatives between processes"
 }
 
 if (zero_psi) {
@@ -531,15 +526,16 @@ if (use_ho_fv) {
   {
     LANG: C
     READS: cons_vector_pv(everywhere) 
-    READS: LOflag(everywhere) con2prim_flag(everywhere)
-    WRITES: cons_vector(everywhere)
+    READS: LOflag(interior) con2prim_flag(interior)
+    WRITES: cons_vector(interior)
+    SYNC: cons_vector
   } "Recompute cell-averages of conserved variables if values were adjusted in C2P"
 
-  SCHEDULE AsterX_CommConsCA IN AsterX_Con2PrimGroup AFTER AsterX_SetCellAverage
-  {
-    LANG: C
-    OPTIONS: global
-  } "Communicate conservatives between processes"
+  # SCHEDULE AsterX_CommConsCA IN AsterX_Con2PrimGroup AFTER AsterX_SetCellAverage
+  # {
+  #   LANG: C
+  #   OPTIONS: global
+  # } "Communicate conservatives between processes"
 
   # SCHEDULE AsterX_InitPointValues AT CCTK_POST_RECOVER_VARIABLES BEFORE ODESolvers_PostStep
   # {

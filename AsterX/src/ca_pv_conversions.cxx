@@ -18,8 +18,8 @@ extern "C" void AsterX_SetCellAverage(CCTK_ARGUMENTS) {
 
   constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
 
-  grid.loop_allmn_device<1, 1, 1>(
-      grid.nghostzones, 1,
+  grid.loop_int_device<1, 1, 1>(
+      grid.nghostzones, 
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
 
         const CCTK_REAL densL =  dens(p.I);
@@ -63,6 +63,7 @@ extern "C" void AsterX_SetCellAverage(CCTK_ARGUMENTS) {
         }
       });
 
+  /*
   grid.loop_outer_n_device<1, 1, 1>(
       grid.nghostzones, 1,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
@@ -77,6 +78,7 @@ extern "C" void AsterX_SetCellAverage(CCTK_ARGUMENTS) {
         DEnt(p.I) =  DEnt_pv(p.I);
 
       });
+  */
 }
 
 extern "C" void AsterX_InitPointValues(CCTK_ARGUMENTS) {
@@ -108,7 +110,7 @@ extern "C" void AsterX_AdjustConsPostStep(CCTK_ARGUMENTS) {
 
   constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
 
-  grid.loop_all_device<1, 1, 1>(
+  grid.loop_int_device<1, 1, 1>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
        
