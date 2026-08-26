@@ -277,13 +277,13 @@ public:
     const vec<CCTK_REAL, 3> Elow = calc_cross_product(pv.Bvec, pv.vel);
     pv.E = calc_contraction(gup, Elow);
 
+    c2p::prims_floors_and_ceilings(eos_3p, pv, cv, alp, beta, glo, rep);
+
     if (pv.rho < atmo.rho_cut) {
       rep.set_atmo_set();
       atmo.set(pv, cv, glo);
       return;
     }
-
-    c2p::prims_floors_and_ceilings(eos_3p, pv, cv, alp, beta, glo, rep);
 
     if (rep.adjust_cons) {
       cv.from_prim(pv, glo);
