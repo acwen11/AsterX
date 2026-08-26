@@ -18,7 +18,7 @@ STORAGE: a_xface a_yface a_zface
 STORAGE: con2prim_flag diagnostics
 STORAGE: saved_prims
 STORAGE: zvec svec
-STORAGE: LOflag[2] etac
+STORAGE: LOflag[2] etac flagcheck
 
 STORAGE: theta_x theta_y theta_z theta_tot
 
@@ -219,12 +219,26 @@ if (use_deriv_shock_detector)
     WRITES: LOflag_p(everywhere)
   } "Copy of LOflag to previous timelevel after step."
 
-  SCHEDULE AsterX_AdjustLOFlagPostRegrid IN CCTK_POSTREGRID AFTER AsterX_Sync BEFORE ODESolvers_PostStep
+  # SCHEDULE AsterX_LOFlagCopyCheck IN CCTK_POSTSTEP AFTER AsterX_LOFlagCopyTLs 
+  # {
+  #   LANG: C
+  #   READS: LOflag_p(everywhere)
+  #   WRITES: flagcheck(everywhere)
+  # } "Copy of LOflag to previous timelevel after step."
+
+  # SCHEDULE AsterX_AdjustLOFlagPostRegrid IN CCTK_POSTREGRID AFTER AsterX_Sync BEFORE ODESolvers_PostStep
+  # {
+  #   LANG: C
+  #   READS: LOflag(everywhere)
+  #   WRITES: LOflag(everywhere) LOflag_p(everywhere)
+  # } "Set LOflag to 0 or 1 after regrid."
+
+  SCHEDULE AsterX_LOFlagCopyCheck IN CCTK_POSTREGRID AFTER AsterX_AdjustLOFlagPostRegrid 
   {
     LANG: C
-    READS: LOflag(everywhere)
-    WRITES: LOflag(everywhere) LOflag_p(everywhere)
-  } "Set LOflag to 0 or 1 after regrid."
+    READS: LOflag_p(everywhere)
+    WRITES: flagcheck(everywhere)
+  } "Copy of LOflag to previous timelevel after step."
 
   if (use_ho_fv && shock_pv_fallback)
   {
