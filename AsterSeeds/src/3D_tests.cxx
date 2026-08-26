@@ -37,7 +37,7 @@ extern "C" void Tests3D_Initialize(CCTK_ARGUMENTS) {
     const CCTK_REAL press_in  = 1.0;
     const CCTK_REAL press_out = 5e-3;
 
-    const CCTK_REAL rin  = shock_radius * (1.0 - 0.2); // 0.8 * shock_radius
+    const CCTK_REAL rin  = shock_radius; // * (1.0 - 0.2); // 0.8 * shock_radius
     const CCTK_REAL rout = shock_radius;
 
     const CCTK_REAL rin2  = pow2(rin);
@@ -71,7 +71,7 @@ extern "C" void Tests3D_Initialize(CCTK_ARGUMENTS) {
             press(p.I) = exp(log_press);
           }
 
-	  velx(p.I) = 0.0;
+	        velx(p.I) = 0.0;
           vely(p.I) = 0.0;
           velz(p.I) = 0.0;
           eps(p.I) = eos_3p_ig->eps_from_rho_press_ye(
@@ -85,12 +85,12 @@ extern "C" void Tests3D_Initialize(CCTK_ARGUMENTS) {
 
     grid.loop_all<0, 1, 0>(grid.nghostzones, [=] CCTK_HOST(const PointDesc &p)
                                                  CCTK_ATTRIBUTE_ALWAYS_INLINE {
-                                                   Avec_y(p.I) = amplitude*p.x;
+                                                   Avec_y(p.I) = 0.0;
                                                  });
 
     grid.loop_all<0, 0, 1>(grid.nghostzones, [=] CCTK_HOST(const PointDesc &p)
                                                  CCTK_ATTRIBUTE_ALWAYS_INLINE {
-                                                   Avec_z(p.I) = 0.0;
+                                                   Avec_z(p.I) = amplitude * (0.5 * sqrt(2.0)) * (p.x + p.y);
                                                  });
 
   } else {
