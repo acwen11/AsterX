@@ -277,13 +277,17 @@ public:
     const vec<CCTK_REAL, 3> Elow = calc_cross_product(pv.Bvec, pv.vel);
     pv.E = calc_contraction(gup, Elow);
 
-    c2p::prims_floors_and_ceilings(eos_3p, pv, cv, alp, beta, glo, rep);
+    // set to atmo if computed rho is below floor density
+    // and atmo obeys magnetic field limits
+    const CCTK_REAL b2_atm = calc_norm(pv.Bvec, glo);
 
-    if (pv.rho < atmo.rho_cut) {
+    if (pv.rho < atmo.rho_cut && (b2_atm / atmo.rho_atmo <= sigma_max && b2_atm / (2.0 * atmo.press_atmo) <= inv_beta_max)) {
       rep.set_atmo_set();
       atmo.set(pv, cv, glo);
       return;
     }
+
+    c2p::prims_floors_and_ceilings(eos_3p, pv, cv, alp, beta, glo, rep);
 
     if (rep.adjust_cons) {
       cv.from_prim(pv, glo);
