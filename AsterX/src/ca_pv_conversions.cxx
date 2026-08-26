@@ -34,7 +34,7 @@ extern "C" void AsterX_SetCellAverage(CCTK_ARGUMENTS) {
           || (con2prim_flag(p.I + p.DI[0]) >= 6) || (con2prim_flag(p.I - p.DI[0]) >= 6)
           || (con2prim_flag(p.I + p.DI[1]) >= 6) || (con2prim_flag(p.I - p.DI[1]) >= 6)
           || (con2prim_flag(p.I + p.DI[2]) >= 6) || (con2prim_flag(p.I - p.DI[2]) >= 6);
-        if ((con2prim_flag(p.I) >= 6) && (LOflag(p.I) && shock_pv_fallback)) {
+        if ((con2prim_flag(p.I) >= 6) && ((LOflag(p.I) > 0.0) && shock_pv_fallback)) {
           dens(p.I) =  dens_pv(p.I);
           momx(p.I) =  momx_pv(p.I);
           momy(p.I) =  momy_pv(p.I);
@@ -44,7 +44,7 @@ extern "C" void AsterX_SetCellAverage(CCTK_ARGUMENTS) {
           DEnt(p.I) =  DEnt_pv(p.I);
         } else if (c2pflag_stencil || (cctk_iteration == 0)) {
           // Eq. (17) from https://arxiv.org/pdf/2310.11831 
-          bool thetac = (!LOflag(p.I) || !shock_pv_fallback);
+          bool thetac = ((LOflag(p.I) == 0.0) || !shock_pv_fallback);
           dens(p.I) =  dens_pv(p.I) + thetac * one_over_24*laplace_3d(dens_pv,p);
           momx(p.I) =  momx_pv(p.I) + thetac * one_over_24*laplace_3d(momx_pv,p);
           momy(p.I) =  momy_pv(p.I) + thetac * one_over_24*laplace_3d(momy_pv,p);
@@ -114,7 +114,7 @@ extern "C" void AsterX_AdjustConsPostStep(CCTK_ARGUMENTS) {
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
        
-        if (LOflag(p.I)) {
+        if (LOflag(p.I) > 0.0) {
           // Use point values in flagged cells
           dens(p.I) = dens_pv(p.I);
           momx(p.I) = momx_pv(p.I);
@@ -124,7 +124,7 @@ extern "C" void AsterX_AdjustConsPostStep(CCTK_ARGUMENTS) {
           DYe(p.I) = DYe_pv(p.I);
           DEnt(p.I) = DEnt_pv(p.I);
         }
-        else if (!LOflag(p.I) && LOflag_p(p.I)) {
+        else if ((LOflag(p.I) == 0.0) && (LOflag_p(p.I) > 0.0)) {
           // Re-average cells that are no longer flagged
           dens(p.I) = dens_pv(p.I) + one_over_24*laplace_3d(dens_pv,p);
           momx(p.I) = momx_pv(p.I) + one_over_24*laplace_3d(momx_pv,p);
@@ -188,7 +188,7 @@ extern "C" void AsterX_SetPointValues(CCTK_ARGUMENTS) {
       grid.nghostzones, 1,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
 
-        bool thetac = (!LOflag(p.I) || !shock_pv_fallback);
+        bool thetac = ((LOflag(p.I) == 0.0) || !shock_pv_fallback);
         dens_pv(p.I) =  dens(p.I) - thetac * one_over_24*laplace_3d(dens_aux,p);
         momx_pv(p.I) =  momx(p.I) - thetac * one_over_24*laplace_3d(momx_aux,p);
         momy_pv(p.I) =  momy(p.I) - thetac * one_over_24*laplace_3d(momy_aux,p);

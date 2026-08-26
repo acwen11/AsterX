@@ -338,7 +338,7 @@ extern "C" void AsterX_ComputedBFromdBstag(CCTK_ARGUMENTS) {
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         /* Interpolation of staggered B components to cell center
          */
-        const int ordL = (LOflag(p.I) && shock_Bstag_fallback) ? 2 : 4;
+        const int ordL = ((LOflag(p.I) > 0.0) && shock_Bstag_fallback) ? 2 : 4;
         dBx(p.I) = calc_avg_f2c(dBx_stag, p, 0, ordL);
         dBy(p.I) = calc_avg_f2c(dBy_stag, p, 1, ordL);
         dBz(p.I) = calc_avg_f2c(dBz_stag, p, 2, ordL);

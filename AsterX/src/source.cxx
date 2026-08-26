@@ -207,10 +207,11 @@ extern "C" void AsterX_CellAvgSourceTerms(CCTK_ARGUMENTS) {
   grid.loop_int_device<1, 1, 1>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        momxrhs(p.I) = momx_pvrhs(p.I) + (1 - LOflag(p.I)) * one_over_24 * laplace_3d(momx_pvrhs, p);
-        momyrhs(p.I) = momy_pvrhs(p.I) + (1 - LOflag(p.I)) * one_over_24 * laplace_3d(momy_pvrhs, p);
-        momzrhs(p.I) = momz_pvrhs(p.I) + (1 - LOflag(p.I)) * one_over_24 * laplace_3d(momz_pvrhs, p);
-        taurhs(p.I) = tau_pvrhs(p.I) + (1 - LOflag(p.I)) * one_over_24 * laplace_3d(tau_pvrhs, p);
+        const CCTK_REAL thetac = (LOflag(p.I) > 0.0) ? 0.0 : 1.0;
+        momxrhs(p.I) = momx_pvrhs(p.I) + thetac * one_over_24 * laplace_3d(momx_pvrhs, p);
+        momyrhs(p.I) = momy_pvrhs(p.I) + thetac * one_over_24 * laplace_3d(momy_pvrhs, p);
+        momzrhs(p.I) = momz_pvrhs(p.I) + thetac * one_over_24 * laplace_3d(momz_pvrhs, p);
+        taurhs(p.I) = tau_pvrhs(p.I) + thetac * one_over_24 * laplace_3d(tau_pvrhs, p);
   });
 
 }
