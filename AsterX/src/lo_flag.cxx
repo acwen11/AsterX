@@ -240,16 +240,26 @@ extern "C" void AsterX_LOFlagCopyTLs(CCTK_ARGUMENTS) {
           CCTK_ATTRIBUTE_ALWAYS_INLINE { LOflag_p(p.I) = LOflag(p.I); });
 }
 
-extern "C" void AsterX_AdjustLOFlagPostRegrid(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_AsterX_AdjustLOFlagPostRegrid;
+extern "C" void AsterX_LOFlagCopyCheck(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_LOFlagCopyCheck;
   DECLARE_CCTK_PARAMETERS;
 
   grid.loop_all_device<1, 1, 1>(
-        grid.nghostzones, [=] CCTK_DEVICE(const PointDesc &p)
-            CCTK_ATTRIBUTE_ALWAYS_INLINE {
-          LOflag(p.I) = (LOflag(p.I) > 0.5) ? 1.0 : 0.0;
-          LOflag_p(p.I) = LOflag(p.I);
-        });
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p)
+          CCTK_ATTRIBUTE_ALWAYS_INLINE { flagcheck(p.I) = LOflag_p(p.I); });
 }
+
+// extern "C" void AsterX_AdjustLOFlagPostRegrid(CCTK_ARGUMENTS) {
+//   DECLARE_CCTK_ARGUMENTSX_AsterX_AdjustLOFlagPostRegrid;
+//   DECLARE_CCTK_PARAMETERS;
+// 
+//   grid.loop_all_device<1, 1, 1>(
+//         grid.nghostzones, [=] CCTK_DEVICE(const PointDesc &p)
+//             CCTK_ATTRIBUTE_ALWAYS_INLINE {
+//           LOflag(p.I) = (LOflag(p.I) > 0.5) ? 1.0 : 0.0;
+//           LOflag_p(p.I) = LOflag(p.I);
+//         });
+// }
 
 } // namespace AsterX
