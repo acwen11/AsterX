@@ -249,7 +249,7 @@ if (use_deriv_shock_detector)
     WRITES: LOflag(everywhere)
   } "Init this flag to 0"
 
-  SCHEDULE AsterX_InitLOFlag IN AsterX_Con2PrimGroup AFTER AsterX_ApplyOuterBCOnPrim 
+  SCHEDULE AsterX_InitLOFlag IN AsterX_Con2PrimGroup BEFORE AsterX_ComputedBstagFromA
   {
     LANG: C
     WRITES: LOflag(everywhere)
@@ -263,8 +263,7 @@ SCHEDULE AsterX_Prim2Con_Initial IN AsterX_InitialGroup AFTER AsterX_CheckPrims
   READS: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::Bvec(interior)
   READS: HydroBaseX::entropy(interior) HydroBaseX::Ye(interior)
   WRITES: cons_vector(interior) dB(interior)
-  WRITES: cons_vector_pv(interior)
-  SYNC: cons_vector cons_vector_pv dB 
+  SYNC: cons_vector dB 
 } "Compute conserved variables from primitive variables at initial"
 
 if (use_ho_fv) {
@@ -346,8 +345,8 @@ SCHEDULE AsterX_Sync AT postregrid BEFORE ODESolvers_PostStep
   LANG: C
   OPTIONS: global
   SYNC: cons_vector Avec_x Avec_y Avec_z Psi
-  SYNC: saved_prims LOflag cons_vector_pv
-  SYNC: dBx_stag dBy_stag dBz_stag
+  SYNC: saved_prims #LOflag cons_vector_pv
+  #SYNC: dBx_stag dBy_stag dBz_stag
 } "Synchronize"
 
 SCHEDULE AsterX_Sync IN ODESolvers_PostStep
@@ -361,8 +360,8 @@ SCHEDULE AsterX_Sync AT post_recover_variables BEFORE ODESolvers_PostStep AFTER 
 {
   LANG: C
   OPTIONS: global
-  SYNC: saved_prims LOflag cons_vector_pv
-  SYNC: dBx_stag dBy_stag dBz_stag
+  SYNC: saved_prims #LOflag cons_vector_pv
+  #SYNC: dBx_stag dBy_stag dBz_stag
 } "Synchronize checkpointed but non-evolved variables"
 
 SCHEDULE GROUP AsterX_Con2PrimGroup IN ODESolvers_PostStep BEFORE TmunuBaseX_SetTmunuVars AFTER AsterX_Sync
@@ -551,6 +550,12 @@ if (use_ho_fv) {
 }
 else
 {
+  SCHEDULE AsterX_InitPointValues IN AsterX_InitialGroup
+  {
+    LANG: C
+    WRITES: cons_vector_pv(everywhere)
+  } "Set point value cons to zero so they are marked as valid"
+
   SCHEDULE AsterX_InitPointValues IN AsterX_Con2PrimGroup BEFORE AsterX_Con2Prim
   {
     LANG: C
