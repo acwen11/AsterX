@@ -90,8 +90,8 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
   const vec<GF3D2<const CCTK_REAL>, dim> gf_Bvecs{Bvecx, Bvecy, Bvecz};
   const vec<GF3D2<const CCTK_REAL>, dim> gf_dBstags{dBx_stag, dBy_stag,
                                                     dBz_stag};
-  const vec<GF3D2<const CCTK_REAL>, dim> gf_dBstag_fas{dBx_stag_fa, dBy_stag_fa,
-                                                    dBz_stag_fa};
+  // const vec<GF3D2<const CCTK_REAL>, dim> gf_dBstag_fas{dBx_stag_fa, dBy_stag_fa,
+  //                                                   dBz_stag_fa};
   const vec<GF3D2<const CCTK_REAL>, dim> gf_beta{betax, betay, betaz};
   const smat<GF3D2<const CCTK_REAL>, dim> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
 
@@ -401,10 +401,10 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
 
     // Assign the value for the primary direction
     CCTK_REAL dBstagL;
-    if (flag && shock_Bstag_fallback)
-      dBstagL = gf_dBstag_fas(dir_i)(p.I); // use avg. dBstag if LO flag is used to ensure div(B) = 0 in flux stencil.
-    else
-      dBstagL = gf_dBstags(dir_i)(p.I);
+    // if (flag && shock_Bstag_fallback)
+    //   dBstagL = gf_dBstag_fas(dir_i)(p.I); // use avg. dBstag if LO flag is used to ensure div(B) = 0 in flux stencil.
+    // else
+    dBstagL = gf_dBstags(dir_i)(p.I);
     const CCTK_REAL val = dBstagL / sqrtg;
     Bs_rc(dir_i)(0) = val;
     Bs_rc(dir_i)(1) = val;
@@ -758,10 +758,10 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
 
       // Assign the value for the primary direction
       CCTK_REAL dBstagL;
-      if (flag && shock_Bstag_fallback)
-        dBstagL = gf_dBstag_fas(dir_i)(p.I); // use avg. dBstag if LO flag is used to ensure div(B) = 0 in flux stencil.
-      else
-        dBstagL = gf_dBstags(dir_i)(p.I);
+      // if (flag && shock_Bstag_fallback)
+      //   dBstagL = gf_dBstag_fas(dir_i)(p.I); // use avg. dBstag if LO flag is used to ensure div(B) = 0 in flux stencil.
+      // else
+      dBstagL = gf_dBstags(dir_i)(p.I);
       const CCTK_REAL val = dBstagL / sqrtg;
       Bs_ppl(dir_i)(0) = val;
       Bs_ppl(dir_i)(1) = val;
