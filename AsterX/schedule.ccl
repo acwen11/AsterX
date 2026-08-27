@@ -9,7 +9,7 @@ STORAGE: Psi[timelevels]
 STORAGE: rhs_vector Avec_x_rhs Avec_y_rhs Avec_z_rhs Psi_rhs
 STORAGE: flux_x flux_y flux_z
 
-STORAGE: dB dBx_stag[1] dBy_stag[1] dBz_stag[1]
+STORAGE: dB dBx_stag dBy_stag dBz_stag
 STORAGE: G Fbeta Fx_stag Fy_stag Fz_stag
 STORAGE: Ex Ey Ez
 STORAGE: vbar_xface vbar_yface vbar_zface
@@ -18,11 +18,11 @@ STORAGE: a_xface a_yface a_zface
 STORAGE: con2prim_flag diagnostics
 STORAGE: saved_prims
 STORAGE: zvec svec
-STORAGE: LOflag[2] etac flagcheck
+STORAGE: LOflag[2] etac
 
 STORAGE: theta_x theta_y theta_z theta_tot
 
-STORAGE: cons_vector_pv[1] rhs_vector_pv
+STORAGE: cons_vector_pv rhs_vector_pv
 if(use_ho_fv) {
   STORAGE: cons_aux
   STORAGE: cons_pv_iter
@@ -219,26 +219,12 @@ if (use_deriv_shock_detector)
     WRITES: LOflag_p(everywhere)
   } "Copy of LOflag to previous timelevel after step."
 
-  # SCHEDULE AsterX_LOFlagCopyCheck IN CCTK_POSTSTEP AFTER AsterX_LOFlagCopyTLs 
-  # {
-  #   LANG: C
-  #   READS: LOflag_p(everywhere)
-  #   WRITES: flagcheck(everywhere)
-  # } "Copy of LOflag to previous timelevel after step."
-
   # SCHEDULE AsterX_AdjustLOFlagPostRegrid IN CCTK_POSTREGRID AFTER AsterX_Sync BEFORE ODESolvers_PostStep
   # {
   #   LANG: C
   #   READS: LOflag(everywhere)
   #   WRITES: LOflag(everywhere) LOflag_p(everywhere)
   # } "Set LOflag to 0 or 1 after regrid."
-
-  SCHEDULE AsterX_LOFlagCopyCheck IN CCTK_POSTREGRID AFTER AsterX_AdjustLOFlagPostRegrid 
-  {
-    LANG: C
-    READS: LOflag_p(everywhere)
-    WRITES: flagcheck(everywhere)
-  } "Copy of LOflag to previous timelevel after step."
 
   if (use_ho_fv && shock_pv_fallback)
   {

@@ -1327,7 +1327,7 @@ void CalcE_impl(CCTK_ARGUMENTS, const reconstruction_t reconstruction,
 
   // edge centered loop
   if constexpr (use_uct) { // upwind-CT
-    grid.loop_mix_device<i == 0, i == 1, i == 2>(
+    grid.loop_int_device<i == 0, i == 1, i == 2>(
         grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
           // reconstruct in k-dir
