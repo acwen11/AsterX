@@ -49,6 +49,24 @@ extern "C" void AsterX_Prim2Con_Initial(CCTK_ARGUMENTS) {
         dBz(p.I) = cv.dBvec(2);
         DEnt(p.I) = cv.DEnt;
 
+        if (use_ho_fv) {
+          dens_pv(p.I) = cv.dens;
+          momx_pv(p.I) = cv.mom(0);
+          momy_pv(p.I) = cv.mom(1);
+          momz_pv(p.I) = cv.mom(2);
+          tau_pv(p.I) = cv.tau;
+          DYe_pv(p.I) = cv.DYe;
+          DEnt_pv(p.I) = cv.DEnt;
+        } else {
+          dens_pv(p.I) = 0.0;
+          momx_pv(p.I) = 0.0;
+          momy_pv(p.I) = 0.0;
+          momz_pv(p.I) = 0.0;
+          tau_pv(p.I) = 0.0;
+          DYe_pv(p.I) = 0.0;
+          DEnt_pv(p.I) = 0.0;
+        }
+
       });
 }
 

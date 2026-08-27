@@ -29,8 +29,10 @@ template <int FDORDER> void SourceTerms(CCTK_ARGUMENTS) {
   const smat<GF3D2<const CCTK_REAL>, 3> gf_k{kxx, kxy, kxz, kyy, kyz, kzz};
 
   /* Loop over the entire grid (0 to n-1 cells in each direction) */
-  grid.loop_int_device<1, 1, 1>(
-      grid.nghostzones,
+  // grid.loop_int_device<1, 1, 1>(
+  //     grid.nghostzones,
+  grid.loop_allmn_device<1, 1, 1>(
+    grid.nghostzones, 1,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         /* Computing metric components at cell centers */
         const CCTK_REAL alp_avg = calc_avg_v2c(alp, p);
