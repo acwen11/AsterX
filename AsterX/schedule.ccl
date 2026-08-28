@@ -97,7 +97,7 @@ if (!use_ho_fv) {
     READS: dBx_stag_fa(everywhere) dBy_stag_fa(everywhere) dBz_stag_fa(everywhere)
     READS: dBstag_pv_iter(everywhere)
     #WRITES: dBx_stag_aux(everywhere) dBy_stag_aux(everywhere) dBz_stag_aux(everywhere)
-    WRITES: fxdens(everywhere) fydens(everywhere) fzdens(everywhere)
+    WRITES: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
   } "Set previous dBstag"
 
   SCHEDULE AsterX_ComputedBstagIter IN AsterX_dBstagPVSolve AFTER AsterX_SetdBstagnMinus1 
@@ -105,7 +105,7 @@ if (!use_ho_fv) {
     LANG: C
     READS: dBx_stag_fa(everywhere) dBy_stag_fa(everywhere) dBz_stag_fa(everywhere)
     #READS: dBx_stag_aux(everywhere) dBy_stag_aux(everywhere) dBz_stag_aux(everywhere)
-    READS: fxdens(everywhere) fydens(everywhere) fzdens(everywhere)
+    READS: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
     WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
   } "Iterate dBstag"
 

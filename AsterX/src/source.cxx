@@ -32,7 +32,7 @@ template <int FDORDER> void SourceTerms(CCTK_ARGUMENTS) {
   // grid.loop_int_device<1, 1, 1>(
   //     grid.nghostzones,
   grid.loop_allmn_device<1, 1, 1>(
-    grid.nghostzones, 1,
+    grid.nghostzones, local_spatial_order / 2,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         /* Computing metric components at cell centers */
         const CCTK_REAL alp_avg = calc_avg_v2c(alp, p);
