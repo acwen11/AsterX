@@ -301,28 +301,30 @@ extern "C" void AsterX_DecdBstagIter(CCTK_ARGUMENTS) {
 //   DECLARE_CCTK_ARGUMENTSX_AsterX_ComputedBFromdBstag;
 //   DECLARE_CCTK_PARAMETERS;
 // 
-//   const int nloop = 2;
+//   const int interp_order = use_ho_fv ? 4 : mag_correction_order;
+//   const int nloop = (interp_order - 2) / 2;
 //   grid.loop_allmn_device<1, 1, 1>(
 //       grid.nghostzones, nloop,
 //       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
 //         /* Interpolation of staggered B components to cell center
 //          */
-//         const int ordL = ((LOflag(p.I) > 0.0) && shock_Bstag_fallback) ? 2 : 4;
-//         dBx(p.I) = calc_avg_f2c(dBx_stag, p, 0, ordL);
-//         dBy(p.I) = calc_avg_f2c(dBy_stag, p, 1, ordL);
-//         dBz(p.I) = calc_avg_f2c(dBz_stag, p, 2, ordL);
+//         dBx(p.I) = calc_avg_f2c(dBx_stag, p, 0, interp_order);
+//         dBy(p.I) = calc_avg_f2c(dBy_stag, p, 1, interp_order);
+//         dBz(p.I) = calc_avg_f2c(dBz_stag, p, 2, interp_order);
 //       });
 // 
 //   // Interpolate dB in boundaries/ghosts at lower order
-//   grid.loop_outer_n_device<1, 1, 1>(
-//       grid.nghostzones, nloop,
-//       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-//         /* Interpolation of staggered B components to cell center
-//          */
-//         dBx(p.I) = calc_avg_f2c(dBx_stag, p, 0, 2);
-//         dBy(p.I) = calc_avg_f2c(dBy_stag, p, 1, 2);
-//         dBz(p.I) = calc_avg_f2c(dBz_stag, p, 2, 2);
-//       });
+//   if (nloop != 0) {
+//     grid.loop_outer_n_device<1, 1, 1>(
+//         grid.nghostzones, nloop,
+//         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+//           /* Interpolation of staggered B components to cell center
+//            */
+//           dBx(p.I) = calc_avg_f2c(dBx_stag, p, 0, 2);
+//           dBy(p.I) = calc_avg_f2c(dBy_stag, p, 1, 2);
+//           dBz(p.I) = calc_avg_f2c(dBz_stag, p, 2, 2);
+//         });
+//   }
 // }
 
 // Fall back to 2nd order interpolation from faces to cell centers if requested
