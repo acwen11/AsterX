@@ -154,25 +154,26 @@ extern "C" void AsterX_SetPVConsnMinus1(CCTK_ARGUMENTS) {
     grid.loop_all_device<1, 1, 1>(
        grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-          dens_aux(p.I) =  dens(p.I);
-          momx_aux(p.I) =  momx(p.I);
-          momy_aux(p.I) =  momy(p.I);
-          momz_aux(p.I) =  momz(p.I);
-          tau_aux(p.I)  =  tau(p.I);
-          DYe_aux(p.I)  =  DYe(p.I);
-          DEnt_aux(p.I) =  DEnt(p.I);
+          // Use HydroBaseX GFs as temporary helper
+          rho(p.I) =  dens(p.I);
+          velx(p.I) =  momx(p.I);
+          vely(p.I) =  momy(p.I);
+          velz(p.I) =  momz(p.I);
+          eps(p.I)  =  tau(p.I);
+          Ye(p.I)  =  DYe(p.I);
+          entropy(p.I) =  DEnt(p.I);
         });
   } else {
     grid.loop_all_device<1, 1, 1>(
        grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-          dens_aux(p.I) =  dens_pv(p.I);
-          momx_aux(p.I) =  momx_pv(p.I);
-          momy_aux(p.I) =  momy_pv(p.I);
-          momz_aux(p.I) =  momz_pv(p.I);
-          tau_aux(p.I)  =  tau_pv(p.I);
-          DYe_aux(p.I)  =  DYe_pv(p.I);
-          DEnt_aux(p.I) =  DEnt_pv(p.I);
+          rho(p.I) =  dens_pv(p.I);
+          velx(p.I) =  momx_pv(p.I);
+          vely(p.I) =  momy_pv(p.I);
+          velz(p.I) =  momz_pv(p.I);
+          eps(p.I)  =  tau_pv(p.I);
+          Ye(p.I)  =  DYe_pv(p.I);
+          entropy(p.I) =  DEnt_pv(p.I);
         });
   }
 }
@@ -189,13 +190,14 @@ extern "C" void AsterX_SetPointValues(CCTK_ARGUMENTS) {
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
 
         bool thetac = ((LOflag(p.I) == 0.0) || !shock_pv_fallback);
-        dens_pv(p.I) =  dens(p.I) - thetac * one_over_24*laplace_3d(dens_aux,p);
-        momx_pv(p.I) =  momx(p.I) - thetac * one_over_24*laplace_3d(momx_aux,p);
-        momy_pv(p.I) =  momy(p.I) - thetac * one_over_24*laplace_3d(momy_aux,p);
-        momz_pv(p.I) =  momz(p.I) - thetac * one_over_24*laplace_3d(momz_aux,p);
-        tau_pv(p.I)  =  tau(p.I) - thetac * one_over_24*laplace_3d(tau_aux,p);
-        DYe_pv(p.I)  =  DYe(p.I) - thetac * one_over_24*laplace_3d(DYe_aux,p);
-        DEnt_pv(p.I) =  DEnt(p.I) - thetac * one_over_24*laplace_3d(DEnt_aux,p);
+        // Use HydroBaseX GFs as temporary helper
+        dens_pv(p.I) =  dens(p.I) - thetac * one_over_24*laplace_3d(rho,p);
+        momx_pv(p.I) =  momx(p.I) - thetac * one_over_24*laplace_3d(velx,p);
+        momy_pv(p.I) =  momy(p.I) - thetac * one_over_24*laplace_3d(vely,p);
+        momz_pv(p.I) =  momz(p.I) - thetac * one_over_24*laplace_3d(velz,p);
+        tau_pv(p.I)  =  tau(p.I) - thetac * one_over_24*laplace_3d(eps,p);
+        DYe_pv(p.I)  =  DYe(p.I) - thetac * one_over_24*laplace_3d(Ye,p);
+        DEnt_pv(p.I) =  DEnt(p.I) - thetac * one_over_24*laplace_3d(entropy,p);
 
       });
 

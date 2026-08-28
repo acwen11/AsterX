@@ -163,10 +163,11 @@ template <int FDORDER> void SourceTerms(CCTK_ARGUMENTS) {
         DEntrhs(p.I) = 0.0;
         DYe_rhs(p.I) = 0.0;
         if (use_ho_fv) {
-          momx_pvrhs(p.I) = alp_avg * sqrt_detg * mom_source(0);
-          momy_pvrhs(p.I) = alp_avg * sqrt_detg * mom_source(1);
-          momz_pvrhs(p.I) = alp_avg * sqrt_detg * mom_source(2);
-          tau_pvrhs(p.I) = alp_avg * sqrt_detg * tau_source;
+          // Use HydroBaseX GFs as temporary helper
+          velx(p.I) = alp_avg * sqrt_detg * mom_source(0);
+          vely(p.I) = alp_avg * sqrt_detg * mom_source(1);
+          velz(p.I) = alp_avg * sqrt_detg * mom_source(2);
+          eps(p.I) = alp_avg * sqrt_detg * tau_source;
         }
         else {
           momxrhs(p.I) = alp_avg * sqrt_detg * mom_source(0);
@@ -174,10 +175,10 @@ template <int FDORDER> void SourceTerms(CCTK_ARGUMENTS) {
           momzrhs(p.I) = alp_avg * sqrt_detg * mom_source(2);
           taurhs(p.I) = alp_avg * sqrt_detg * tau_source;
 
-          momx_pvrhs(p.I) = 0.0; 
-          momy_pvrhs(p.I) = 0.0; 
-          momz_pvrhs(p.I) = 0.0; 
-          tau_pvrhs(p.I) = 0.0;
+          velx(p.I) = 0.0; 
+          vely(p.I) = 0.0; 
+          velz(p.I) = 0.0; 
+          eps(p.I) = 0.0;
         }
       }); // end of loop over grid
 }
@@ -208,10 +209,11 @@ extern "C" void AsterX_CellAvgSourceTerms(CCTK_ARGUMENTS) {
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         const CCTK_REAL thetac = (LOflag(p.I) > 0.0) ? 0.0 : 1.0;
-        momxrhs(p.I) = momx_pvrhs(p.I) + thetac * one_over_24 * laplace_3d(momx_pvrhs, p);
-        momyrhs(p.I) = momy_pvrhs(p.I) + thetac * one_over_24 * laplace_3d(momy_pvrhs, p);
-        momzrhs(p.I) = momz_pvrhs(p.I) + thetac * one_over_24 * laplace_3d(momz_pvrhs, p);
-        taurhs(p.I) = tau_pvrhs(p.I) + thetac * one_over_24 * laplace_3d(tau_pvrhs, p);
+        // Use HydroBaseX GFs as temporary helper
+        momxrhs(p.I) = velx(p.I) + thetac * one_over_24 * laplace_3d(velx, p);
+        momyrhs(p.I) = vely(p.I) + thetac * one_over_24 * laplace_3d(vely, p);
+        momzrhs(p.I) = velz(p.I) + thetac * one_over_24 * laplace_3d(velz, p);
+        taurhs(p.I) = eps(p.I) + thetac * one_over_24 * laplace_3d(eps, p);
   });
 
 }

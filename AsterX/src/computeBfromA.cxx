@@ -162,12 +162,13 @@ template <int dir> void SetdBstagnMinus1(CCTK_ARGUMENTS) {
     grid.loop_all_device<face_centred[0], face_centred[1], face_centred[2]>(
        grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+          // Temporarily use flux GF as helper
           if (dir == 0) {
-            dBx_stag_aux(p.I) = dBx_stag_fa(p.I);
+            fxdens(p.I) = dBx_stag_fa(p.I);
           } else if (dir == 1) {
-            dBy_stag_aux(p.I) = dBy_stag_fa(p.I);
+            fydens(p.I) = dBy_stag_fa(p.I);
           } else if (dir == 2) {
-            dBz_stag_aux(p.I) = dBz_stag_fa(p.I);
+            fzdens(p.I) = dBz_stag_fa(p.I);
           }
         });
   } else {
@@ -175,11 +176,11 @@ template <int dir> void SetdBstagnMinus1(CCTK_ARGUMENTS) {
        grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
           if (dir == 0) {
-            dBx_stag_aux(p.I) = dBx_stag(p.I);
+            fxdens(p.I) = dBx_stag(p.I);
           } else if (dir == 1) {
-            dBy_stag_aux(p.I) = dBy_stag(p.I);
+            fydens(p.I) = dBy_stag(p.I);
           } else if (dir == 2) {
-            dBz_stag_aux(p.I) = dBz_stag(p.I);
+            fzdens(p.I) = dBz_stag(p.I);
           }
         });
   }
@@ -201,12 +202,13 @@ template <int dir> void ComputeStaggeredPointValB(CCTK_ARGUMENTS) {
   grid.loop_allmn_device<face_centred[0], face_centred[1], face_centred[2]>(
      grid.nghostzones, 1,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        // Temporarily use flux GF as helper
         if (dir == 0) {
-          dBx_stag(p.I) = dBx_stag_fa(p.I) - one_over_24 * laplace_perp<0>(dBx_stag_aux, p);
+          dBx_stag(p.I) = dBx_stag_fa(p.I) - one_over_24 * laplace_perp<0>(fxdens, p);
         } else if (dir == 1) {
-          dBy_stag(p.I) = dBy_stag_fa(p.I) - one_over_24 * laplace_perp<1>(dBy_stag_aux, p);
+          dBy_stag(p.I) = dBy_stag_fa(p.I) - one_over_24 * laplace_perp<1>(fydens, p);
         } else if (dir == 2) {
-          dBz_stag(p.I) = dBz_stag_fa(p.I) - one_over_24 * laplace_perp<2>(dBz_stag_aux, p);
+          dBz_stag(p.I) = dBz_stag_fa(p.I) - one_over_24 * laplace_perp<2>(fzdens, p);
         }
       });
 

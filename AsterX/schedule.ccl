@@ -20,14 +20,14 @@ STORAGE: saved_prims
 STORAGE: zvec svec
 STORAGE: LOflag[2] etac
 
-STORAGE: theta_x theta_y theta_z theta_tot
+# STORAGE: theta_x theta_y theta_z theta_tot
 
-STORAGE: cons_vector_pv rhs_vector_pv
+STORAGE: cons_vector_pv #rhs_vector_pv
 if(use_ho_fv) {
-  STORAGE: cons_aux
+  # STORAGE: cons_aux
   STORAGE: cons_pv_iter
   STORAGE: dBx_stag_fa dBy_stag_fa dBz_stag_fa
-  STORAGE: dBx_stag_aux dBy_stag_aux dBz_stag_aux
+  # STORAGE: dBx_stag_aux dBy_stag_aux dBz_stag_aux
   STORAGE: dBstag_pv_iter
 }
 
@@ -96,14 +96,16 @@ if (!use_ho_fv) {
     READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
     READS: dBx_stag_fa(everywhere) dBy_stag_fa(everywhere) dBz_stag_fa(everywhere)
     READS: dBstag_pv_iter(everywhere)
-    WRITES: dBx_stag_aux(everywhere) dBy_stag_aux(everywhere) dBz_stag_aux(everywhere)
+    #WRITES: dBx_stag_aux(everywhere) dBy_stag_aux(everywhere) dBz_stag_aux(everywhere)
+    WRITES: fxdens(everywhere) fydens(everywhere) fzdens(everywhere)
   } "Set previous dBstag"
 
   SCHEDULE AsterX_ComputedBstagIter IN AsterX_dBstagPVSolve AFTER AsterX_SetdBstagnMinus1 
   {
     LANG: C
     READS: dBx_stag_fa(everywhere) dBy_stag_fa(everywhere) dBz_stag_fa(everywhere)
-    READS: dBx_stag_aux(everywhere) dBy_stag_aux(everywhere) dBz_stag_aux(everywhere)
+    #READS: dBx_stag_aux(everywhere) dBy_stag_aux(everywhere) dBz_stag_aux(everywhere)
+    READS: fxdens(everywhere) fydens(everywhere) fzdens(everywhere)
     WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
   } "Iterate dBstag"
 
@@ -498,13 +500,14 @@ if (use_ho_fv) {
     LANG: C
     READS: cons_vector(everywhere) cons_vector_pv(everywhere)
     READS: cons_pv_iter(everywhere)
-    WRITES: cons_aux(everywhere)
+    WRITES: HydrobaseX::rho(everywhere) HydrobaseX::vel(everywhere) HydrobaseX::eps(everywhere) HydrobaseX::Ye(everywhere) HydrobaseX::entropy(everywhere)
   } "Set previous cons vector"
 
   SCHEDULE AsterX_SetPointValues IN AsterX_PVConsSolve AFTER AsterX_SetPVConsnMinus1 
   {
     LANG: C
-    READS: cons_vector(everywhere) cons_aux(everywhere) LOflag(everywhere)
+    READS: cons_vector(everywhere) LOflag(everywhere)
+    READS: HydrobaseX::rho(everywhere) HydrobaseX::vel(everywhere) HydrobaseX::eps(everywhere) HydrobaseX::Ye(everywhere) HydrobaseX::entropy(everywhere)
     WRITES: cons_vector_pv(everywhere)
   } "Iterate cons"
 
@@ -598,7 +601,7 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   READS: cons_vector(everywhere)
   READS: LOflag(everywhere)
   WRITES: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
-  WRITES: theta_x(everywhere) theta_y(everywhere) theta_z(everywhere)
+  # WRITES: theta_x(everywhere) theta_y(everywhere) theta_z(everywhere)
   WRITES: vbar_xface(everywhere) vbar_yface(everywhere) vbar_zface(everywhere)
   WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
 } "Calculate the hydro fluxes"
@@ -650,8 +653,8 @@ SCHEDULE AsterX_SourceTerms IN AsterX_RHSGroup AFTER AsterX_Fluxes
   READS: zvec_x(everywhere), zvec_y(everywhere), zvec_z(everywhere)
   READS: svec_x(everywhere), svec_y(everywhere), svec_z(everywhere)
   READS: HydroBaseX::Bvec(everywhere)
-  WRITES: rhs_vector(interior)
-  WRITES: rhs_vector_pv(interior)
+  WRITES: rhs_vector(everywhere)
+  WRITES: HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere)
 } "Calculate the source terms and compute the RHS of the hydro equations"
 
 if (use_ho_fv) {
@@ -659,7 +662,7 @@ if (use_ho_fv) {
   {
     LANG: C
     READS: LOflag(interior)
-    READS: rhs_vector_pv(interior)
+    READS: HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere)
     WRITES: rhs_vector(interior)
   } "Cell average source term"
 }
@@ -675,10 +678,10 @@ SCHEDULE AsterX_RHS IN AsterX_RHSGroup AFTER AsterX_SourceTerms
   READS: G(everywhere)
   READS: Fbeta(everywhere)
   READS: Fx_stag(everywhere) Fy_stag(everywhere) Fz_stag(everywhere)
-  READS: theta_x(everywhere) theta_y(everywhere) theta_z(everywhere)
+  # READS: theta_x(everywhere) theta_y(everywhere) theta_z(everywhere)
   READS: LOflag(everywhere) 
   WRITES: rhs_vector(interior)
-  WRITES: theta_tot(interior)
+  # WRITES: theta_tot(interior)
   WRITES: Avec_x_rhs(interior) Avec_y_rhs(interior) Avec_z_rhs(interior) Psi_rhs(interior)
 } "Update the RHS of the hydro equations with the flux contributions"
 
