@@ -238,7 +238,12 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     CCTK_INT c2p_flag_code = C2P_INIT;
     bool call_c2p = true;
 
-    if (cv.dens <= sqrt_detg * rho_atmo_cut) {
+    // Check if point is below atmosphere, and if atmosphere obeys magnetization
+    // limits
+    const CCTK_REAL b2_atm = calc_norm(Bup, glo);
+    if ((cv.dens <= sqrt_detg * rho_atmo_cut) &&
+        (b2_atm / rho_atm <= sigma_max) &&
+        (b2_atm / (2 * press_atm) <= inv_beta_max)) {
       pv.Bvec = Bup;
       atmo.set(pv, cv, glo);
       atmo.set(pv_seeds);
