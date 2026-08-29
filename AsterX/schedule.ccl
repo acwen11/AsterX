@@ -9,7 +9,7 @@ STORAGE: Psi[timelevels]
 STORAGE: rhs_vector Avec_x_rhs Avec_y_rhs Avec_z_rhs Psi_rhs
 STORAGE: flux_x flux_y flux_z
 
-STORAGE: dB dBx_stag[2] dBy_stag[2] dBz_stag[2]
+STORAGE: dB dBx_stag dBy_stag dBz_stag
 STORAGE: G Fbeta Fx_stag Fy_stag Fz_stag
 STORAGE: Ex Ey Ez
 STORAGE: vbar_xface vbar_yface vbar_zface
@@ -20,14 +20,14 @@ STORAGE: saved_prims
 STORAGE: zvec svec
 STORAGE: LOflag[2] etac
 
-STORAGE: theta_x theta_y theta_z theta_tot
+# STORAGE: theta_x theta_y theta_z theta_tot
 
-STORAGE: cons_vector_pv[2] rhs_vector_pv
+STORAGE: cons_vector_pv #rhs_vector_pv
 if(use_ho_fv) {
-  STORAGE: cons_aux
+  # STORAGE: cons_aux
   STORAGE: cons_pv_iter
   STORAGE: dBx_stag_fa dBy_stag_fa dBz_stag_fa
-  STORAGE: dBx_stag_aux dBy_stag_aux dBz_stag_aux
+  # STORAGE: dBx_stag_aux dBy_stag_aux dBz_stag_aux
   STORAGE: dBstag_pv_iter
 }
 
@@ -96,14 +96,16 @@ if (!use_ho_fv) {
     READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
     READS: dBx_stag_fa(everywhere) dBy_stag_fa(everywhere) dBz_stag_fa(everywhere)
     READS: dBstag_pv_iter(everywhere)
-    WRITES: dBx_stag_aux(everywhere) dBy_stag_aux(everywhere) dBz_stag_aux(everywhere)
+    #WRITES: dBx_stag_aux(everywhere) dBy_stag_aux(everywhere) dBz_stag_aux(everywhere)
+    WRITES: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
   } "Set previous dBstag"
 
   SCHEDULE AsterX_ComputedBstagIter IN AsterX_dBstagPVSolve AFTER AsterX_SetdBstagnMinus1 
   {
     LANG: C
     READS: dBx_stag_fa(everywhere) dBy_stag_fa(everywhere) dBz_stag_fa(everywhere)
-    READS: dBx_stag_aux(everywhere) dBy_stag_aux(everywhere) dBz_stag_aux(everywhere)
+    #READS: dBx_stag_aux(everywhere) dBy_stag_aux(everywhere) dBz_stag_aux(everywhere)
+    READS: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
     WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
   } "Iterate dBstag"
 
@@ -133,7 +135,7 @@ SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_InitialGroup AFTER AsterX_Computed
 } "Calculate centered dB from dBstag"
 
 # Extra interprocessor syncs only for higher order stencils
-if ((mag_correction_order > 2) || use_ho_fv) {
+if (mag_correction_order > 2) { # || use_ho_fv) {
   SCHEDULE AsterX_CommdBstag IN AsterX_InitialGroup AFTER AsterX_ComputedBstagFromA AFTER AsterX_dBstagPVSolve BEFORE AsterX_ProlongatedBstag BEFORE AsterX_ComputedBFromdBstag 
   {
     LANG: C
@@ -178,6 +180,10 @@ if (use_deriv_shock_detector)
   {
   } "Detect shocks, flag for low-order recon fallback"
 
+  SCHEDULE GROUP AsterX_LOFlagGroup IN CCTK_POSTREGRID AFTER ODESolvers_PostStep
+  {
+  } "Detect shocks, flag for low-order recon fallback"
+
   SCHEDULE AsterX_SetLOeta IN AsterX_LOFlagGroup
   {
     LANG: C
@@ -208,23 +214,44 @@ if (use_deriv_shock_detector)
     WRITES: LOflag_p(everywhere)
   } "Copy of LOflag to previous timelevel after recovery. As PostStep correction was already applied before checkpointing, the value of the previous timelevel is unimportant."
 
+  SCHEDULE AsterX_LOFlagCopyTLs IN CCTK_POSTSTEP AFTER AsterX_LOFlagGroup
+  {
+    LANG: C
+    READS: LOflag(everywhere)
+    WRITES: LOflag_p(everywhere)
+  } "Copy of LOflag to previous timelevel after step."
+
+  # SCHEDULE AsterX_AdjustLOFlagPostRegrid IN CCTK_POSTREGRID AFTER AsterX_Sync BEFORE ODESolvers_PostStep
+  # {
+  #   LANG: C
+  #   READS: LOflag(everywhere)
+  #   WRITES: LOflag(everywhere) LOflag_p(everywhere)
+  # } "Set LOflag to 0 or 1 after regrid."
+
   if (use_ho_fv && shock_pv_fallback)
   {
-    SCHEDULE AsterX_AdjustConsPostStep IN CCTK_POSTSTEP AFTER AsterX_SetLOFlag
+    SCHEDULE AsterX_AdjustConsPostStep IN CCTK_POSTSTEP AFTER AsterX_LOFlagGroup BEFORE AsterX_LOFlagCopyTLs
     {
       LANG: C
-      READS: LOflag(everywhere) LOflag_p(everywhere) cons_vector_pv(everywhere)
-      WRITES: cons_vector(everywhere)
+      READS: LOflag(interior) LOflag_p(interior) cons_vector_pv(everywhere)
+      WRITES: cons_vector(interior)
+    } "Overwrite CA with point value in presence of flag"
+
+    SCHEDULE AsterX_AdjustConsPostStep IN CCTK_POSTREGRID AFTER AsterX_LOFlagGroup
+    {
+      LANG: C
+      READS: LOflag(interior) LOflag_p(interior) cons_vector_pv(everywhere)
+      WRITES: cons_vector(interior)
     } "Overwrite CA with point value in presence of flag"
   }
 } else {
-  SCHEDULE AsterX_InitLOFlag IN AsterX_InitialGroup
+  SCHEDULE AsterX_InitLOFlag IN AsterX_InitialGroup BEFORE AsterX_ComputedBstagFromA
   {
     LANG: C
     WRITES: LOflag(everywhere)
   } "Init this flag to 0"
 
-  SCHEDULE AsterX_InitLOFlag IN AsterX_Con2PrimGroup AFTER AsterX_ApplyOuterBCOnPrim 
+  SCHEDULE AsterX_InitLOFlag IN AsterX_Con2PrimGroup BEFORE AsterX_ComputedBstagFromA
   {
     LANG: C
     WRITES: LOflag(everywhere)
@@ -242,35 +269,30 @@ SCHEDULE AsterX_Prim2Con_Initial IN AsterX_InitialGroup AFTER AsterX_CheckPrims
   SYNC: cons_vector cons_vector_pv dB 
 } "Compute conserved variables from primitive variables at initial"
 
-SCHEDULE AsterX_LineAvgAvec_Initial IN AsterX_InitialGroup BEFORE AsterX_CopyLineAvgAvec_Initial 
-{
-  LANG: C
-  READS: Avec_x(interior) Avec_y(interior) Avec_z(interior) 
-  WRITES: Ex(interior) Ey(interior) Ez(interior) 
-} "Compute line-averages of vector potential, temporarily store them in E gridfunctions"
-
-SCHEDULE AsterX_CopyLineAvgAvec_Initial IN AsterX_InitialGroup BEFORE AsterX_ComputeAvgdBstagFromAvgA 
-{
-  LANG: C
-  READS: Ex(interior) Ey(interior) Ez(interior) 
-  WRITES: Avec_x(interior) Avec_y(interior) Avec_z(interior) 
-  SYNC: Avec_x Avec_y Avec_z
-} "Compute line-averages of vector potential, temporarily store them in E gridfunctions"
-
 if (use_ho_fv) {
-  SCHEDULE AsterX_SetCellAverage IN AsterX_InitialGroup AFTER AsterX_Prim2Con_Initial AFTER AsterX_SetLOFlag BEFORE AsterX_CommConsCA
+  SCHEDULE AsterX_LineAvgAvec_Initial IN AsterX_InitialGroup BEFORE AsterX_CopyLineAvgAvec_Initial 
+  {
+    LANG: C
+    READS: Avec_x(interior) Avec_y(interior) Avec_z(interior) 
+    WRITES: Ex(interior) Ey(interior) Ez(interior) 
+  } "Compute line-averages of vector potential, temporarily store them in E gridfunctions"
+
+  SCHEDULE AsterX_CopyLineAvgAvec_Initial IN AsterX_InitialGroup BEFORE AsterX_ComputeAvgdBstagFromAvgA 
+  {
+    LANG: C
+    READS: Ex(interior) Ey(interior) Ez(interior) 
+    WRITES: Avec_x(interior) Avec_y(interior) Avec_z(interior) 
+    SYNC: Avec_x Avec_y Avec_z
+  } "Copy line-averages of vector potential from E gridfunctions"
+
+  SCHEDULE AsterX_SetCellAverage IN AsterX_InitialGroup AFTER (AsterX_Prim2Con_Initial AsterX_SetLOFlag)
   {
     LANG: C
     READS: cons_vector_pv(everywhere) 
-    READS: LOflag(everywhere) con2prim_flag(everywhere)
-    WRITES: cons_vector(everywhere)
+    READS: LOflag(interior) con2prim_flag(interior)
+    WRITES: cons_vector(interior)
+    SYNC: cons_vector
   } "Compute cell-averages of conserved variables"
-
-  SCHEDULE AsterX_CommConsCA IN AsterX_InitialGroup AFTER AsterX_SetCellAverage BEFORE AsterX_TouchNonEvolVarsGroup 
-  {
-    LANG: C
-    OPTIONS: global
-  } "Communicate conservatives between processes"
 }
 
 if (zero_psi) {
@@ -321,12 +343,13 @@ SCHEDULE AsterX_FluxAuxZero_Initial IN AsterX_TouchNonEvolVarsGroup
 ################################################################################
 
 
-SCHEDULE AsterX_Sync AT postregrid
+SCHEDULE AsterX_Sync AT postregrid BEFORE ODESolvers_PostStep
 {
   LANG: C
   OPTIONS: global
   SYNC: cons_vector Avec_x Avec_y Avec_z Psi
-  SYNC: saved_prims LOflag
+  SYNC: saved_prims LOflag cons_vector_pv
+  SYNC: dBx_stag dBy_stag dBz_stag
 } "Synchronize"
 
 SCHEDULE AsterX_Sync IN ODESolvers_PostStep
@@ -395,7 +418,7 @@ SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_Con2PrimGroup AFTER AsterX_Compute
 } "Calculate centered dB from dBstag"
 
 # Extra interprocessor syncs only for higher order stencils
-if ((mag_correction_order > 2) || use_ho_fv) {
+if (mag_correction_order > 2) { # || use_ho_fv) {
   SCHEDULE AsterX_CommdBstag IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBstagFromA AFTER AsterX_dBstagPVSolve BEFORE AsterX_ProlongatedBstag BEFORE AsterX_ComputedBFromdBstag 
   {
     LANG: C
@@ -477,13 +500,14 @@ if (use_ho_fv) {
     LANG: C
     READS: cons_vector(everywhere) cons_vector_pv(everywhere)
     READS: cons_pv_iter(everywhere)
-    WRITES: cons_aux(everywhere)
+    WRITES: HydrobaseX::rho(everywhere) HydrobaseX::vel(everywhere) HydrobaseX::eps(everywhere) HydrobaseX::Ye(everywhere) HydrobaseX::entropy(everywhere)
   } "Set previous cons vector"
 
   SCHEDULE AsterX_SetPointValues IN AsterX_PVConsSolve AFTER AsterX_SetPVConsnMinus1 
   {
     LANG: C
-    READS: cons_vector(everywhere) cons_aux(everywhere) LOflag(everywhere)
+    READS: cons_vector(everywhere) LOflag(everywhere)
+    READS: HydrobaseX::rho(everywhere) HydrobaseX::vel(everywhere) HydrobaseX::eps(everywhere) HydrobaseX::Ye(everywhere) HydrobaseX::entropy(everywhere)
     WRITES: cons_vector_pv(everywhere)
   } "Iterate cons"
 
@@ -495,25 +519,26 @@ if (use_ho_fv) {
   } "Decrement counter for cons iterative calculation"
 
   # Extra interprocessor syncs only for higher order FV code
-  SCHEDULE AsterX_CommConsPV IN AsterX_Con2PrimGroup AFTER AsterX_SetPointValues BEFORE AsterX_Con2Prim 
-  {
-    LANG: C
-    OPTIONS: global
-  } "Communicate cons_vector_pv between processes"
+  # SCHEDULE AsterX_CommConsPV IN AsterX_Con2PrimGroup AFTER AsterX_SetPointValues BEFORE AsterX_Con2Prim 
+  # {
+  #   LANG: C
+  #   OPTIONS: global
+  # } "Communicate cons_vector_pv between processes"
 
   SCHEDULE AsterX_SetCellAverage IN AsterX_Con2PrimGroup AFTER AsterX_Con2Prim
   {
     LANG: C
     READS: cons_vector_pv(everywhere) 
-    READS: LOflag(everywhere) con2prim_flag(everywhere)
-    WRITES: cons_vector(everywhere)
+    READS: LOflag(interior) con2prim_flag(interior)
+    WRITES: cons_vector(interior)
+    SYNC: cons_vector
   } "Recompute cell-averages of conserved variables if values were adjusted in C2P"
 
-  SCHEDULE AsterX_CommConsCA IN AsterX_Con2PrimGroup AFTER AsterX_SetCellAverage
-  {
-    LANG: C
-    OPTIONS: global
-  } "Communicate conservatives between processes"
+  # SCHEDULE AsterX_CommConsCA IN AsterX_Con2PrimGroup AFTER AsterX_SetCellAverage
+  # {
+  #   LANG: C
+  #   OPTIONS: global
+  # } "Communicate conservatives between processes"
 
   # SCHEDULE AsterX_InitPointValues AT CCTK_POST_RECOVER_VARIABLES BEFORE ODESolvers_PostStep
   # {
@@ -521,14 +546,20 @@ if (use_ho_fv) {
   #   WRITES: cons_vector_pv(everywhere)
   # } "Set point value cons to zero so they are marked as valid before PV Cons Solve."
 
-  SCHEDULE AsterX_InitPointValues AT CCTK_POSTREGRID BEFORE ODESolvers_PostStep
-  {
-    LANG: C
-    WRITES: cons_vector_pv(everywhere)
-  } "Set point value cons to zero so they are marked as valid before PV Cons Solve."
+  # SCHEDULE AsterX_InitPointValues AT CCTK_POSTREGRID BEFORE ODESolvers_PostStep
+  # {
+  #   LANG: C
+  #   WRITES: cons_vector_pv(everywhere)
+  # } "Set point value cons to zero so they are marked as valid before PV Cons Solve."
 }
 else
 {
+  SCHEDULE AsterX_InitPointValues IN AsterX_InitialGroup
+  {
+    LANG: C
+    WRITES: cons_vector_pv(everywhere)
+  } "Set point value cons to zero so they are marked as valid"
+
   SCHEDULE AsterX_InitPointValues IN AsterX_Con2PrimGroup BEFORE AsterX_Con2Prim
   {
     LANG: C
@@ -562,14 +593,15 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   READS: HydroBaseX::Bvec(everywhere)
   READS: HydroBaseX::entropy(everywhere)
   READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
-  READS: dBx_stag_fa(everywhere) dBy_stag_fa(everywhere) dBz_stag_fa(everywhere)
+  # TODO: Add the fallback later, disabling it to make the use_hofv trigger easier to implement
+  # READS: dBx_stag_fa(everywhere) dBy_stag_fa(everywhere) dBz_stag_fa(everywhere)
   READS: zvec_x(everywhere) zvec_y(everywhere) zvec_z(everywhere)
   READS: svec_x(everywhere) svec_y(everywhere) svec_z(everywhere)
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere) Psi(everywhere)
   READS: cons_vector(everywhere)
   READS: LOflag(everywhere)
   WRITES: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
-  WRITES: theta_x(everywhere) theta_y(everywhere) theta_z(everywhere)
+  # WRITES: theta_x(everywhere) theta_y(everywhere) theta_z(everywhere)
   WRITES: vbar_xface(everywhere) vbar_yface(everywhere) vbar_zface(everywhere)
   WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
 } "Calculate the hydro fluxes"
@@ -621,8 +653,8 @@ SCHEDULE AsterX_SourceTerms IN AsterX_RHSGroup AFTER AsterX_Fluxes
   READS: zvec_x(everywhere), zvec_y(everywhere), zvec_z(everywhere)
   READS: svec_x(everywhere), svec_y(everywhere), svec_z(everywhere)
   READS: HydroBaseX::Bvec(everywhere)
-  WRITES: rhs_vector(interior)
-  WRITES: rhs_vector_pv(interior)
+  WRITES: rhs_vector(everywhere)
+  WRITES: HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere)
 } "Calculate the source terms and compute the RHS of the hydro equations"
 
 if (use_ho_fv) {
@@ -630,7 +662,7 @@ if (use_ho_fv) {
   {
     LANG: C
     READS: LOflag(interior)
-    READS: rhs_vector_pv(interior)
+    READS: HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere)
     WRITES: rhs_vector(interior)
   } "Cell average source term"
 }
@@ -646,10 +678,10 @@ SCHEDULE AsterX_RHS IN AsterX_RHSGroup AFTER AsterX_SourceTerms
   READS: G(everywhere)
   READS: Fbeta(everywhere)
   READS: Fx_stag(everywhere) Fy_stag(everywhere) Fz_stag(everywhere)
-  READS: theta_x(everywhere) theta_y(everywhere) theta_z(everywhere)
+  # READS: theta_x(everywhere) theta_y(everywhere) theta_z(everywhere)
   READS: LOflag(everywhere) 
   WRITES: rhs_vector(interior)
-  WRITES: theta_tot(interior)
+  # WRITES: theta_tot(interior)
   WRITES: Avec_x_rhs(interior) Avec_y_rhs(interior) Avec_z_rhs(interior) Psi_rhs(interior)
 } "Update the RHS of the hydro equations with the flux contributions"
 

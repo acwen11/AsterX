@@ -57,7 +57,7 @@ extern "C" void AsterX_Prim2Con_Initial(CCTK_ARGUMENTS) {
           tau_pv(p.I) = cv.tau;
           DYe_pv(p.I) = cv.DYe;
           DEnt_pv(p.I) = cv.DEnt;
-	      } else {
+        } else {
           dens_pv(p.I) = 0.0;
           momx_pv(p.I) = 0.0;
           momy_pv(p.I) = 0.0;
