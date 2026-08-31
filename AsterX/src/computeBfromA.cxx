@@ -183,6 +183,33 @@ template <int dir> void ComputeStaggeredPointValB(CCTK_ARGUMENTS) {
       });
 }
 
+template <int dir> void ComputeStaggeredPointValB_Int(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_ComputedBstagIter;
+  DECLARE_CCTK_PARAMETERS;
+
+  static_assert(dir >= 0 && dir < 3, "");
+
+  constexpr array<int, dim> face_centred = {!(dir == 0), !(dir == 1),
+                                            !(dir == 2)};
+
+  // Here, we have already computed the face averaged <dBi_stag> from <Avec>.
+  // Now, we use Equation 21 of https://arxiv.org/pdf/2310.11831 to compute the point value
+  // dBi_stag.
+  constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
+  grid.loop_int_device<face_centred[0], face_centred[1], face_centred[2]>(
+     grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        // Temporarily use flux GF as helper
+        if (dir == 0) {
+          dBx_stag(p.I) = dBx_stag_fa(p.I) - one_over_24 * laplace_perp<0>(fxdens, p);
+        } else if (dir == 1) {
+          dBy_stag(p.I) = dBy_stag_fa(p.I) - one_over_24 * laplace_perp<1>(fydens, p);
+        } else if (dir == 2) {
+          dBz_stag(p.I) = dBz_stag_fa(p.I) - one_over_24 * laplace_perp<2>(fzdens, p);
+        }
+      });
+}
+
 extern "C" void AsterX_ComputedBstagFromA(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_ComputedBstagFromA;
   DECLARE_CCTK_PARAMETERS;
@@ -222,9 +249,19 @@ extern "C" void AsterX_ComputedBstagIter(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_ComputedBstagIter;
   DECLARE_CCTK_PARAMETERS;
 
-  ComputeStaggeredPointValB<0>(cctkGH);
-  ComputeStaggeredPointValB<1>(cctkGH);
-  ComputeStaggeredPointValB<2>(cctkGH);
+  const int minghosts = min(cctk_nghostzones[0], min(cctk_nghostzones[1], cctk_nghostzones[2]));
+  const int tot_niters =  1 + cctk_iteration - iter_test_start;
+  const int elapsed_iters = tot_niters - *dBstag_pv_iter;
+  if (elapsed_iters >= dBstag_iter_loopswitch) {
+    ComputeStaggeredPointValB_Int<0>(cctkGH);
+    ComputeStaggeredPointValB_Int<1>(cctkGH);
+    ComputeStaggeredPointValB_Int<2>(cctkGH);
+  }
+  else {
+    ComputeStaggeredPointValB<0>(cctkGH);
+    ComputeStaggeredPointValB<1>(cctkGH);
+    ComputeStaggeredPointValB<2>(cctkGH);
+  }
 }
 
 extern "C" void AsterX_DecdBstagIter(CCTK_ARGUMENTS) {
@@ -234,16 +271,19 @@ extern "C" void AsterX_DecdBstagIter(CCTK_ARGUMENTS) {
   *dBstag_pv_iter -= 1;
 
   int minghosts = min(cctk_nghostzones[0], min(cctk_nghostzones[1], cctk_nghostzones[2]));
-  if (*dBstag_pv_iter==0 || ((1 + cctk_iteration - iter_test_start - *dBstag_pv_iter) % minghosts == 0))  {
-    static const std::vector<int> groups = {CCTK_GroupIndex("AsterX::dBx_stag"),
-                                        CCTK_GroupIndex("AsterX::dBy_stag"),
-                                        CCTK_GroupIndex("AsterX::dBz_stag")};
-
+  static const std::vector<int> groups = {CCTK_GroupIndex("AsterX::dBx_stag"),
+                                      CCTK_GroupIndex("AsterX::dBy_stag"),
+                                      CCTK_GroupIndex("AsterX::dBz_stag")};
+  // Full sync once inversion finishes
+  if (*dBstag_pv_iter==0) {
+    if (use_subcycling)
+      SyncGroupsByDirISubcycling(cctkGH, groups.size(), groups.data(), nullptr);
+    else
+      SyncGroupsByDirI(cctkGH, groups.size(), groups.data(), nullptr);
+  }
+  else if ((1 + cctk_iteration - iter_test_start - *dBstag_pv_iter) % minghosts == 0)  {
+    // Otherwise, only communicate interior ghosts
     SyncGroupsByDirIGhostOnly(cctkGH, groups.size(), groups.data(), nullptr);
-    // if (use_subcycling)
-    //   SyncGroupsByDirISubcycling(cctkGH, groups.size(), groups.data(), nullptr);
-    // else
-    //   SyncGroupsByDirI(cctkGH, groups.size(), groups.data(), nullptr);
   }
 }
 /* End Point Value dBstag Calculation */

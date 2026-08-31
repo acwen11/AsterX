@@ -130,6 +130,11 @@ CCTK_INT iter_test_start "Iteration where test begins" STEERABLE=always
   0:* :: "match checkpoint iteration"
 } 0
 
+CCTK_INT dBstag_iter_loopswitch "Switch to interior loops after this many dBstag solve iterations" STEERABLE=always
+{
+  0:* :: "any positive number"
+} 9999
+
 CCTK_INT mag_correction_order "Order of accuracy for higher order corrections to magnetic field evolution" STEERABLE=never
 {
   2 :: "Second order accurate"

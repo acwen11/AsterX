@@ -101,6 +101,7 @@ if (!use_ho_fv) {
   SCHEDULE AsterX_ComputedBstagIter IN AsterX_dBstagPVSolve AFTER AsterX_SetdBstagnMinus1 
   {
     LANG: C
+    READS: dBstag_pv_iter(everywhere)
     READS: dBx_stag_fa(everywhere) dBy_stag_fa(everywhere) dBz_stag_fa(everywhere)
     # Flux GFs only used as a temporary helper
     READS: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
