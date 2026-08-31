@@ -162,7 +162,7 @@ if (CCTK_Equals(test_type, "3DTest")) {
 
       SCHEDULE GROUP AsterX_Con2PrimGroup IN Seeding_Tasks AFTER AsterSeeds_InitializeStagAvec_BNS 
       {
-      } "Calc B from A, run Con2Prim."
+      } "Calc B from A, Con2Prim is unnecessary."
 
       if (initial_beta) {
         if (set_coorbiting_vel) {
@@ -186,7 +186,7 @@ if (CCTK_Equals(test_type, "3DTest")) {
         } "Enforce initial minimum plasma beta"
       }
 
-      SCHEDULE AsterX_Prim2Con_Initial IN Seeding_Tasks AFTER AsterSeeds_SetInitialBetaFloor AFTER AsterX_Con2PrimGroup
+      SCHEDULE AsterX_Prim2Con_Initial IN Seeding_Tasks AFTER (AsterSeeds_SetInitialBetaFloor AsterX_Con2PrimGroup)
       {
         LANG: C
         READS: ADMBaseX::metric(interior)
@@ -201,25 +201,19 @@ if (CCTK_Equals(test_type, "3DTest")) {
       {
         LANG: C
         READS: AsterX::cons_vector_pv(everywhere)
-        READS: AsterX::LOflag(interior) AsterX::con2prim_flag(interior)
-        WRITES: AsterX::cons_vector(interior)
-        SYNC: AsterX::cons_vector
+        READS: AsterX::LOflag(everywhere) AsterX::con2prim_flag(everywhere)
+        WRITES: AsterX::cons_vector(everywhere)
       } "Compute cell-averages of conserved variables"
 
-      SCHEDULE AsterX_Tmunu IN Seeding_Tasks AFTER AsterX_Con2PrimGroup AFTER AsterX_ApplyOuterBCOnPrim
+      SCHEDULE AsterX_CommConsCA IN Seeding_Tasks AFTER AsterX_SetCellAverage
       {
         LANG: C
-        READS: ADMBaseX::metric(everywhere) ADMBaseX::lapse(everywhere) ADMBaseX::shift(everywhere)
-        READS: HydroBaseX::rho(everywhere) HydroBaseX::press(everywhere) HydroBaseX::eps(everywhere)
-        READS: HydroBaseX::vel(everywhere)
-        READS: AsterX::zvec_x(everywhere), AsterX::zvec_y(everywhere), AsterX::zvec_z(everywhere)
-        READS: AsterX::svec_x(everywhere), AsterX::svec_y(everywhere), AsterX::svec_z(everywhere)
-        READS: HydroBaseX::Bvec(everywhere)
-        READS: TmunuBaseX::eTtt(interior) TmunuBaseX::eTti(interior) TmunuBaseX::eTij(interior)
-        WRITES: TmunuBaseX::eTtt(interior) TmunuBaseX::eTti(interior) TmunuBaseX::eTij(interior)
-        SYNC: TmunuBaseX::eTtt TmunuBaseX::eTti TmunuBaseX::eTij
-      } "Compute the energy-momentum tensor"
+        OPTIONS: global
+      } "Communicate cell-averaged conservatives between processes"
 
+      SCHEDULE GROUP TmunuBaseX_SetTmunuVars IN Seeding_Tasks AFTER AsterX_Con2PrimGroup 
+      {
+      } "Recompute Tmunu" 
     }
     else {
       SCHEDULE AsterSeeds_InitializeCenteredAvec_BNS AT initial IN ODESolvers_Initial AFTER HydroBaseX_PostInitial BEFORE AsterX_InitialGroup {

@@ -28,9 +28,7 @@ template <int FDORDER> void SourceTerms(CCTK_ARGUMENTS) {
   const smat<GF3D2<const CCTK_REAL>, 3> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
   const smat<GF3D2<const CCTK_REAL>, 3> gf_k{kxx, kxy, kxz, kyy, kyz, kzz};
 
-  /* Loop over the entire grid (0 to n-1 cells in each direction) */
-  // grid.loop_int_device<1, 1, 1>(
-  //     grid.nghostzones,
+  /* Loop over the entire grid - n */
   grid.loop_allmn_device<1, 1, 1>(
     grid.nghostzones, local_spatial_order / 2,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
@@ -163,6 +161,11 @@ template <int FDORDER> void SourceTerms(CCTK_ARGUMENTS) {
         DEntrhs(p.I) = 0.0;
         DYe_rhs(p.I) = 0.0;
         if (use_ho_fv) {
+          momxrhs(p.I) = 0.0;
+          momyrhs(p.I) = 0.0;
+          momzrhs(p.I) = 0.0;
+          taurhs(p.I) = 0.0;
+
           // Use HydroBaseX GFs as temporary helper
           velx(p.I) = alp_avg * sqrt_detg * mom_source(0);
           vely(p.I) = alp_avg * sqrt_detg * mom_source(1);
