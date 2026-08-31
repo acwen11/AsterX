@@ -137,7 +137,7 @@ if (CCTK_Equals(test_type, "3DTest")) {
         WRITES: SeedNow(everywhere), DoneSeeding(everywhere)
       } "Set up initial conditions for the cell-centered vector potential"
 
-      SCHEDULE AsterSeeds_InitializeStagAvec_BNS IN Seeding_Tasks AFTER AsterSeeds_InitializeCenteredAvec_BNS BEFORE AsterX_InitialGroup 
+      SCHEDULE AsterSeeds_InitializeStagAvec_BNS IN Seeding_Tasks AFTER AsterSeeds_InitializeCenteredAvec_BNS
       {
         LANG: C
         READS: Avec_x_cent(everywhere) Avec_y_cent(everywhere) Avec_z_cent(everywhere)
@@ -145,9 +145,24 @@ if (CCTK_Equals(test_type, "3DTest")) {
         SYNC: AsterX::Avec_x AsterX::Avec_y AsterX::Avec_z
       } "Set up initial conditions for the vector potential"
 
+      SCHEDULE AsterX_LineAvgAvec_Initial IN Seeding_Tasks AFTER AsterSeeds_InitializeStagAvec_BNS 
+      {
+        LANG: C
+        READS: AsterX::Avec_x(interior) AsterX::Avec_y(interior) AsterX::Avec_z(interior)
+        WRITES: AsterX::Ex(interior) AsterX::Ey(interior) AsterX::Ez(interior)
+      } "Compute line-averages of vector potential, temporarily store them in E gridfunctions"
+
+      SCHEDULE AsterX_CopyLineAvgAvec_Initial IN Seeding_Tasks AFTER AsterX_LineAvgAvec_Initial 
+      {
+        LANG: C
+        READS: AsterX::Ex(interior) AsterX::Ey(interior) AsterX::Ez(interior)
+        WRITES: AsterX::Avec_x(interior) AsterX::Avec_y(interior) AsterX::Avec_z(interior)
+        SYNC: Avec_x Avec_y Avec_z
+      } "Compute line-averages of vector potential, temporarily store them in E gridfunctions"
+
       SCHEDULE GROUP AsterX_Con2PrimGroup IN Seeding_Tasks AFTER AsterSeeds_InitializeStagAvec_BNS 
       {
-      } "Calc B from A, run Con2Prim."
+      } "Calc B from A, Con2Prim is unnecessary."
 
       if (initial_beta) {
         if (set_coorbiting_vel) {
@@ -171,30 +186,34 @@ if (CCTK_Equals(test_type, "3DTest")) {
         } "Enforce initial minimum plasma beta"
       }
 
-      SCHEDULE AsterX_Prim2Con_Initial IN Seeding_Tasks AFTER AsterSeeds_SetInitialBetaFloor AFTER AsterX_Con2PrimGroup
+      SCHEDULE AsterX_Prim2Con_Initial IN Seeding_Tasks AFTER (AsterSeeds_SetInitialBetaFloor AsterX_Con2PrimGroup)
       {
         LANG: C
         READS: ADMBaseX::metric(interior)
         READS: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::Bvec(interior)
         READS: HydroBaseX::entropy(interior) HydroBaseX::Ye(interior)
         WRITES: AsterX::cons_vector(interior) AsterX::dB(interior)
-        SYNC: AsterX::cons_vector AsterX::dB
+        WRITES: AsterX::cons_vector_pv(interior)
+        SYNC: AsterX::cons_vector AsterX::cons_vector_pv AsterX::dB
       } "Update cons after setting initial beta"
 
-      SCHEDULE AsterX_Tmunu IN Seeding_Tasks AFTER AsterX_Con2PrimGroup AFTER AsterX_ApplyOuterBCOnPrim
+      SCHEDULE AsterX_SetCellAverage IN Seeding_Tasks AFTER AsterX_Prim2Con_Initial
       {
         LANG: C
-        READS: ADMBaseX::metric(everywhere) ADMBaseX::lapse(everywhere) ADMBaseX::shift(everywhere)
-        READS: HydroBaseX::rho(everywhere) HydroBaseX::press(everywhere) HydroBaseX::eps(everywhere)
-        READS: HydroBaseX::vel(everywhere)
-        READS: AsterX::zvec_x(everywhere), AsterX::zvec_y(everywhere), AsterX::zvec_z(everywhere)
-        READS: AsterX::svec_x(everywhere), AsterX::svec_y(everywhere), AsterX::svec_z(everywhere)
-        READS: HydroBaseX::Bvec(everywhere)
-        READS: TmunuBaseX::eTtt(interior) TmunuBaseX::eTti(interior) TmunuBaseX::eTij(interior)
-        WRITES: TmunuBaseX::eTtt(interior) TmunuBaseX::eTti(interior) TmunuBaseX::eTij(interior)
-        SYNC: TmunuBaseX::eTtt TmunuBaseX::eTti TmunuBaseX::eTij
-      } "Compute the energy-momentum tensor"
+        READS: AsterX::cons_vector_pv(everywhere)
+        READS: AsterX::LOflag(everywhere) AsterX::con2prim_flag(everywhere)
+        WRITES: AsterX::cons_vector(everywhere)
+      } "Compute cell-averages of conserved variables"
 
+      SCHEDULE AsterX_CommConsCA IN Seeding_Tasks AFTER AsterX_SetCellAverage
+      {
+        LANG: C
+        OPTIONS: global
+      } "Communicate cell-averaged conservatives between processes"
+
+      SCHEDULE GROUP TmunuBaseX_SetTmunuVars IN Seeding_Tasks AFTER AsterX_Con2PrimGroup 
+      {
+      } "Recompute Tmunu" 
     }
     else {
       SCHEDULE AsterSeeds_InitializeCenteredAvec_BNS AT initial IN ODESolvers_Initial AFTER HydroBaseX_PostInitial BEFORE AsterX_InitialGroup {
@@ -252,7 +271,7 @@ if (CCTK_Equals(test_type, "TabEOSTest")) {
 
 #Initial conditions for temperature, entropy and Ye
 
-if (set_Ye_postinitial) {
+if (set_Ye_postinitial && !CCTK_Equals(evolution_eos, "Tabulated3d")) {
   SCHEDULE SetYe IN HydroBaseX_PostInitial
   {
     LANG: C
@@ -261,22 +280,50 @@ if (set_Ye_postinitial) {
   } "Set initial Ye"
 }
 
-if (set_temperature_postinitial) {
-  SCHEDULE SetTemp IN HydroBaseX_PostInitial AFTER SetYe
-  {
-    LANG: C 
-    READS: HydroBaseX::rho(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::Ye(everywhere)
-    WRITES: HydroBaseX::temperature(everywhere) HydroBaseX::eps(everywhere)
-  
-  } "Set initial temperature"
+if (set_temperature_postinitial && !CCTK_Equals(evolution_eos, "Tabulated3d")) {
+  if (set_Ye_postinitial) {
+    SCHEDULE SetTemp IN HydroBaseX_PostInitial AFTER SetYe
+    {
+      LANG: C
+      READS: HydroBaseX::rho(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::Ye(everywhere)
+      WRITES: HydroBaseX::temperature(everywhere) HydroBaseX::eps(everywhere)
+
+    } "Set initial temperature"
+  } else {
+    SCHEDULE SetTemp IN HydroBaseX_PostInitial
+    {
+      LANG: C
+      READS: HydroBaseX::rho(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::Ye(everywhere)
+      WRITES: HydroBaseX::temperature(everywhere) HydroBaseX::eps(everywhere)
+
+    } "Set initial temperature"
+  }
 }
 
-if (set_entropy_postinitial) {
-  SCHEDULE SetEntropy IN HydroBaseX_PostInitial AFTER SetTemp
+if (set_entropy_postinitial && !CCTK_Equals(evolution_eos, "Tabulated3d")) {
+  SCHEDULE SetEntropy IN HydroBaseX_PostInitial AFTER SetTemp AFTER SetYe
   {
     LANG: C
     READS: HydroBaseX::rho(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::Ye(everywhere)
     WRITES: HydroBaseX::entropy(everywhere) HydroBaseX::eps(everywhere)
-  
+
   } "Set initial entropy"
+}
+
+if (!CCTK_Equals(ns_perturbation_mode, "none")) {
+  if (CCTK_Equals(evolution_eos, "Tabulated3d")) {
+    SCHEDULE AsterSeeds_PerturbNS IN HydroBaseX_PostInitial AFTER ID_TabEOS_HydroQuantities_recompute_HydroBase_variables
+    {
+      LANG: C
+      READS: HydroBaseX::rho(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::temperature(everywhere) HydroBaseX::Ye(everywhere)
+      WRITES: HydroBaseX::rho(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::temperature(everywhere) HydroBaseX::entropy(everywhere)
+    } "Apply neutron-star pressure or density perturbation after tabulated-EOS hydro quantities"
+  } else {
+    SCHEDULE AsterSeeds_PerturbNS IN HydroBaseX_PostInitial AFTER SetEntropy AFTER SetTemp AFTER SetYe
+    {
+      LANG: C
+      READS: HydroBaseX::rho(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::temperature(everywhere) HydroBaseX::Ye(everywhere)
+      WRITES: HydroBaseX::rho(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::temperature(everywhere) HydroBaseX::entropy(everywhere)
+    } "Apply neutron-star pressure or density perturbation after hydro initial data"
+  }
 }

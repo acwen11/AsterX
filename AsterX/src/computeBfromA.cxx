@@ -53,49 +53,6 @@ template <int dir> void ComputeStaggeredFaceAvgB(CCTK_ARGUMENTS) {
       });
 }
 
-// template <int dir> void ComputeStaggeredB_LO(CCTK_ARGUMENTS) {
-//   DECLARE_CCTK_ARGUMENTSX_AsterX_ComputedBstagLO;
-//   DECLARE_CCTK_PARAMETERS;
-// 
-//   static_assert(dir >= 0 && dir < 3, "");
-// 
-//   constexpr array<int, dim> face_centred = {!(dir == 0), !(dir == 1),
-//                                             !(dir == 2)};
-//   grid.loop_all_device<face_centred[0], face_centred[1], face_centred[2]>(
-//       grid.nghostzones,
-//       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-//         const bool face_flag = (LOflag(p.I) || LOflag(p.I - p.DI[dir]));
-//         if (dir == 0) {
-//           /* dBx is curl(A) at (i-1/2,j,k) */
-//           const CCTK_REAL dBx_stagL = dBx_stag(p.I);
-//           if (!face_flag)
-//             dBx_stag(p.I) = dBx_stagL;
-//           else
-//             dBx_stag(p.I) = 
-//               calc_fd_forward_midpoint<1>(Avec_z, p, 2) -
-//               calc_fd_forward_midpoint<2>(Avec_y, p, 2);
-//         } else if (dir == 1) {
-//           /* dBy is curl(A) at (i,j-1/2,k) */
-//           const CCTK_REAL dBy_stagL = dBy_stag(p.I);
-//           if (!face_flag)
-//             dBy_stag(p.I) = dBy_stagL;
-//           else
-//             dBy_stag(p.I) = 
-//               calc_fd_forward_midpoint<2>(Avec_x, p, 2) -
-//               calc_fd_forward_midpoint<0>(Avec_z, p, 2);
-//         } else if (dir == 2) {
-//           /* dBz is curl(A) at (i,j,z-1/2) */
-//           const CCTK_REAL dBz_stagL = dBz_stag(p.I);
-//           if (!face_flag)
-//             dBz_stag(p.I) = dBz_stagL;
-//           else
-//             dBz_stag(p.I) = 
-//               calc_fd_forward_midpoint<0>(Avec_y, p, 2) -
-//               calc_fd_forward_midpoint<1>(Avec_x, p, 2);
-//         }
-//       });
-// }
-
 template <int dir> void ComputeStaggeredB(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_ComputedBstagFromA;
   DECLARE_CCTK_PARAMETERS;
@@ -158,16 +115,17 @@ template <int dir> void SetdBstagnMinus1(CCTK_ARGUMENTS) {
   constexpr array<int, dim> face_centred = {!(dir == 0), !(dir == 1),
                                             !(dir == 2)};
 
-  if (*dBstag_pv_iter == (1 + cctk_iteration)) {
+  if (*dBstag_pv_iter == 1 + cctk_iteration - iter_test_start) {
     grid.loop_all_device<face_centred[0], face_centred[1], face_centred[2]>(
        grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+          // Temporarily use flux GF as helper
           if (dir == 0) {
-            dBx_stag_aux(p.I) = dBx_stag_fa(p.I);
+            fxdens(p.I) = dBx_stag_fa(p.I);
           } else if (dir == 1) {
-            dBy_stag_aux(p.I) = dBy_stag_fa(p.I);
+            fydens(p.I) = dBy_stag_fa(p.I);
           } else if (dir == 2) {
-            dBz_stag_aux(p.I) = dBz_stag_fa(p.I);
+            fzdens(p.I) = dBz_stag_fa(p.I);
           }
         });
   } else {
@@ -175,11 +133,11 @@ template <int dir> void SetdBstagnMinus1(CCTK_ARGUMENTS) {
        grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
           if (dir == 0) {
-            dBx_stag_aux(p.I) = dBx_stag(p.I);
+            fxdens(p.I) = dBx_stag(p.I);
           } else if (dir == 1) {
-            dBy_stag_aux(p.I) = dBy_stag(p.I);
+            fydens(p.I) = dBy_stag(p.I);
           } else if (dir == 2) {
-            dBz_stag_aux(p.I) = dBz_stag(p.I);
+            fzdens(p.I) = dBz_stag(p.I);
           }
         });
   }
@@ -201,12 +159,13 @@ template <int dir> void ComputeStaggeredPointValB(CCTK_ARGUMENTS) {
   grid.loop_allmn_device<face_centred[0], face_centred[1], face_centred[2]>(
      grid.nghostzones, 1,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        // Temporarily use flux GF as helper
         if (dir == 0) {
-          dBx_stag(p.I) = dBx_stag_fa(p.I) - one_over_24 * laplace_perp<0>(dBx_stag_aux, p);
+          dBx_stag(p.I) = dBx_stag_fa(p.I) - one_over_24 * laplace_perp<0>(fxdens, p);
         } else if (dir == 1) {
-          dBy_stag(p.I) = dBy_stag_fa(p.I) - one_over_24 * laplace_perp<1>(dBy_stag_aux, p);
+          dBy_stag(p.I) = dBy_stag_fa(p.I) - one_over_24 * laplace_perp<1>(fydens, p);
         } else if (dir == 2) {
-          dBz_stag(p.I) = dBz_stag_fa(p.I) - one_over_24 * laplace_perp<2>(dBz_stag_aux, p);
+          dBz_stag(p.I) = dBz_stag_fa(p.I) - one_over_24 * laplace_perp<2>(fzdens, p);
         }
       });
 
@@ -247,7 +206,7 @@ extern "C" void AsterX_SetdBstagIter(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_SetdBstagIter;
   DECLARE_CCTK_PARAMETERS;
 
-  *dBstag_pv_iter = 1 + cctk_iteration;
+  *dBstag_pv_iter = 1 + cctk_iteration - iter_test_start;
 }
 
 extern "C" void AsterX_SetdBstagnMinus1(CCTK_ARGUMENTS) {
@@ -275,82 +234,50 @@ extern "C" void AsterX_DecdBstagIter(CCTK_ARGUMENTS) {
   *dBstag_pv_iter -= 1;
 
   int minghosts = min(cctk_nghostzones[0], min(cctk_nghostzones[1], cctk_nghostzones[2]));
-  if (*dBstag_pv_iter && ((n_dBstagpv_iters - *dBstag_pv_iter) % minghosts == 0))  {
+  if (*dBstag_pv_iter==0 || ((1 + cctk_iteration - iter_test_start - *dBstag_pv_iter) % minghosts == 0))  {
     static const std::vector<int> groups = {CCTK_GroupIndex("AsterX::dBx_stag"),
                                         CCTK_GroupIndex("AsterX::dBy_stag"),
                                         CCTK_GroupIndex("AsterX::dBz_stag")};
 
-    SyncGroupsByDirISubcycling(cctkGH, groups.size(), groups.data(), nullptr);
+    SyncGroupsByDirIGhostOnly(cctkGH, groups.size(), groups.data(), nullptr);
+    // if (use_subcycling)
+    //   SyncGroupsByDirISubcycling(cctkGH, groups.size(), groups.data(), nullptr);
+    // else
+    //   SyncGroupsByDirI(cctkGH, groups.size(), groups.data(), nullptr);
   }
 }
 /* End Point Value dBstag Calculation */
-
-// extern "C" void AsterX_ComputedBstagLO(CCTK_ARGUMENTS) {
-//   DECLARE_CCTK_ARGUMENTSX_AsterX_ComputedBstagLO;
-//   DECLARE_CCTK_PARAMETERS;
-// 
-//   ComputeStaggeredB_LO<0>(cctkGH);
-//   ComputeStaggeredB_LO<1>(cctkGH);
-//   ComputeStaggeredB_LO<2>(cctkGH);
-// }
-
-// extern "C" void AsterX_ComputedBFromdBstag(CCTK_ARGUMENTS) {
-//   DECLARE_CCTK_ARGUMENTSX_AsterX_ComputedBFromdBstag;
-//   DECLARE_CCTK_PARAMETERS;
-// 
-//   const int interp_order = use_ho_fv ? 4 : mag_correction_order;
-//   const int nloop = (interp_order - 2) / 2;
-//   grid.loop_allmn_device<1, 1, 1>(
-//       grid.nghostzones, nloop,
-//       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-//         /* Interpolation of staggered B components to cell center
-//          */
-//         dBx(p.I) = calc_avg_f2c(dBx_stag, p, 0, interp_order);
-//         dBy(p.I) = calc_avg_f2c(dBy_stag, p, 1, interp_order);
-//         dBz(p.I) = calc_avg_f2c(dBz_stag, p, 2, interp_order);
-//       });
-// 
-//   // Interpolate dB in boundaries/ghosts at lower order
-//   if (nloop != 0) {
-//     grid.loop_outer_n_device<1, 1, 1>(
-//         grid.nghostzones, nloop,
-//         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-//           /* Interpolation of staggered B components to cell center
-//            */
-//           dBx(p.I) = calc_avg_f2c(dBx_stag, p, 0, 2);
-//           dBy(p.I) = calc_avg_f2c(dBy_stag, p, 1, 2);
-//           dBz(p.I) = calc_avg_f2c(dBz_stag, p, 2, 2);
-//         });
-//   }
-// }
 
 // Fall back to 2nd order interpolation from faces to cell centers if requested
 extern "C" void AsterX_ComputedBFromdBstag(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_ComputedBFromdBstag;
   DECLARE_CCTK_PARAMETERS;
 
-  const int nloop = 2;
+  const int interp_order = use_ho_fv ? 4 : mag_correction_order;
+  const int nloop = (interp_order - 2) / 2;
   grid.loop_allmn_device<1, 1, 1>(
       grid.nghostzones, nloop,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         /* Interpolation of staggered B components to cell center
          */
-        const int ordL = (LOflag(p.I) && shock_Bstag_fallback) ? 2 : 4;
+        const int ordL = ((LOflag(p.I) > 0.0) && shock_Bstag_fallback) ? 2 : interp_order;
         dBx(p.I) = calc_avg_f2c(dBx_stag, p, 0, ordL);
         dBy(p.I) = calc_avg_f2c(dBy_stag, p, 1, ordL);
         dBz(p.I) = calc_avg_f2c(dBz_stag, p, 2, ordL);
       });
 
   // Interpolate dB in boundaries/ghosts at lower order
-  grid.loop_outer_n_device<1, 1, 1>(
-      grid.nghostzones, nloop,
-      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        /* Interpolation of staggered B components to cell center
-         */
-        dBx(p.I) = calc_avg_f2c(dBx_stag, p, 0, 2);
-        dBy(p.I) = calc_avg_f2c(dBy_stag, p, 1, 2);
-        dBz(p.I) = calc_avg_f2c(dBz_stag, p, 2, 2);
-      });
+  if (nloop != 0) {
+    grid.loop_outer_n_device<1, 1, 1>(
+        grid.nghostzones, nloop,
+        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+          /* Interpolation of staggered B components to cell center
+           */
+          dBx(p.I) = calc_avg_f2c(dBx_stag, p, 0, 2);
+          dBy(p.I) = calc_avg_f2c(dBy_stag, p, 1, 2);
+          dBz(p.I) = calc_avg_f2c(dBz_stag, p, 2, 2);
+        });
+  }
 }
 
 extern "C" void AsterX_ComputeBFromdB(CCTK_ARGUMENTS) {

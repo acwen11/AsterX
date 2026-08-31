@@ -104,7 +104,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
   const vec<GF3D2<CCTK_REAL>, dim> am_face{amin_xface, amin_yface, amin_zface};
 
   /* grid functions for PP flux limiter */
-  const vec<GF3D2<CCTK_REAL>, dim> gf_theta{theta_x, theta_y, theta_z};
+  // const vec<GF3D2<CCTK_REAL>, dim> gf_theta{theta_x, theta_y, theta_z};
 
   static_assert(dir_i >= 0 && dir_i < 3, "");
 
@@ -180,7 +180,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
         vbar_j(dir_i)(p.I) = 0;
         vbar_k(dir_i)(p.I) = 0;
 
-        gf_theta(dir_i)(p.I) = 1.0;
+        // gf_theta(dir_i)(p.I) = 1.0;
       });
 
   //if (use_ho_fv) { nloop = 1;}
@@ -299,7 +299,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
     // End atmosphere
 
     // Check shock detection flag
-    flag = (LOflag(p.I) || LOflag(p.I - p.DI[dir_i]));
+    flag = ((LOflag(p.I) > 0.0) || (LOflag(p.I - p.DI[dir_i]) > 0.0));
     if (shock_recon_fallback && flag)
       useLO = true;
 
@@ -738,6 +738,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
     const bool ppl_atmo = ((rho_ppl(0) <= rho_atm(0) * (1 + atmo_tol)) &&
                            (rho_ppl(1) <= rho_atm(1) * (1 + atmo_tol)));
 
+    CCTK_REAL theta_uct; // Save PPL theta for UCT reconstruction
     if (use_pplim && !ppl_atmo) {
 
       /* BEGIN REPEATED RECONSTRUCTION CODE */
@@ -1015,9 +1016,11 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
           (1 - theta) * fluxLOmomzs + theta * fluxmomzs(dir_i)(Ip);
       fluxtaus(dir_i)(Ip) =
           (1 - theta) * fluxLOtaus + theta * fluxtaus(dir_i)(Ip);
-      gf_theta(dir_i)(Ip) = theta;
+      // gf_theta(dir_i)(Ip) = theta;
+      theta_uct = theta;
     } else {
-      gf_theta(dir_i)(p.I) = 1.0;
+      // gf_theta(dir_i)(p.I) = 1.0;
+      theta_uct = 1.0;
     }
 
 #ifdef CCTK_DEBUG
@@ -1129,7 +1132,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
     const CCTK_REAL vj_face = avg_upwind(vjL, vjR, ap, am);
     const CCTK_REAL vk_face = avg_upwind(vkL, vkR, ap, am);
 
-    const CCTK_REAL theta_uct = gf_theta(dir_i)(p.I);
+    // const CCTK_REAL theta_uct = gf_theta(dir_i)(p.I);
     vbar_j(dir_i)(p.I) =
         theta_uct * vj_face +
         (1.0 - theta_uct) * 0.5 *

@@ -140,7 +140,7 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
   const auto calcupdate_hydro =
       [=] CCTK_DEVICE(const vec<GF3D2<const CCTK_REAL>, dim> &gf_fluxes,
                       const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        if (use_ho_fv && !LOflag(p.I)) {
+        if (use_ho_fv && (LOflag(p.I) == 0.0)) {
           vec<CCTK_REAL, 3> dfluxes{calc_FV_flux<0>(gf_fluxes(0), p),
                                     calc_FV_flux<1>(gf_fluxes(1), p),
                                     calc_FV_flux<2>(gf_fluxes(2), p)};
@@ -169,12 +169,12 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
         DYe_rhs(p.I) += calcupdate_hydro(gf_fDYe, p);
 
         // Diagnostic only, save min(theta)
-        theta_tot(p.I) = 1.0;
-        for (int ii = 0; ii < 3; ii++)
-          theta_tot(p.I) =
-              min({theta_tot(p.I), theta_x(p.I), theta_x(p.I + p.DI[ii]),
-                   theta_y(p.I), theta_y(p.I + p.DI[ii]), theta_z(p.I),
-                   theta_z(p.I + p.DI[ii])});
+        // theta_tot(p.I) = 1.0;
+        // for (int ii = 0; ii < 3; ii++)
+        //   theta_tot(p.I) =
+        //       min({theta_tot(p.I), theta_x(p.I), theta_x(p.I + p.DI[ii]),
+        //            theta_y(p.I), theta_y(p.I + p.DI[ii]), theta_z(p.I),
+        //            theta_z(p.I + p.DI[ii])});
 
 #ifdef CCTK_DEBUG
         if (isnan(densrhs(p.I))) {

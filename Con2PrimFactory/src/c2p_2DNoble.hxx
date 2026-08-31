@@ -572,14 +572,14 @@ c2p_2DNoble::solve(const EOSType *eos_3p, prim_vars &pv, prim_vars &pv_seeds,
     return;
   }
 
+  c2p::prims_floors_and_ceilings(eos_3p, pv, cv, alp, beta, glo, rep);
+
   // set to atmo if computed rho is below floor density
   if (pv.rho < atmo.rho_cut) {
     rep.set_atmo_set();
     atmo.set(pv, cv, glo);
     return;
   }
-
-  c2p::prims_floors_and_ceilings(eos_3p, pv, cv, alp, beta, glo, rep);
 
   // Recompute cons if prims have been adjusted
   if (rep.adjust_cons) {
