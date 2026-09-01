@@ -271,18 +271,11 @@ extern "C" void AsterX_DecdBstagIter(CCTK_ARGUMENTS) {
   *dBstag_pv_iter -= 1;
 
   int minghosts = min(cctk_nghostzones[0], min(cctk_nghostzones[1], cctk_nghostzones[2]));
-  static const std::vector<int> groups = {CCTK_GroupIndex("AsterX::dBx_stag"),
-                                      CCTK_GroupIndex("AsterX::dBy_stag"),
-                                      CCTK_GroupIndex("AsterX::dBz_stag")};
-  // Full sync once inversion finishes
-  if (*dBstag_pv_iter==0) {
-    if (use_subcycling)
-      SyncGroupsByDirISubcycling(cctkGH, groups.size(), groups.data(), nullptr);
-    else
-      SyncGroupsByDirI(cctkGH, groups.size(), groups.data(), nullptr);
-  }
-  else if ((cctk_iteration - iter_test_start - *dBstag_pv_iter) % minghosts == 0)  {
-    // Otherwise, only communicate interior ghosts
+  if (*dBstag_pv_iter==0 || ((1 + cctk_iteration - iter_test_start - *dBstag_pv_iter) % minghosts == 0))  {
+    static const std::vector<int> groups = {CCTK_GroupIndex("AsterX::dBx_stag"),
+                                        CCTK_GroupIndex("AsterX::dBy_stag"),
+                                        CCTK_GroupIndex("AsterX::dBz_stag")};
+
     SyncGroupsByDirIGhostOnly(cctkGH, groups.size(), groups.data(), nullptr);
   }
 }
