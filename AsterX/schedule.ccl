@@ -9,7 +9,7 @@ STORAGE: Psi[timelevels]
 STORAGE: rhs_vector Avec_x_rhs Avec_y_rhs Avec_z_rhs Psi_rhs
 STORAGE: flux_x flux_y flux_z
 
-STORAGE: dB dBx_stag[2] dBy_stag[2] dBz_stag[2]
+STORAGE: dB[2] dBx_stag dBy_stag dBz_stag
 STORAGE: G Fbeta Fx_stag Fy_stag Fz_stag
 STORAGE: Ex Ey Ez
 STORAGE: vbar_xface vbar_yface vbar_zface
@@ -101,6 +101,7 @@ if (!use_ho_fv) {
   SCHEDULE AsterX_ComputedBstagIter IN AsterX_dBstagPVSolve AFTER AsterX_SetdBstagnMinus1 
   {
     LANG: C
+    READS: dBstag_pv_iter(everywhere)
     READS: dBx_stag_fa(everywhere) dBy_stag_fa(everywhere) dBz_stag_fa(everywhere)
     # Flux GFs only used as a temporary helper
     READS: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
@@ -129,7 +130,8 @@ SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_InitialGroup AFTER AsterX_Computed
   LANG: C
   READS: LOflag(everywhere)
   READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
-  WRITES: dB(everywhere)
+  WRITES: dB(interior)
+  SYNC: dB
 } "Calculate centered dB from dBstag"
 
 # Extra interprocessor syncs only for higher order stencils
@@ -345,7 +347,7 @@ SCHEDULE AsterX_Sync AT postregrid BEFORE ODESolvers_PostStep
   OPTIONS: global
   SYNC: cons_vector Avec_x Avec_y Avec_z Psi
   SYNC: saved_prims LOflag cons_vector_pv
-  SYNC: dBx_stag dBy_stag dBz_stag
+  SYNC: dB
 } "Synchronize"
 
 SCHEDULE AsterX_Sync IN ODESolvers_PostStep
@@ -360,7 +362,7 @@ SCHEDULE AsterX_Sync AT post_recover_variables BEFORE ODESolvers_PostStep AFTER 
   LANG: C
   OPTIONS: global
   SYNC: saved_prims LOflag cons_vector_pv
-  SYNC: dBx_stag dBy_stag dBz_stag
+  SYNC: dB
 } "Synchronize checkpointed but non-evolved variables"
 
 SCHEDULE GROUP AsterX_Con2PrimGroup IN ODESolvers_PostStep BEFORE TmunuBaseX_SetTmunuVars AFTER AsterX_Sync
@@ -410,7 +412,8 @@ SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_Con2PrimGroup AFTER AsterX_Compute
   LANG: C
   READS: LOflag(everywhere)
   READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
-  WRITES: dB(everywhere)
+  WRITES: dB(interior)
+  SYNC: dB
 } "Calculate centered dB from dBstag"
 
 # Extra interprocessor syncs only for higher order stencils

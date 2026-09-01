@@ -120,6 +120,11 @@ CCTK_INT n_dBstagpv_iters "Number of times to iteratively correct dBstag point v
   1:* :: "1 = only calculate from <dBstag>, greater = use Taylor expansion"
 } 5
 
+CCTK_INT dBstag_iter_loopswitch "Switch to interior loops after this many dBstag solve iterations" STEERABLE=always
+{
+  0:* :: "any positive number"
+} 9999
+
 CCTK_INT n_conspv_iters "Number of times to iteratively correct cons point value" STEERABLE=always
 {
   1:* :: "1 = only calculate from <U>, greater = use Taylor expansion"

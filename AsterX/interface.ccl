@@ -105,16 +105,16 @@ CCTK_REAL Avec_z_rhs TYPE=gf CENTERING={vvc} TAGS='checkpoint="no"' "z-component
 
 # ----- cell-centered magnetic field
 
-CCTK_REAL dB TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
+CCTK_REAL dB TIMELEVELS=2 TYPE=gf CENTERING={ccc} TAGS='checkpoint="yes" evolve="no" prolongation_type="hermite" prolongation_order=5'
 {
   dBx, dBy, dBz
 } "Densitized magnetic field components: sqrt(det(gamma_ij))*B^k"
 
 # ----- staggered magnetic field (faces)
 
-CCTK_REAL dBx_stag TYPE=gf TIMELEVELS=2 CENTERING={vcc} TAGS='parities={+1 -1 -1} checkpoint="yes" evolve="no" prolongation_type="hermite" prolongation_order=5' "x-component of staggered densitized magnetic field"
-CCTK_REAL dBy_stag TYPE=gf TIMELEVELS=2 CENTERING={cvc} TAGS='parities={-1 +1 -1} checkpoint="yes" evolve="no" prolongation_type="hermite" prolongation_order=5' "y-component of staggered densitized magnetic field"
-CCTK_REAL dBz_stag TYPE=gf TIMELEVELS=2 CENTERING={ccv} TAGS='parities={-1 -1 +1} checkpoint="yes" evolve="no" prolongation_type="hermite" prolongation_order=5' "z-component of staggered densitized magnetic field"
+CCTK_REAL dBx_stag TYPE=gf CENTERING={vcc} TAGS='parities={+1 -1 -1} checkpoint="no"' "x-component of staggered densitized magnetic field"
+CCTK_REAL dBy_stag TYPE=gf CENTERING={cvc} TAGS='parities={-1 +1 -1} checkpoint="no"' "y-component of staggered densitized magnetic field"
+CCTK_REAL dBz_stag TYPE=gf CENTERING={ccv} TAGS='parities={-1 -1 +1} checkpoint="no"' "z-component of staggered densitized magnetic field"
 
 # ----- staggered face-averaged magnetic field used only for HO FV. dBi_stag above is then promoted to 4th order
 # point values. Note that these are the primary representations of the magnetic field, and will be divergence free to roundoff

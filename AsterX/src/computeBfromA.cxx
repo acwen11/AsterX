@@ -183,6 +183,33 @@ template <int dir> void ComputeStaggeredPointValB(CCTK_ARGUMENTS) {
       });
 }
 
+template <int dir> void ComputeStaggeredPointValB_Int(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_ComputedBstagIter;
+  DECLARE_CCTK_PARAMETERS;
+
+  static_assert(dir >= 0 && dir < 3, "");
+
+  constexpr array<int, dim> face_centred = {!(dir == 0), !(dir == 1),
+                                            !(dir == 2)};
+
+  // Here, we have already computed the face averaged <dBi_stag> from <Avec>.
+  // Now, we use Equation 21 of https://arxiv.org/pdf/2310.11831 to compute the point value
+  // dBi_stag.
+  constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
+  grid.loop_int_device<face_centred[0], face_centred[1], face_centred[2]>(
+     grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        // Temporarily use flux GF as helper
+        if (dir == 0) {
+          dBx_stag(p.I) = dBx_stag_fa(p.I) - one_over_24 * laplace_perp<0>(fxdens, p);
+        } else if (dir == 1) {
+          dBy_stag(p.I) = dBy_stag_fa(p.I) - one_over_24 * laplace_perp<1>(fydens, p);
+        } else if (dir == 2) {
+          dBz_stag(p.I) = dBz_stag_fa(p.I) - one_over_24 * laplace_perp<2>(fzdens, p);
+        }
+      });
+}
+
 extern "C" void AsterX_ComputedBstagFromA(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_ComputedBstagFromA;
   DECLARE_CCTK_PARAMETERS;
@@ -222,9 +249,16 @@ extern "C" void AsterX_ComputedBstagIter(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_ComputedBstagIter;
   DECLARE_CCTK_PARAMETERS;
 
-  ComputeStaggeredPointValB<0>(cctkGH);
-  ComputeStaggeredPointValB<1>(cctkGH);
-  ComputeStaggeredPointValB<2>(cctkGH);
+  if (n_dBstagpv_iters - *dBstag_pv_iter >= dBstag_iter_loopswitch) {
+    ComputeStaggeredPointValB_Int<0>(cctkGH);
+    ComputeStaggeredPointValB_Int<1>(cctkGH);
+    ComputeStaggeredPointValB_Int<2>(cctkGH);
+  }
+  else {
+    ComputeStaggeredPointValB<0>(cctkGH);
+    ComputeStaggeredPointValB<1>(cctkGH);
+    ComputeStaggeredPointValB<2>(cctkGH);
+  }
 }
 
 extern "C" void AsterX_DecdBstagIter(CCTK_ARGUMENTS) {
@@ -239,10 +273,7 @@ extern "C" void AsterX_DecdBstagIter(CCTK_ARGUMENTS) {
                                         CCTK_GroupIndex("AsterX::dBy_stag"),
                                         CCTK_GroupIndex("AsterX::dBz_stag")};
 
-    if (use_subcycling)
-      SyncGroupsByDirISubcycling(cctkGH, groups.size(), groups.data(), nullptr);
-    else
-      SyncGroupsByDirI(cctkGH, groups.size(), groups.data(), nullptr);
+    SyncGroupsByDirIGhostOnly(cctkGH, groups.size(), groups.data(), nullptr);
   }
 }
 /* End Point Value dBstag Calculation */
@@ -253,9 +284,8 @@ extern "C" void AsterX_ComputedBFromdBstag(CCTK_ARGUMENTS) {
   DECLARE_CCTK_PARAMETERS;
 
   const int interp_order = use_ho_fv ? 4 : mag_correction_order;
-  const int nloop = (interp_order - 2) / 2;
-  grid.loop_allmn_device<1, 1, 1>(
-      grid.nghostzones, nloop,
+  grid.loop_int_device<1, 1, 1>(
+      grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         /* Interpolation of staggered B components to cell center
          */
@@ -266,17 +296,17 @@ extern "C" void AsterX_ComputedBFromdBstag(CCTK_ARGUMENTS) {
       });
 
   // Interpolate dB in boundaries/ghosts at lower order
-  if (nloop != 0) {
-    grid.loop_outer_n_device<1, 1, 1>(
-        grid.nghostzones, nloop,
-        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-          /* Interpolation of staggered B components to cell center
-           */
-          dBx(p.I) = calc_avg_f2c(dBx_stag, p, 0, 2);
-          dBy(p.I) = calc_avg_f2c(dBy_stag, p, 1, 2);
-          dBz(p.I) = calc_avg_f2c(dBz_stag, p, 2, 2);
-        });
-  }
+  // if (nloop != 0) {
+  //   grid.loop_outer_n_device<1, 1, 1>(
+  //       grid.nghostzones, nloop,
+  //       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+  //         /* Interpolation of staggered B components to cell center
+  //          */
+  //         dBx(p.I) = calc_avg_f2c(dBx_stag, p, 0, 2);
+  //         dBy(p.I) = calc_avg_f2c(dBy_stag, p, 1, 2);
+  //         dBz(p.I) = calc_avg_f2c(dBz_stag, p, 2, 2);
+  //       });
+  // }
 }
 
 extern "C" void AsterX_ComputeBFromdB(CCTK_ARGUMENTS) {
