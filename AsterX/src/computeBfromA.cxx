@@ -115,7 +115,7 @@ template <int dir> void SetdBstagnMinus1(CCTK_ARGUMENTS) {
   constexpr array<int, dim> face_centred = {!(dir == 0), !(dir == 1),
                                             !(dir == 2)};
 
-  if (*dBstag_pv_iter == 1 + cctk_iteration - iter_test_start) {
+  if (*dBstag_pv_iter == cctk_iteration - iter_test_start) {
     grid.loop_all_device<face_centred[0], face_centred[1], face_centred[2]>(
        grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
@@ -233,7 +233,8 @@ extern "C" void AsterX_SetdBstagIter(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_SetdBstagIter;
   DECLARE_CCTK_PARAMETERS;
 
-  *dBstag_pv_iter = 1 + cctk_iteration - iter_test_start;
+  *dBstag_pv_iter = cctk_iteration - iter_test_start;
+  CCTK_VINFO("iterating for %d iterations at iter %d", *dBstag_pv_iter, cctk_iteration);
 }
 
 extern "C" void AsterX_SetdBstagnMinus1(CCTK_ARGUMENTS) {
@@ -249,8 +250,7 @@ extern "C" void AsterX_ComputedBstagIter(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_ComputedBstagIter;
   DECLARE_CCTK_PARAMETERS;
 
-  const int minghosts = min(cctk_nghostzones[0], min(cctk_nghostzones[1], cctk_nghostzones[2]));
-  const int tot_niters =  1 + cctk_iteration - iter_test_start;
+  const int tot_niters = cctk_iteration - iter_test_start;
   const int elapsed_iters = tot_niters - *dBstag_pv_iter;
   if (elapsed_iters >= dBstag_iter_loopswitch) {
     ComputeStaggeredPointValB_Int<0>(cctkGH);
@@ -281,7 +281,7 @@ extern "C" void AsterX_DecdBstagIter(CCTK_ARGUMENTS) {
     else
       SyncGroupsByDirI(cctkGH, groups.size(), groups.data(), nullptr);
   }
-  else if ((1 + cctk_iteration - iter_test_start - *dBstag_pv_iter) % minghosts == 0)  {
+  else if ((cctk_iteration - iter_test_start - *dBstag_pv_iter) % minghosts == 0)  {
     // Otherwise, only communicate interior ghosts
     SyncGroupsByDirIGhostOnly(cctkGH, groups.size(), groups.data(), nullptr);
   }

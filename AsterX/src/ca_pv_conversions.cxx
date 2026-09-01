@@ -136,15 +136,14 @@ extern "C" void AsterX_SetConsIter(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_SetConsIter;
   DECLARE_CCTK_PARAMETERS;
 
-  *cons_pv_iter = 1 + cctk_iteration - iter_test_start;
-  CCTK_VINFO("iterating for %d iterations at iter %d", *cons_pv_iter, cctk_iteration);
+  *cons_pv_iter = cctk_iteration - iter_test_start;
 }
 
 extern "C" void AsterX_SetPVConsnMinus1(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_SetPVConsnMinus1;
   DECLARE_CCTK_PARAMETERS;
 
-  if (*cons_pv_iter == 1 + cctk_iteration - iter_test_start) {
+  if (*cons_pv_iter == cctk_iteration - iter_test_start) {
     grid.loop_all_device<1, 1, 1>(
        grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
@@ -217,7 +216,7 @@ extern "C" void AsterX_DecConsIter(CCTK_ARGUMENTS) {
   *cons_pv_iter -= 1;
 
   int minghosts = min(cctk_nghostzones[0], min(cctk_nghostzones[1], cctk_nghostzones[2]));
-  if (*cons_pv_iter==0 || ((1 + cctk_iteration - iter_test_start - *cons_pv_iter) % minghosts == 0))  {
+  if (*cons_pv_iter==0 || ((cctk_iteration - iter_test_start - *cons_pv_iter) % minghosts == 0))  {
     static const std::vector<int> groups = {CCTK_GroupIndex("AsterX::cons_vector_pv")};
 
     if (use_subcycling)
