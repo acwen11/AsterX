@@ -181,7 +181,7 @@ if (CCTK_Equals(test_type, "3DTest")) {
         SYNC: AsterX::cons_vector AsterX::dB
       } "Update cons after setting initial beta"
 
-      SCHEDULE GROUP TmunuBaseX_SetTmunuVars IN Seeding_Tasks AFTER AsterX_Con2PrimGroup 
+      SCHEDULE GROUP TmunuBaseX_SetTmunuVars IN Seeding_Tasks AFTER AsterX_Prim2Con_Initial
       {
       } "Recompute Tmunu" 
     }
