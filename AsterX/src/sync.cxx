@@ -102,7 +102,6 @@ extern "C" void AsterX_CommdBstag(CCTK_ARGUMENTS) {
                                           CCTK_GroupIndex("AsterX::dBy_stag"),
                                           CCTK_GroupIndex("AsterX::dBz_stag")};
 
-  //SyncGroupsByDirIGhostOnly(cctkGH, groups.size(), groups.data(), nullptr);
   if (use_subcycling)
     SyncGroupsByDirISubcycling(cctkGH, groups.size(), groups.data(), nullptr);
   else
@@ -113,7 +112,6 @@ extern "C" void AsterX_CommdB(CCTK_ARGUMENTS) {
   DECLARE_CCTK_PARAMETERS;
   static const std::vector<int> groups = {CCTK_GroupIndex("AsterX::dB")};
 
-  //SyncGroupsByDirIGhostOnly(cctkGH, groups.size(), groups.data(), nullptr);
   if (use_subcycling)
     SyncGroupsByDirISubcycling(cctkGH, groups.size(), groups.data(), nullptr);
   else

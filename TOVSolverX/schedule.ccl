@@ -81,41 +81,6 @@ if (TOV_Cowling) {
     SYNC: ADMBaseX::metric ADMBaseX::lapse ADMBaseX::shift ADMBaseX::curv
     SYNC: ADMBaseX::dtlapse ADMBaseX::dtshift
   } "Interpolate metric from cell center to vertex"
-
-  schedule TOVX_C_Exact_ADM IN CCTK_POST_RECOVER_VARIABLES BEFORE ODESolvers_PostStep
-  {
-    LANG: C
-    WRITES: metric_cell(interior)
-    WRITES: lapse_cell(interior)
-    WRITES: shift_cell(interior)
-    WRITES: curv_cell(interior)
-    WRITES: dtlapse_cell(interior)
-    WRITES: dtshift_cell(interior)
-
-    SYNC: metric_cell lapse_cell shift_cell curv_cell
-    SYNC: dtlapse_cell dtshift_cell
-  } "Set values for ADM variables of TOV"
-
-  schedule TOVX_C_Exact_ADM_Interpolation_C2V IN CCTK_POST_RECOVER_VARIABLES BEFORE ODESolvers_PostStep AFTER TOVX_C_Exact_ADM
-  {
-    LANG: C
-    READS: metric_cell(everywhere)
-    READS: lapse_cell(everywhere)
-    READS: shift_cell(everywhere)
-    READS: curv_cell(everywhere)
-    READS: dtlapse_cell(everywhere)
-    READS: dtshift_cell(everywhere)
-
-    WRITES: ADMBaseX::metric(interior)
-    WRITES: ADMBaseX::lapse(interior)
-    WRITES: ADMBaseX::shift(interior)
-    WRITES: ADMBaseX::curv(interior)
-    WRITES: ADMBaseX::dtlapse(interior)
-    WRITES: ADMBaseX::dtshift(interior)
-
-    SYNC: ADMBaseX::metric ADMBaseX::lapse ADMBaseX::shift ADMBaseX::curv
-    SYNC: ADMBaseX::dtlapse ADMBaseX::dtshift
-  } "Interpolate metric from cell center to vertex"
 }
 
 schedule TOVX_C_Exact IN HydroBaseX_InitialData
