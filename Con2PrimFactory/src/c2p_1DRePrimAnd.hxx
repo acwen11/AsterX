@@ -280,8 +280,9 @@ public:
     // set to atmo if computed rho is below floor density
     // and atmo obeys magnetic field limits
     const CCTK_REAL b2_atm = calc_norm(pv.Bvec, glo);
-
-    if (pv.rho < atmo.rho_cut && (b2_atm / atmo.rho_atmo <= sigma_max && b2_atm / (2.0 * atmo.press_atmo) <= inv_beta_max)) {
+    if (pv.rho < atmo.rho_cut &&
+        (b2_atm / atmo.rho_atmo <= sigma_max &&
+         b2_atm / (2.0 * atmo.press_atmo) <= inv_beta_max)) {
       rep.set_atmo_set();
       atmo.set(pv, cv, glo);
       return;
