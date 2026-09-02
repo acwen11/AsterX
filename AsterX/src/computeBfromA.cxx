@@ -159,13 +159,18 @@ template <int dir> void ComputeStaggeredPointValB(CCTK_ARGUMENTS) {
   grid.loop_allmn_device<face_centred[0], face_centred[1], face_centred[2]>(
      grid.nghostzones, 1,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        const auto int_m1 =  
+            vect<int,dim>(p.I < p.loop_max - 1) - vect<int,dim>(p.I > p.loop_min);
         // Temporarily use flux GF as helper
         if (dir == 0) {
           dBx_stag(p.I) = dBx_stag_fa(p.I) - one_over_24 * laplace_perp<0>(fxdens, p);
+          //dBx_stag(p.I) = dBx_stag_fa(p.I) - one_over_24 * (int_m1[1]*laplace_1d<1>(fxdens, p) + int_m1[2]*laplace_1d<2>(fxdens, p));
         } else if (dir == 1) {
           dBy_stag(p.I) = dBy_stag_fa(p.I) - one_over_24 * laplace_perp<1>(fydens, p);
+          //dBy_stag(p.I) = dBy_stag_fa(p.I) - one_over_24 * (int_m1[0]*laplace_1d<0>(fydens, p) + int_m1[2]*laplace_1d<2>(fydens, p));
         } else if (dir == 2) {
           dBz_stag(p.I) = dBz_stag_fa(p.I) - one_over_24 * laplace_perp<2>(fzdens, p);
+          //dBz_stag(p.I) = dBz_stag_fa(p.I) - one_over_24 * (int_m1[0]*laplace_1d<0>(fzdens, p) + int_m1[1]*laplace_1d<1>(fzdens, p));
         }
       });
 
@@ -271,7 +276,7 @@ extern "C" void AsterX_DecdBstagIter(CCTK_ARGUMENTS) {
   *dBstag_pv_iter -= 1;
 
   int minghosts = min(cctk_nghostzones[0], min(cctk_nghostzones[1], cctk_nghostzones[2]));
-  if (*dBstag_pv_iter==0 || ((1 + cctk_iteration - iter_test_start - *dBstag_pv_iter) % minghosts == 0))  {
+  if (*dBstag_pv_iter==0 || ((cctk_iteration - iter_test_start - *dBstag_pv_iter) % (minghosts - 1) == 0))  {
     static const std::vector<int> groups = {CCTK_GroupIndex("AsterX::dBx_stag"),
                                         CCTK_GroupIndex("AsterX::dBy_stag"),
                                         CCTK_GroupIndex("AsterX::dBz_stag")};
