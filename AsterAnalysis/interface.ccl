@@ -20,3 +20,7 @@ CCTK_REAL mhd_spherical TYPE=gf CENTERING={ccc} tags='checkpoint="no"'
 {
 Brho, Btheta, Bphi, B_Poloidal_norm, B_Toroidal_norm, mean_B_Tor_numerator, mean_B_Tor_denominator, mean_B_Pol_numerator
 } "For decomposition of B field into toroidal (phi) and poloidal parts"
+
+CCTK_REAL dBx_stag_err TYPE=gf CENTERING={vcc} TAGS='parities={+1 -1 -1} checkpoint="no"' "x-component of staggered densitized magnetic field"
+CCTK_REAL dBy_stag_err TYPE=gf CENTERING={cvc} TAGS='parities={-1 +1 -1} checkpoint="no"' "y-component of staggered densitized magnetic field"
+CCTK_REAL dBz_stag_err TYPE=gf CENTERING={ccv} TAGS='parities={-1 -1 +1} checkpoint="no"' "z-component of staggered densitized magnetic field"

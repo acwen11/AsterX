@@ -29,6 +29,7 @@ if (compute_MHD) {
 
   if (use_ho_fv) {
     STORAGE: mhd_analysis_hofv
+    STORAGE: dBx_stag_err dBy_stag_err dBz_stag_err
     SCHEDULE AsterAnalysis_HOFV AT analysis
     {
       LANG: C
@@ -44,6 +45,7 @@ if (compute_MHD) {
       READS: AsterX::tau_pv(everywhere)
       READS: AsterX::LOflag(everywhere)
       WRITES: mhd_analysis_hofv(interior)
+      WRITES: dBx_stag_err(interior) dBy_stag_err(interior) dBz_stag_err(interior)
     }
     "Compute MHD analysis quantities"
   }

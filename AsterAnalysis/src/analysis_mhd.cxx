@@ -193,6 +193,30 @@ extern "C" void AsterAnalysis_MHD(CCTK_ARGUMENTS) {
       }); /* end grid loop */
 }
 
+template <int dir> void ComputedBstag_err(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterAnalysis_HOFV;
+  DECLARE_CCTK_PARAMETERS;
+
+  static_assert(dir >= 0 && dir < 3, "");
+
+  constexpr array<int, dim> face_centred = {!(dir == 0), !(dir == 1),
+                                            !(dir == 2)};
+
+  constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
+  grid.loop_int_device<face_centred[0], face_centred[1], face_centred[2]>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        // Temporarily use flux GF as helper
+        if (dir == 0) {
+          dBx_stag_err(p.I) = dBx_stag_fa(p.I) - (dBx_stag(p.I) + one_over_24 * laplace_perp<0>(dBx_stag, p));
+        } else if (dir == 1) {
+          dBy_stag_err(p.I) = dBy_stag_fa(p.I) - (dBy_stag(p.I) + one_over_24 * laplace_perp<1>(dBy_stag, p));
+        } else if (dir == 2) {
+          dBz_stag_err(p.I) = dBz_stag_fa(p.I) - (dBz_stag(p.I) + one_over_24 * laplace_perp<2>(dBz_stag, p));
+        }
+  });
+}
+
 extern "C" void AsterAnalysis_HOFV(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterAnalysis_HOFV;
   DECLARE_CCTK_PARAMETERS;
@@ -244,5 +268,9 @@ extern "C" void AsterAnalysis_HOFV(CCTK_ARGUMENTS) {
         flag_weight(p.I) = (!LOflag(p.I)) * dens(p.I);
 
       }); /* end grid loop */
+
+  ComputedBstag_err<0>(cctkGH);
+  ComputedBstag_err<1>(cctkGH);
+  ComputedBstag_err<2>(cctkGH);
 }
 } /* namespace AsterAnalysis */
