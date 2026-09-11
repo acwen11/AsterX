@@ -188,6 +188,7 @@ template <int dir> void ComputeStaggeredPointValB(CCTK_ARGUMENTS) {
   //     });
 }
 
+/*
 template <int dir> void ComputeStaggeredPointValB_Int(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_ComputedBstagIter;
   DECLARE_CCTK_PARAMETERS;
@@ -214,6 +215,7 @@ template <int dir> void ComputeStaggeredPointValB_Int(CCTK_ARGUMENTS) {
         }
       });
 }
+*/
 
 extern "C" void AsterX_ComputedBstagFromA(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_ComputedBstagFromA;
@@ -254,16 +256,9 @@ extern "C" void AsterX_ComputedBstagIter(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_ComputedBstagIter;
   DECLARE_CCTK_PARAMETERS;
 
-  if (n_dBstagpv_iters - *dBstag_pv_iter >= dBstag_iter_loopswitch) {
-    ComputeStaggeredPointValB_Int<0>(cctkGH);
-    ComputeStaggeredPointValB_Int<1>(cctkGH);
-    ComputeStaggeredPointValB_Int<2>(cctkGH);
-  }
-  else {
-    ComputeStaggeredPointValB<0>(cctkGH);
-    ComputeStaggeredPointValB<1>(cctkGH);
-    ComputeStaggeredPointValB<2>(cctkGH);
-  }
+  ComputeStaggeredPointValB<0>(cctkGH);
+  ComputeStaggeredPointValB<1>(cctkGH);
+  ComputeStaggeredPointValB<2>(cctkGH);
 }
 
 extern "C" void AsterX_DecdBstagIter(CCTK_ARGUMENTS) {
