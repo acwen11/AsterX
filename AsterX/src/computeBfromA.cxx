@@ -268,14 +268,14 @@ extern "C" void AsterX_DecdBstagIter(CCTK_ARGUMENTS) {
   *dBstag_pv_iter -= 1;
 
   int minghosts = min(cctk_nghostzones[0], min(cctk_nghostzones[1], cctk_nghostzones[2]));
-  if (*dBstag_pv_iter==0 || ((n_dBstagpv_iters - *dBstag_pv_iter) % minghosts == 0))  {
-    CCTK_VINFO("Communicating dBstag at solve iter %d", *dBstag_pv_iter);
-    static const std::vector<int> groups = {CCTK_GroupIndex("AsterX::dBx_stag"),
-                                        CCTK_GroupIndex("AsterX::dBy_stag"),
-                                        CCTK_GroupIndex("AsterX::dBz_stag")};
+  //if (*dBstag_pv_iter==0 || ((n_dBstagpv_iters - *dBstag_pv_iter) % minghosts == 0))  {
+   // CCTK_VINFO("Communicating dBstag at solve iter %d", *dBstag_pv_iter);
+  static const std::vector<int> groups = {CCTK_GroupIndex("AsterX::dBx_stag"),
+                                      CCTK_GroupIndex("AsterX::dBy_stag"),
+                                      CCTK_GroupIndex("AsterX::dBz_stag")};
 
-    SyncGroupsByDirIGhostOnly(cctkGH, groups.size(), groups.data(), nullptr);
-  }
+  SyncGroupsByDirIGhostOnly(cctkGH, groups.size(), groups.data(), nullptr);
+  //}
 }
 /* End Point Value dBstag Calculation */
 
