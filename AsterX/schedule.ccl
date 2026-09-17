@@ -91,9 +91,9 @@ if (!use_ho_fv) {
   SCHEDULE AsterX_SetdBstagnMinus1 IN AsterX_dBstagPVSolve 
   {
     LANG: C
+    READS: dBstag_pv_iter(everywhere)
     READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
     READS: dBx_stag_fa(everywhere) dBy_stag_fa(everywhere) dBz_stag_fa(everywhere)
-    READS: dBstag_pv_iter(everywhere)
     # Flux GFs only used as a temporary helper
     WRITES: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
   } "Set previous dBstag"

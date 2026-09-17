@@ -152,9 +152,6 @@ template <int dir> void ComputeStaggeredPointValB(CCTK_ARGUMENTS) {
   constexpr array<int, dim> face_centred = {!(dir == 0), !(dir == 1),
                                             !(dir == 2)};
 
-  // Here, we have already computed the face averaged <dBi_stag> from <Avec>.
-  // Now, we use Equation 21 of https://arxiv.org/pdf/2310.11831 to compute the point value
-  // dBi_stag.
   constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
   grid.loop_int_device<face_centred[0], face_centred[1], face_centred[2]>(
      grid.nghostzones,
@@ -167,6 +164,23 @@ template <int dir> void ComputeStaggeredPointValB(CCTK_ARGUMENTS) {
           dBz_stag(p.I) = dBz_stag_fa(p.I) - one_over_24 * laplace_perp<2>(fzdens, p);
         }
       });
+
+  // For the final iteration, use a slightly better estimate in outer boundaries and refinement ghosts
+  // (interprocess ghosts will be filled by a sync) for the outermost interior cell centered
+  // dB.
+  if (*dBstag_pv_iter == 1) {
+    grid.loop_ghostsm1_device<face_centred[0], face_centred[1], face_centred[2]>(
+       grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+          if (dir == 0) {
+            dBx_stag(p.I) = dBx_stag_fa(p.I) - one_over_24 * laplace_perp<0>(dBx_stag_fa, p);
+          } else if (dir == 1) {
+            dBy_stag(p.I) = dBy_stag_fa(p.I) - one_over_24 * laplace_perp<1>(dBy_stag_fa, p);
+          } else if (dir == 2) {
+            dBz_stag(p.I) = dBz_stag_fa(p.I) - one_over_24 * laplace_perp<2>(dBz_stag_fa, p);
+          }
+        });
+  }
 }
 
 extern "C" void AsterX_ComputedBstagFromA(CCTK_ARGUMENTS) {
