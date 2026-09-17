@@ -77,6 +77,19 @@ if (!use_ho_fv) {
     WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
   } "Calculate <dBstag> from curl of <A>"
 
+  SCHEDULE AsterX_SetStagIndicator IN AsterX_InitialGroup BEFORE AsterX_dBstagPVSolve
+  {
+    LANG: C
+    # a_i GFs only used as a temporary helper
+    WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
+  } "Mark which ghosts are interprocess boundaries"
+
+  SCHEDULE AsterX_CommIndicator IN AsterX_InitialGroup AFTER AsterX_SetStagIndicator BEFORE AsterX_dBstagPVSolve
+  {
+    LANG: C
+    OPTIONS: global
+  } "Communicate indicator"
+
   SCHEDULE AsterX_SetdBstagIter IN AsterX_InitialGroup AFTER AsterX_ComputeAvgdBstagFromAvgA 
   {
     LANG: C
@@ -94,8 +107,8 @@ if (!use_ho_fv) {
     READS: dBstag_pv_iter(everywhere)
     READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
     READS: dBx_stag_fa(everywhere) dBy_stag_fa(everywhere) dBz_stag_fa(everywhere)
-    # Flux GFs only used as a temporary helper
-    WRITES: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
+    # a_i GFs only used as a temporary helper
+    WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
   } "Set previous dBstag"
 
   SCHEDULE AsterX_ComputedBstagIter IN AsterX_dBstagPVSolve AFTER AsterX_SetdBstagnMinus1 
@@ -103,8 +116,8 @@ if (!use_ho_fv) {
     LANG: C
     READS: dBstag_pv_iter(everywhere)
     READS: dBx_stag_fa(everywhere) dBy_stag_fa(everywhere) dBz_stag_fa(everywhere)
-    # Flux GFs only used as a temporary helper
-    READS: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
+    # a_i GFs only used as a temporary helper
+    WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
     WRITES: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
   } "Iterate dBstag"
 
@@ -392,6 +405,19 @@ if (!use_ho_fv) {
     OPTIONS: global
     WRITES: dBstag_pv_iter(everywhere)
   } "Start counter for dBstag iterative calculation"
+
+  SCHEDULE AsterX_SetStagIndicator IN AsterX_Con2PrimGroup BEFORE AsterX_dBstagPVSolve
+  {
+    LANG: C
+    # a_i GFs only used as a temporary helper
+    WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
+  } "Mark which ghosts are interprocess boundaries"
+
+  SCHEDULE AsterX_CommIndicator IN AsterX_Con2PrimGroup AFTER AsterX_SetStagIndicator BEFORE AsterX_dBstagPVSolve
+  {
+    LANG: C
+    OPTIONS: global
+  } "Communicate indicator"
 
   SCHEDULE GROUP AsterX_dBstagPVSolve IN AsterX_Con2PrimGroup AFTER AsterX_SetdBstagIter WHILE AsterX::dBstag_pv_iter
   {
