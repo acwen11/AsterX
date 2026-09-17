@@ -110,9 +110,10 @@ extern "C" void AsterX_GaugeCorrectAvec(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_GaugeCorrectAvec;
   DECLARE_CCTK_PARAMETERS;
 
-  GaugeCorrectAvec_impl<0>(CCTK_PASS_CTOC, mag_correction_order);
-  GaugeCorrectAvec_impl<1>(CCTK_PASS_CTOC, mag_correction_order);
-  GaugeCorrectAvec_impl<2>(CCTK_PASS_CTOC, mag_correction_order);
+  const int gauge_ord = use_ho_fv ? 4 : mag_correction_order;
+  GaugeCorrectAvec_impl<0>(CCTK_PASS_CTOC, gauge_ord);
+  GaugeCorrectAvec_impl<1>(CCTK_PASS_CTOC, gauge_ord);
+  GaugeCorrectAvec_impl<2>(CCTK_PASS_CTOC, gauge_ord);
 }
 
 // Restrict Avec_* from every aligned child (fine to coarse, so a middle

@@ -242,13 +242,13 @@ if (use_deriv_shock_detector)
     } "Overwrite CA with point value in presence of flag"
   }
 } else {
-  SCHEDULE AsterX_InitLOFlag IN AsterX_InitialGroup BEFORE AsterX_ComputedBstagFromA
+  SCHEDULE AsterX_InitLOFlag IN AsterX_InitialGroup BEFORE AsterX_ComputedBFromdBstag
   {
     LANG: C
     WRITES: LOflag(everywhere)
   } "Init this flag to 0"
 
-  SCHEDULE AsterX_InitLOFlag IN AsterX_Con2PrimGroup BEFORE AsterX_ComputedBstagFromA
+  SCHEDULE AsterX_InitLOFlag IN AsterX_Con2PrimGroup BEFORE AsterX_ComputedBFromdBstag
   {
     LANG: C
     WRITES: LOflag(everywhere)
@@ -314,7 +314,7 @@ SCHEDULE AsterX_GaugeRegisterInit IN AsterX_InitialGroup
 # IG is synced unconditionally alongside the other evolved variables: CarpetX's
 # CycleTimelevels requires every rhs-tagged group to be valid everywhere at the
 # top of each iteration, whether or not the gauge register is active.
-SCHEDULE AsterX_Sync AT postregrid
+SCHEDULE AsterX_Sync AT postregrid BEFORE ODESolvers_PostStep
 {
   LANG: C
   OPTIONS: global
