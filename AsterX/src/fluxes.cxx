@@ -183,7 +183,6 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
         // gf_theta(dir_i)(p.I) = 1.0;
       });
 
-  //if (use_ho_fv) { nloop = 1;}
   const int nloop = (hydro_correction_order - 2) / 2;
   grid.loop_mixpn_device<
       face_centred[0], face_centred[1],
@@ -1505,8 +1504,12 @@ extern "C" void AsterX_CalcAuxTermsForAvecPsiRHS(CCTK_ARGUMENTS) {
   CalcFstag<1>(CCTK_PASS_CTOC);
   CalcFstag<2>(CCTK_PASS_CTOC);
 
-  grid.loop_allm1_device<0, 0, 0>(
-      grid.nghostzones,
+  const int minghosts =
+      min(cctk_nghostzones[0], min(cctk_nghostzones[1], cctk_nghostzones[2]));
+  const int g_order = use_ho_fv ? 4 : mag_correction_order;
+  const int offset = minghosts + 1 - (g_order / 2);
+  grid.loop_allmn_device<0, 0, 0>(
+      grid.nghostzones, offset,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         const vec<CCTK_REAL, 3> A_vert([&](int i) ARITH_INLINE {
           return calc_avg_e2v(gf_Avecs(i), p, i);
