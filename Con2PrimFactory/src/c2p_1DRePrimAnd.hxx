@@ -63,7 +63,8 @@ public:
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
   solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
         const CCTK_REAL alp, const vec<CCTK_REAL, 3> &beta,
-        const smat<CCTK_REAL, 3> &glo, c2p_report &rep) const {
+        const smat<CCTK_REAL, 3> &glo, c2p_report &rep,
+        bool reject_nonpositive_eps = false) const {
     rep.iters = 0;
     rep.adjust_cons = false;
     rep.set_atmo = false;
@@ -215,6 +216,14 @@ public:
 
       // Ensure cache corresponds to the final chosen mu.
       (void)f(mu);
+    }
+
+    // RePrimAnd clips eps before exposing it through pv. Inspect the raw value
+    // so entropy fallback follows the same policy as the other C2P methods.
+    if (reject_nonpositive_eps && cache.eps_raw <= 0.0) {
+      rep.set_range_eps(cache.eps_raw);
+      cv = cv_const;
+      return;
     }
 
     // ------------------------------------------------------------------

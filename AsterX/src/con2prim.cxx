@@ -290,15 +290,17 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
       switch (c2p_fir) {
       case c2p_first_t::Noble: {
         c2p_Noble.solve(eos_3p, pv, pv_seeds, cv, alp_avg, beta_avg, glo,
-                        rep_first);
+                        rep_first, use_entropy_fix);
         break;
       }
       case c2p_first_t::RePrimAnd: {
-        c2p_RPA.solve(eos_3p, pv, cv, alp_avg, beta_avg, glo, rep_first);
+        c2p_RPA.solve(eos_3p, pv, cv, alp_avg, beta_avg, glo, rep_first,
+                      use_entropy_fix);
         break;
       }
       case c2p_first_t::Palenzuela: {
-        c2p_Pal.solve(eos_3p, pv, cv, alp_avg, beta_avg, glo, rep_first);
+        c2p_Pal.solve(eos_3p, pv, cv, alp_avg, beta_avg, glo, rep_first,
+                      use_entropy_fix);
         break;
       }
       case c2p_first_t::Entropy: {
@@ -326,15 +328,17 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
         switch (c2p_sec) {
         case c2p_second_t::Noble: {
           c2p_Noble.solve(eos_3p, pv, pv_seeds, cv, alp_avg, beta_avg, glo,
-                          rep_second);
+                          rep_second, use_entropy_fix);
           break;
         }
         case c2p_second_t::RePrimAnd: {
-          c2p_RPA.solve(eos_3p, pv, cv, alp_avg, beta_avg, glo, rep_second);
+          c2p_RPA.solve(eos_3p, pv, cv, alp_avg, beta_avg, glo, rep_second,
+                        use_entropy_fix);
           break;
         }
         case c2p_second_t::Palenzuela: {
-          c2p_Pal.solve(eos_3p, pv, cv, alp_avg, beta_avg, glo, rep_second);
+          c2p_Pal.solve(eos_3p, pv, cv, alp_avg, beta_avg, glo, rep_second,
+                        use_entropy_fix);
           break;
         }
         case c2p_second_t::Entropy: {
