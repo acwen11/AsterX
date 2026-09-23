@@ -1509,8 +1509,11 @@ extern "C" void AsterX_CalcAuxTermsForAvecPsiRHS(CCTK_ARGUMENTS) {
   CalcFstag<1>(CCTK_PASS_CTOC);
   CalcFstag<2>(CCTK_PASS_CTOC);
 
-  grid.loop_allm1_device<0, 0, 0>(
-      grid.nghostzones,
+  const int minghosts =
+      min(cctk_nghostzones[0], min(cctk_nghostzones[1], cctk_nghostzones[2]));
+  const int offset = minghosts + 1 - (mag_correction_order / 2);
+  grid.loop_allmn_device<0, 0, 0>(
+      grid.nghostzones, offset,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         const vec<CCTK_REAL, 3> A_vert([&](int i) ARITH_INLINE {
           return calc_avg_e2v(gf_Avecs(i), p, i);
