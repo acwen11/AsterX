@@ -5,11 +5,14 @@
 #include <cctk_Parameters.h>
 
 #include "aster_utils.hxx"
+#include "prim2con.hxx"
+#include "setup_eos.hxx"
 
 #include "../../../CarpetX/CarpetX/src/schedule.hxx"
 
 namespace AsterX {
 using namespace Loop;
+using namespace EOSX;
 using namespace AsterUtils;
 
 extern "C" void AsterX_SetCellAverage(CCTK_ARGUMENTS) {
@@ -103,36 +106,94 @@ extern "C" void AsterX_InitPointValues(CCTK_ARGUMENTS) {
       });
 }
 
+/*
 extern "C" void AsterX_AdjustConsPostStep(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_AdjustConsPostStep;
   DECLARE_CCTK_PARAMETERS;
 
   constexpr CCTK_REAL one_over_24 = CCTK_REAL(1) / CCTK_REAL(24);
-
+  // Get local eos objects
+  // auto eos_1p = global_eos_1p_poly;
+  auto eos_3p = global_eos_3p_tab3d;
   grid.loop_int_device<1, 1, 1>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        if (LOflag(p.I) > 0.0) {
-          // Use point values in flagged cells
-          dens(p.I) = dens_pv(p.I);
-          momx(p.I) = momx_pv(p.I);
-          momy(p.I) = momy_pv(p.I);
-          momz(p.I) = momz_pv(p.I);
-          tau(p.I) = tau_pv(p.I);
-          DYe(p.I) = DYe_pv(p.I);
-          DEnt(p.I) = DEnt_pv(p.I);
-        } else if ((LOflag(p.I) == 0.0) && (LOflag_p(p.I) > 0.0)) {
+        if ((LOflag(p.I) > 0.0) && (LOflag_p(p.I) == 0.0)) {
+          // Recalculate point value cons from prims in newly flagged cells
+          // while keeping dens fixed
+          const smat<CCTK_REAL, 3> g{calc_avg_v2c(gxx, p), calc_avg_v2c(gxy, p),
+                                     calc_avg_v2c(gxz, p), calc_avg_v2c(gyy, p),
+                                     calc_avg_v2c(gyz, p), calc_avg_v2c(gzz, p)};
+          const CCTK_REAL sqrt_detg = sqrt(calc_det(g));
+
+          prim pv;
+          pv.vel(0) = velx(p.I);
+          pv.vel(1) = vely(p.I);
+          pv.vel(2) = velz(p.I);
+          pv.Bvec(0) = Bvecx(p.I);
+          pv.Bvec(1) = Bvecy(p.I);
+          pv.Bvec(2) = Bvecz(p.I);
+          const vec<CCTK_REAL, 3> &v_up = pv.vel;
+          const vec<CCTK_REAL, 3> v_low = calc_contraction(g, v_up);
+          const CCTK_REAL w_lorentz = calc_wlorentz(v_low, v_up);
+
+          // Recalculate prims from dens
+          const CCTK_REAL rhoL = dens(p.I) / (sqrt_detg * w_lorentz);
+          const CCTK_REAL tempL = temperature(p.I);
+          const CCTK_REAL YeL = Ye(p.I);
+          pv.rho = rhoL;
+          pv.eps = eos_3p->eps_from_rho_temp_ye(rhoL, tempL, YeL);
+          pv.press = eos_3p->press_from_rho_temp_ye(rhoL, tempL, YeL);
+          pv.entropy = eos_3p->entropy_from_rho_temp_ye(rhoL, tempL, YeL);
+          pv.Ye = Ye(p.I);
+          rho(p.I) = pv.rho;
+          press(p.I) = pv.press;
+          eps(p.I) = pv.eps;
+          entropy(p.I) = pv.entropy;
+
+          // Recalculate cons from prims
+          cons cv;
+          prim2con(g, pv, cv);
+
+          dens(p.I) = cv.dens;
+          momx(p.I) = cv.mom(0);
+          momy(p.I) = cv.mom(1);
+          momz(p.I) = cv.mom(2);
+          tau(p.I) = cv.tau;
+          DYe(p.I) = cv.DYe;
+          DEnt(p.I) = cv.DEnt;
+
+          // dens(p.I) = dens_pv(p.I);
+          // momx(p.I) = momx_pv(p.I);
+          // momy(p.I) = momy_pv(p.I);
+          // momz(p.I) = momz_pv(p.I);
+          // tau(p.I) = tau_pv(p.I);
+          // DYe(p.I) = DYe_pv(p.I);
+          // DEnt(p.I) = DEnt_pv(p.I);
+        } 
+        else if ((LOflag(p.I) == 0.0) && (LOflag_p(p.I) > 0.0)) {
           // Re-average cells that are no longer flagged
-          dens(p.I) = dens_pv(p.I) + one_over_24 * laplace_3d(dens_pv, p);
-          momx(p.I) = momx_pv(p.I) + one_over_24 * laplace_3d(momx_pv, p);
-          momy(p.I) = momy_pv(p.I) + one_over_24 * laplace_3d(momy_pv, p);
-          momz(p.I) = momz_pv(p.I) + one_over_24 * laplace_3d(momz_pv, p);
-          tau(p.I) = tau_pv(p.I) + one_over_24 * laplace_3d(tau_pv, p);
-          DYe(p.I) = DYe_pv(p.I) + one_over_24 * laplace_3d(DYe_pv, p);
-          DEnt(p.I) = DEnt_pv(p.I) + one_over_24 * laplace_3d(DEnt_pv, p);
-        }
+          dens_pv(p.I) = dens(p.I) - one_over_24 * laplace_3d(dens, p);
+          momx_pv(p.I) = momx(p.I) - one_over_24 * laplace_3d(momx, p);
+          momy_pv(p.I) = momy(p.I) - one_over_24 * laplace_3d(momy, p);
+          momz_pv(p.I) = momz(p.I) - one_over_24 * laplace_3d(momz, p);
+          tau_pv(p.I) = tau(p.I) - one_over_24 * laplace_3d(tau, p);
+          DYe_pv(p.I) = DYe(p.I) - one_over_24 * laplace_3d(DYe, p);
+          DEnt_pv(p.I) = DEnt(p.I) - one_over_24 * laplace_3d(DEnt, p);
+        } 
+        // else if (LOflag(p.I) > 0.0) {
+        //   // Use point values in flagged cells
+        //   dens(p.I) = dens_pv(p.I);
+        //   momx(p.I) = momx_pv(p.I);
+        //   momy(p.I) = momy_pv(p.I);
+        //   momz(p.I) = momz_pv(p.I);
+        //   tau(p.I) = tau_pv(p.I);
+        //   DYe(p.I) = DYe_pv(p.I);
+        //   DEnt(p.I) = DEnt_pv(p.I);
+        // }
       });
 }
+*/
 
 /* BEGIN ITERATIVE POINT VALUED CONSERVATIVES CALCULATION */
 extern "C" void AsterX_SetConsIter(CCTK_ARGUMENTS) {
