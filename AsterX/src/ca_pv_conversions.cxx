@@ -160,14 +160,6 @@ extern "C" void AsterX_CA2PVPostStep(CCTK_ARGUMENTS) {
           tau(p.I) = cv.tau;
           DYe(p.I) = cv.DYe;
           DEnt(p.I) = cv.DEnt;
-
-          // dens(p.I) = dens_pv(p.I);
-          // momx(p.I) = momx_pv(p.I);
-          // momy(p.I) = momy_pv(p.I);
-          // momz(p.I) = momz_pv(p.I);
-          // tau(p.I) = tau_pv(p.I);
-          // DYe(p.I) = DYe_pv(p.I);
-          // DEnt(p.I) = DEnt_pv(p.I);
         } 
       });
 }
@@ -234,15 +226,6 @@ extern "C" void AsterX_PV2CAPostStep(CCTK_ARGUMENTS) {
           tau_pv(p.I) = cv.tau;
           DYe_pv(p.I) = cv.DYe;
           DEnt_pv(p.I) = cv.DEnt;
-
-          // Re-average cells that are no longer flagged
-          // dens_pv(p.I) = dens(p.I) - one_over_24 * laplace_3d(dens, p);
-          // momx_pv(p.I) = momx(p.I) - one_over_24 * laplace_3d(momx, p);
-          // momy_pv(p.I) = momy(p.I) - one_over_24 * laplace_3d(momy, p);
-          // momz_pv(p.I) = momz(p.I) - one_over_24 * laplace_3d(momz, p);
-          // tau_pv(p.I) = tau(p.I) - one_over_24 * laplace_3d(tau, p);
-          // DYe_pv(p.I) = DYe(p.I) - one_over_24 * laplace_3d(DYe, p);
-          // DEnt_pv(p.I) = DEnt(p.I) - one_over_24 * laplace_3d(DEnt, p);
         } 
       });
 }
