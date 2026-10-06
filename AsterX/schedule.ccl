@@ -238,96 +238,111 @@ if (use_deriv_shock_detector)
     WRITES: LOflag_p(everywhere)
   } "Copy of LOflag to previous timelevel after regrid."
 
-  # if (use_ho_fv && shock_pv_fallback)
-  # {
-  #   SCHEDULE GROUP AsterX_PostStepCon2PrimGroup IN CCTK_POSTSTEP AFTER AsterX_AdjustConsPostStep 
-  #   {
-  #   } "Compute primitive variables"
+  if (use_ho_fv && shock_pv_fallback)
+  {
+    # SCHEDULE GROUP AsterX_PostStepCon2PrimGroup IN CCTK_POSTSTEP AFTER AsterX_LOFlagGroup
+    # {
+    # } "Compute primitive variables"
 
-  #   SCHEDULE GROUP AsterX_PostStepCon2PrimGroup IN CCTK_POSTREGRID AFTER AsterX_AdjustConsPostStep 
-  #   {
-  #   } "Compute primitive variables"
+    # SCHEDULE GROUP AsterX_PostStepCon2PrimGroup IN CCTK_POSTREGRID AFTER AsterX_LOFlagGroup
+    # {
+    # } "Compute primitive variables"
 
-  #   # Convert cell-averages to point values at 4th order
-  #   # SCHEDULE AsterX_SetConsIter IN AsterX_PostStepCon2PrimGroup BEFORE AsterX_PVConsSolve
-  #   # {
-  #   #   LANG: C
-  #   #   OPTIONS: global
-  #   #   WRITES: cons_pv_iter(everywhere)
-  #   # } "Start counter for PV cons iterative calculation"
+    SCHEDULE GROUP AsterX_AdjustConsPostStepGroup IN CCTK_POSTSTEP AFTER AsterX_LOFlagGroup
+    {
+    } "Adjust cons s.t. Dens and temperature_pv are constant"
 
-  #   # SCHEDULE GROUP AsterX_PVConsSolve IN AsterX_PostStepCon2PrimGroup BEFORE AsterX_Con2Prim WHILE AsterX::cons_pv_iter
-  #   # {
-  #   # } "Iteratively calculate point valued cons"
+    SCHEDULE GROUP AsterX_AdjustConsPostStepGroup IN CCTK_REGRID AFTER AsterX_LOFlagGroup
+    {
+    } "Adjust cons s.t. Dens and temperature_pv are constant"
 
-  #   SCHEDULE AsterX_Con2Prim IN AsterX_PostStepCon2PrimGroup AFTER AsterX_ComputedBFromdBstag
-  #   {
-  #     LANG: C
-  #     READS: AsterMasks::aster_mask_vc(everywhere)
-  #     READS: ADMBaseX::metric(everywhere)
-  #     READS: ADMBaseX::lapse(everywhere)
-  #     READS: cons_vector(everywhere) dB(everywhere)
-  #     READS: cons_vector_pv(everywhere)
-  #     READS: ADMBaseX::shift(everywhere)
-  #     READS: saved_prims(everywhere)
-  #     READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
-  #     WRITES: con2prim_flag(everywhere)
-  #     WRITES: diagnostics(everywhere)
-  #     WRITES: AsterMasks::aster_mask_cc(everywhere)
-  #     WRITES: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::Bvec(everywhere)
-  #     WRITES: HydroBaseX::temperature(everywhere) HydroBaseX::entropy(everywhere) HydroBaseX::Ye(everywhere)
-  #     WRITES: saved_prims(everywhere)
-  #     WRITES: zvec(everywhere)
-  #     WRITES: svec(everywhere)
-  #     WRITES: cons_vector(everywhere) cons_vector_pv(everywhere) dB(everywhere)
-  #   } "Calculate primitive variables from conservative variables"
+    SCHEDULE AsterX_CA2PVPostStep IN AsterX_AdjustConsPostStepGroup 
+    {
+      LANG: C
+      READS: LOflag(everywhere) LOflag_p(everywhere)
+      READS: cons_vector(everywhere)
+      READS: ADMBaseX::metric(everywhere)
+      READS: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::Bvec(everywhere)
+      READS: HydroBaseX::temperature(everywhere) HydroBaseX::entropy(everywhere) HydroBaseX::Ye(everywhere)
+      WRITES: cons_vector(everywhere)
+      WRITES: HydroBaseX::rho(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::entropy(everywhere) 
+    } "Adjust CA with point value in presence of flag"
 
-  #   SCHEDULE AsterX_ApplyOuterBCOnPrim IN AsterX_PostStepCon2PrimGroup AFTER AsterX_Con2Prim
-  #   {
-  #     LANG: C
-  #     OPTIONS: global
-  #   } "Apply CarpetX boundary conditions on primitive variables"
+    # Convert cell-averages to point values at 4th order
+    SCHEDULE AsterX_SetConsIter IN AsterX_AdjustConsPostStepGroup BEFORE AsterX_PVConsSolve
+    {
+      LANG: C
+      OPTIONS: global
+      WRITES: cons_pv_iter(everywhere)
+    } "Start counter for PV cons iterative calculation"
 
-  #   SCHEDULE AsterX_SetCellAverage IN AsterX_PostStepCon2PrimGroup AFTER AsterX_Con2Prim
-  #   {
-  #     LANG: C
-  #     READS: cons_vector_pv(everywhere) 
-  #     READS: LOflag(everywhere) con2prim_flag(everywhere)
-  #     WRITES: cons_vector(everywhere)
-  #   } "Recompute cell-averages of conserved variables if values were adjusted in C2P"
+    SCHEDULE GROUP AsterX_PVConsSolve IN AsterX_AdjustConsPostStepGroup AFTER AsterX_CA2PVPostStep WHILE AsterX::cons_pv_iter
+    {
+    } "Iteratively calculate point valued cons"
 
-  #   SCHEDULE AsterX_CommConsCA IN AsterX_PostStepCon2PrimGroup AFTER AsterX_SetCellAverage
-  #   {
-  #     LANG: C
-  #     OPTIONS: global
-  #   } "Communicate cell-averaged conservatives between processes"
+    # SCHEDULE AsterX_Con2Prim IN AsterX_PostStepCon2PrimGroup AFTER AsterX_ComputedBFromdBstag
+    # {
+    #   LANG: C
+    #   READS: AsterMasks::aster_mask_vc(everywhere)
+    #   READS: ADMBaseX::metric(everywhere)
+    #   READS: ADMBaseX::lapse(everywhere)
+    #   READS: cons_vector(everywhere) dB(everywhere)
+    #   READS: cons_vector_pv(everywhere)
+    #   READS: ADMBaseX::shift(everywhere)
+    #   READS: saved_prims(everywhere)
+    #   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
+    #   WRITES: con2prim_flag(everywhere)
+    #   WRITES: diagnostics(everywhere)
+    #   WRITES: AsterMasks::aster_mask_cc(everywhere)
+    #   WRITES: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::Bvec(everywhere)
+    #   WRITES: HydroBaseX::temperature(everywhere) HydroBaseX::entropy(everywhere) HydroBaseX::Ye(everywhere)
+    #   WRITES: saved_prims(everywhere)
+    #   WRITES: zvec(everywhere)
+    #   WRITES: svec(everywhere)
+    #   WRITES: cons_vector(everywhere) cons_vector_pv(everywhere) dB(everywhere)
+    # } "Calculate primitive variables from conservative variables"
 
-  #   SCHEDULE AsterX_AdjustConsPostStep IN CCTK_POSTSTEP AFTER AsterX_LOFlagGroup
-  #   {
-  #     LANG: C
-  #     READS: LOflag(interior) LOflag_p(interior)
-  #     READS: cons_vector(interior) cons_vector_pv(everywhere)
-  #     READS: ADMBaseX::metric(interior)
-  #     READS: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::Bvec(interior)
-  #     READS: HydroBaseX::temperature(interior) HydroBaseX::entropy(interior) HydroBaseX::Ye(interior)
-  #     WRITES: cons_vector(interior) cons_vector_pv(interior)
-  #     WRITES: HydroBaseX::rho(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::entropy(interior) 
-  #     SYNC: cons_vector_pv HydroBaseX::rho HydroBaseX::eps HydroBaseX::press HydroBaseX::entropy
-  #   } "Overwrite CA with point value in presence of flag"
+    # SCHEDULE AsterX_ApplyOuterBCOnPrim IN AsterX_PostStepCon2PrimGroup AFTER AsterX_Con2Prim
+    # {
+    #   LANG: C
+    #   OPTIONS: global
+    # } "Apply CarpetX boundary conditions on primitive variables"
 
-  #   SCHEDULE AsterX_AdjustConsPostStep IN CCTK_POSTREGRID AFTER AsterX_LOFlagGroup
-  #   {
-  #     LANG: C
-  #     READS: LOflag(interior) LOflag_p(interior)
-  #     READS: cons_vector(interior) cons_vector_pv(everywhere)
-  #     READS: ADMBaseX::metric(interior)
-  #     READS: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::Bvec(interior)
-  #     READS: HydroBaseX::temperature(interior) HydroBaseX::entropy(interior) HydroBaseX::Ye(interior)
-  #     WRITES: cons_vector(interior) cons_vector_pv(interior)
-  #     WRITES: HydroBaseX::rho(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::entropy(interior) 
-  #     SYNC: cons_vector_pv HydroBaseX::rho HydroBaseX::eps HydroBaseX::press HydroBaseX::entropy
-  #   } "Overwrite CA with point value in presence of flag"
-  # }
+    # SCHEDULE AsterX_SetCellAverage IN AsterX_PostStepCon2PrimGroup AFTER AsterX_Con2Prim
+    # {
+    #   LANG: C
+    #   READS: cons_vector_pv(everywhere) 
+    #   READS: LOflag(everywhere) con2prim_flag(everywhere)
+    #   WRITES: cons_vector(everywhere)
+    # } "Recompute cell-averages of conserved variables if values were adjusted in C2P"
+
+    # SCHEDULE AsterX_CommConsCA IN AsterX_PostStepCon2PrimGroup AFTER AsterX_SetCellAverage
+    # {
+    #   LANG: C
+    #   OPTIONS: global
+    # } "Communicate cell-averaged conservatives between processes"
+
+    SCHEDULE AsterX_PV2CAPostStep IN AsterX_AdjustConsPostStepGroup AFTER AsterX_PVConsSolve
+    {
+      LANG: C
+      READS: LOflag(everywhere) LOflag_p(everywhere)
+      READS: cons_vector_pv(everywhere)
+      READS: ADMBaseX::metric(everywhere)
+      READS: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) HydroBaseX::Bvec(everywhere)
+      READS: HydroBaseX::temperature(everywhere) HydroBaseX::entropy(everywhere) HydroBaseX::Ye(everywhere)
+      WRITES: cons_vector_pv(interior)
+      WRITES: HydroBaseX::rho(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::entropy(interior) 
+      SYNC: HydroBaseX::rho HydroBaseX::eps HydroBaseX::press HydroBaseX::entropy
+    } "Adjust point values near newly unflagged points"
+
+    SCHEDULE AsterX_ReAvgConsPostStep IN AsterX_AdjustConsPostStepGroup AFTER AsterX_PV2CAPostStep
+    {
+      LANG: C
+      READS: LOflag(interior) LOflag_p(interior)
+      READS: cons_vector_pv(everywhere)
+      WRITES: cons_vector(interior) 
+    } "Reaverage cons near newly unflagged points"
+  }
 } else {
   SCHEDULE AsterX_InitLOFlag IN AsterX_InitialGroup BEFORE AsterX_ComputedBFromdBstag
   {
@@ -655,14 +670,14 @@ if (use_ho_fv) {
     LANG: C
     READS: cons_vector(everywhere) cons_vector_pv(everywhere)
     READS: cons_pv_iter(everywhere)
-    WRITES: HydrobaseX::rho(everywhere) HydrobaseX::vel(everywhere) HydrobaseX::eps(everywhere) HydrobaseX::Ye(everywhere) HydrobaseX::entropy(everywhere)
+    WRITES: rhs_vector(everywhere)
   } "Set previous cons vector"
 
   SCHEDULE AsterX_SetPointValues IN AsterX_PVConsSolve AFTER AsterX_SetPVConsnMinus1 
   {
     LANG: C
     READS: cons_vector(everywhere) LOflag(everywhere)
-    READS: HydrobaseX::rho(everywhere) HydrobaseX::vel(everywhere) HydrobaseX::eps(everywhere) HydrobaseX::Ye(everywhere) HydrobaseX::entropy(everywhere)
+    READS: rhs_vector(everywhere)
     WRITES: cons_vector_pv(everywhere)
   } "Iterate cons"
 
