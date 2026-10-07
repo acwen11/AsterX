@@ -153,7 +153,7 @@ extern "C" void AsterX_CA2PVPostStep(CCTK_ARGUMENTS) {
           // Recalculate cons from prims
           cons cv;
           prim2con(g, pv, cv);
-          dens(p.I) = cv.dens;
+          // dens(p.I) = cv.dens;
           momx(p.I) = cv.mom(0);
           momy(p.I) = cv.mom(1);
           momz(p.I) = cv.mom(2);
@@ -219,7 +219,7 @@ extern "C" void AsterX_PV2CAPostStep(CCTK_ARGUMENTS) {
           // Recalculate PV cons from prims
           cons cv;
           prim2con(g, pv, cv);
-          dens_pv(p.I) = cv.dens;
+          // dens_pv(p.I) = cv.dens;
           momx_pv(p.I) = cv.mom(0);
           momy_pv(p.I) = cv.mom(1);
           momz_pv(p.I) = cv.mom(2);
@@ -254,7 +254,7 @@ extern "C" void AsterX_ReAvgConsPostStep(CCTK_ARGUMENTS) {
         reavg = reavg && (LOflag(p.I) == 0.0);
         if (reavg) {
           // Re-average cells that are no longer flagged
-          // dens(p.I) = dens(p.I) + one_over_24 * laplace_3d(dens, p);
+          // dens(p.I) = dens_pv(p.I) + one_over_24 * laplace_3d(dens_pv, p);
           momx(p.I) = momx_pv(p.I) + one_over_24 * laplace_3d(momx_pv, p);
           momy(p.I) = momy_pv(p.I) + one_over_24 * laplace_3d(momy_pv, p);
           momz(p.I) = momz_pv(p.I) + one_over_24 * laplace_3d(momz_pv, p);
