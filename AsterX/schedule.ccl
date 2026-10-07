@@ -27,10 +27,10 @@ STORAGE: LOflag[2] etac
 # STORAGE: theta_x theta_y theta_z theta_tot
 
 STORAGE: cons_vector_pv[2]
+STORAGE: dBx_stag_fa dBy_stag_fa dBz_stag_fa
 if(use_ho_fv) {
   STORAGE: cons_pv_iter
   STORAGE: dBstag_pv_iter
-  STORAGE: dBx_stag_fa dBy_stag_fa dBz_stag_fa
 }
 
 # Without subcycling, AsterX_RestrictFluxes hands the coarse RHS the fine
@@ -256,7 +256,7 @@ if (use_deriv_shock_detector)
     {
     } "Adjust cons s.t. Dens and temperature_pv are constant"
 
-    SCHEDULE GROUP AsterX_AdjustConsPostStepGroup IN CCTK_REGRID AFTER AsterX_LOFlagGroup
+    SCHEDULE GROUP AsterX_AdjustConsPostStepGroup IN CCTK_POSTREGRID AFTER AsterX_LOFlagGroup
     {
     } "Adjust cons s.t. Dens and temperature_pv are constant"
 
@@ -677,6 +677,12 @@ else
     LANG: C
     WRITES: cons_vector_pv(everywhere)
   } "Set point value cons to zero so they are marked as valid"
+
+  SCHEDULE AsterX_InitFaceAvgB IN AsterX_FluxGroup BEFORE AsterX_Fluxes
+  {
+    LANG: C
+    WRITES: dBx_stag_fa(everywhere) dBy_stag_fa(everywhere) dBz_stag_fa(everywhere)
+  } "Set face avg. dBstag to zero so they are marked as valid"
 }
 
 SCHEDULE AsterX_Fluxes IN AsterX_FluxGroup

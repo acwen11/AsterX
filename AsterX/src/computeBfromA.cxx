@@ -19,6 +19,27 @@ using namespace Loop;
 using namespace Arith;
 using namespace AsterUtils;
 
+template <int dir> void InitFaceAvgB(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_InitFaceAvgB;
+  DECLARE_CCTK_PARAMETERS;
+
+  static_assert(dir >= 0 && dir < 3, "");
+
+  constexpr array<int, dim> face_centred = {!(dir == 0), !(dir == 1),
+                                            !(dir == 2)};
+  grid.loop_all_device<face_centred[0], face_centred[1], face_centred[2]>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        if (dir == 0) {
+          dBx_stag_fa(p.I) = 0.0;
+        } else if (dir == 1) {
+          dBy_stag_fa(p.I) = 0.0;
+        } else if (dir == 2) {
+          dBz_stag_fa(p.I) = 0.0;
+        }
+      });
+}
+
 template <int dir> void ComputeStaggeredFaceAvgB(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_ComputeAvgdBstagFromAvgA;
   DECLARE_CCTK_PARAMETERS;
@@ -196,6 +217,15 @@ template <int dir> void ComputeStaggeredPointValB(CCTK_ARGUMENTS) {
                                                  laplace_perp<2>(amax_zface, p);
         }
       });
+}
+
+extern "C" void AsterX_InitFaceAvgB(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_InitFaceAvgB;
+  DECLARE_CCTK_PARAMETERS;
+
+  InitFaceAvgB<0>(cctkGH);
+  InitFaceAvgB<1>(cctkGH);
+  InitFaceAvgB<2>(cctkGH);
 }
 
 extern "C" void AsterX_ComputedBstagFromA(CCTK_ARGUMENTS) {
