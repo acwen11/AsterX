@@ -26,26 +26,6 @@ template <int dir> void ComputeStaggeredB(CCTK_ARGUMENTS) {
   constexpr array<int, dim> face_centred = {!(dir == 0), !(dir == 1),
                                             !(dir == 2)};
   const int nloop = (mag_correction_order - 2) / 2;
-  // Calculate Bstag in boundaries/ghosts with lower order
-  if (nloop != 0) {
-    grid.loop_outer_n_device<face_centred[0], face_centred[1], face_centred[2]>(
-        grid.nghostzones, nloop,
-        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-          if (dir == 0) {
-            /* dBx is curl(A) at (i-1/2,j,k) */
-            dBx_stag(p.I) = calc_fd_forward_midpoint<1>(Avec_z, p, 2) -
-                            calc_fd_forward_midpoint<2>(Avec_y, p, 2);
-          } else if (dir == 1) {
-            /* dBy is curl(A) at (i,j-1/2,k) */
-            dBy_stag(p.I) = calc_fd_forward_midpoint<2>(Avec_x, p, 2) -
-                            calc_fd_forward_midpoint<0>(Avec_z, p, 2);
-          } else if (dir == 2) {
-            /* dBz is curl(A) at (i,j,z-1/2) */
-            dBz_stag(p.I) = calc_fd_forward_midpoint<0>(Avec_y, p, 2) -
-                            calc_fd_forward_midpoint<1>(Avec_x, p, 2);
-          }
-        });
-  }
   grid.loop_imix_allmn_device<face_centred[0], face_centred[1], face_centred[2]>(
       grid.nghostzones, nloop,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
@@ -68,6 +48,27 @@ template <int dir> void ComputeStaggeredB(CCTK_ARGUMENTS) {
 
         // TODO: need to implement copy conditions?
       });
+
+  // Calculate Bstag in boundaries/ghosts with lower order
+  if (nloop != 0) {
+    grid.loop_imix_outer_n_device<face_centred[0], face_centred[1], face_centred[2]>(
+        grid.nghostzones, nloop,
+        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+          if (dir == 0) {
+            /* dBx is curl(A) at (i-1/2,j,k) */
+            dBx_stag(p.I) = calc_fd_forward_midpoint<1>(Avec_z, p, 2) -
+                            calc_fd_forward_midpoint<2>(Avec_y, p, 2);
+          } else if (dir == 1) {
+            /* dBy is curl(A) at (i,j-1/2,k) */
+            dBy_stag(p.I) = calc_fd_forward_midpoint<2>(Avec_x, p, 2) -
+                            calc_fd_forward_midpoint<0>(Avec_z, p, 2);
+          } else if (dir == 2) {
+            /* dBz is curl(A) at (i,j,z-1/2) */
+            dBz_stag(p.I) = calc_fd_forward_midpoint<0>(Avec_y, p, 2) -
+                            calc_fd_forward_midpoint<1>(Avec_x, p, 2);
+          }
+        });
+  }
 }
 
 extern "C" void AsterX_ComputedBstagFromA(CCTK_ARGUMENTS) {
