@@ -228,7 +228,7 @@ extern "C" void AsterX_PV2CAPostStep(CCTK_ARGUMENTS) {
 
           // Option 1: Fix T, Ye; adjust rho
           const CCTK_REAL tempL = s_temp;
-          const CCTK_REAL YeL = s_Ye;
+          const CCTK_REAL YeL = Ye(p.I); //s_Ye;
           const CCTK_REAL rhoL = eos_3p->rho_from_rhoh_temp_ye(s_rhoh, tempL, YeL);
           // Option 2: Fix Dens, Ye; adjust temp
           // const CCTK_REAL rhoL = dens(p.I) / (w_lorentz * sqrt_detg);
