@@ -401,6 +401,74 @@ public:
                                     ye);
   }
 
+  CCTK_HOST CCTK_DEVICE inline CCTK_REAL
+  rho_from_rhoh_temp_ye(const CCTK_REAL rhoh, const CCTK_REAL temp, 
+                                const CCTK_REAL ye) const {
+    // bound inputs
+    CCTK_REAL t = std::fmin(std::fmax(temp, rgtemp.min), rgtemp.max);
+    CCTK_REAL lt = std::log(t);
+
+    // table‐edge clamp
+    const CCTK_REAL rhomin = exp(interptable->xmin<0>());
+    const CCTK_REAL epsmin = eps_from_rho_temp_ye(rhomin, t, ye);
+    const CCTK_REAL pressmin = press_from_rho_temp_ye(rhomin, t, ye);
+    const CCTK_REAL rhohmin = rhomin * (1.0 + epsmin) + pressmin;
+
+    const CCTK_REAL rhomax = exp(interptable->xmax<0>());
+    const CCTK_REAL epsmax = eps_from_rho_temp_ye(rhomax, t, ye);
+    const CCTK_REAL pressmax = press_from_rho_temp_ye(rhomax, t, ye);
+    const CCTK_REAL rhohmax = rhomax * (1.0 + epsmax) + pressmax;
+    if (rhoh <= rhohmin)
+      return rhomin;
+    if (rhoh >= rhohmax)
+      return rhomax;
+
+    // root‐find for logrho
+    auto func = [&](CCTK_REAL &lrho) {
+      CCTK_REAL veps = eps_from_rho_temp_ye(exp(lrho), t, ye);
+      CCTK_REAL vpress = press_from_rho_temp_ye(exp(lrho), t, ye);
+      CCTK_REAL val = exp(lrho) * (1.0 + veps) + vpress;
+      return rhoh - val;
+    };
+    const CCTK_REAL out_lrho = zero_brent(interptable->xmin<0>(), interptable->xmax<0>(), 1.e-14,
+                      func);
+    return exp(out_lrho);
+  }
+
+  CCTK_HOST CCTK_DEVICE inline CCTK_REAL
+  temp_from_rhoh_rho_ye(const CCTK_REAL rhoh, const CCTK_REAL rho_in, 
+                                const CCTK_REAL ye) const {
+    // bound inputs
+    CCTK_REAL rho = std::fmin(std::fmax(rho_in, rgrho.min), rgrho.max);
+    CCTK_REAL lrho = std::log(rho);
+
+    // table‐edge clamp
+    const CCTK_REAL tmin = exp(interptable->xmin<1>());
+    const CCTK_REAL epsmin = eps_from_rho_temp_ye(rho, tmin, ye);
+    const CCTK_REAL pressmin = press_from_rho_temp_ye(rho, tmin, ye);
+    const CCTK_REAL rhohmin = rho * (1.0 + epsmin) + pressmin;
+
+    const CCTK_REAL tmax = exp(interptable->xmax<1>());
+    const CCTK_REAL epsmax = eps_from_rho_temp_ye(rho, tmax, ye);
+    const CCTK_REAL pressmax = press_from_rho_temp_ye(rho, tmax, ye);
+    const CCTK_REAL rhohmax = rho * (1.0 + epsmax) + pressmax;
+    if (rhoh <= rhohmin)
+      return tmin;
+    if (rhoh >= rhohmax)
+      return tmax;
+
+    // root‐find for log(T)
+    auto func = [&](CCTK_REAL &lt) {
+      CCTK_REAL veps = eps_from_rho_temp_ye(rho, exp(lt), ye);
+      CCTK_REAL vpress = press_from_rho_temp_ye(rho, exp(lt), ye);
+      CCTK_REAL val = rho * (1.0 + veps) + vpress;
+      return rhoh - val;
+    };
+    const CCTK_REAL out_lt = zero_brent(interptable->xmin<1>(), interptable->xmax<1>(), 1.e-14,
+                      func);
+    return exp(out_lt);
+  }
+
   CCTK_HOST CCTK_DEVICE inline range
   range_eps_from_rho_ye(const CCTK_REAL rho, const CCTK_REAL ye) const {
     CCTK_REAL lr = std::log(std::fmin(std::fmax(rho, rgrho.min), rgrho.max));

@@ -263,7 +263,7 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     if (set_atmo) {
       pv.Bvec = Bup;
       atmo.set(pv, cv, glo);
-      atmo.set(pv_seeds);
+      //atmo.set(pv_seeds);
       c2p_flag_code = C2P_ATMO;
       call_c2p = false;
     }
@@ -526,12 +526,12 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     }
 
     // Update saved prims
-    saved_rho(p.I) = rho(p.I);
-    saved_velx(p.I) = velx(p.I);
-    saved_vely(p.I) = vely(p.I);
-    saved_velz(p.I) = velz(p.I);
-    saved_eps(p.I) = eps(p.I);
-    saved_Ye(p.I) = Ye(p.I);
+    // saved_rho(p.I) = rho(p.I);
+    // saved_velx(p.I) = velx(p.I);
+    // saved_vely(p.I) = vely(p.I);
+    // saved_velz(p.I) = velz(p.I);
+    // saved_eps(p.I) = eps(p.I);
+    // saved_Ye(p.I) = Ye(p.I);
 
     // Compute diagnostics
     v_low = calc_contraction(glo, pv.vel);
