@@ -139,7 +139,7 @@ template <int FDORDER> void SourceTerms(CCTK_ARGUMENTS) {
   const smat<GF3D2<const CCTK_REAL>, 3> gf_k{kxx, kxy, kxz, kyy, kyz, kzz};
 
   const vec<GF3D2<const CCTK_REAL>, 3> gf_Tti{Ttx_pv, Tty_pv, Ttz_pv};
-  const vec<GF3D2<const CCTK_REAL>, 3> gf_Tt_i{Ttx_pv, Tty_pv, Ttz_pv};
+  const vec<GF3D2<const CCTK_REAL>, 3> gf_Tt_i{Tt_x_pv, Tt_y_pv, Tt_z_pv};
   const smat<GF3D2<const CCTK_REAL>, 3> gf_Tij{Txx_pv, Txy_pv, Txz_pv, Tyy_pv, Tyz_pv, Tzz_pv};
 
   constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
