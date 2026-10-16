@@ -17,57 +17,30 @@ using namespace Loop;
 using namespace Arith;
 using namespace AsterUtils;
 
-template <int FDORDER> void SourceTerms(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_AsterX_SourceTerms;
+extern "C" void AsterX_TmunuSource(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_TmunuSource;
   DECLARE_CCTK_PARAMETERS;
+
+  const vec<GF3D2<const CCTK_REAL>, 3> gf_beta{betax, betay, betaz};
+  const smat<GF3D2<const CCTK_REAL>, 3> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
 
   const bool use_v_vec = CCTK_EQUALS(recon_type, "v_vec");
 
-  /* grid functions */
-  const vec<GF3D2<const CCTK_REAL>, 3> gf_beta{betax, betay, betaz};
-  const smat<GF3D2<const CCTK_REAL>, 3> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
-  const smat<GF3D2<const CCTK_REAL>, 3> gf_k{kxx, kxy, kxz, kyy, kyz, kzz};
-
-  /* Loop over the entire grid - n */
-  grid.loop_allmn_device<1, 1, 1>(
-    grid.nghostzones, local_spatial_order / 2,
+  grid.loop_all_device<1, 1, 1>(
+      grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        /* Computing metric components at cell centers */
+
         const CCTK_REAL alp_avg = calc_avg_v2c(alp, p);
         const vec<CCTK_REAL, 3> beta_avg(
             [&](int i) ARITH_INLINE { return calc_avg_v2c(gf_beta(i), p); });
         const smat<CCTK_REAL, 3> g_avg([&](int i, int j) ARITH_INLINE {
           return calc_avg_v2c(gf_g(i, j), p);
         });
-        const smat<CCTK_REAL, 3> k_avg([&](int i, int j) ARITH_INLINE {
-          return calc_avg_v2c(gf_k(i, j), p);
-        });
-
         /* Determinant of spatial metric */
         const CCTK_REAL detg = calc_det(g_avg);
         const CCTK_REAL sqrt_detg = sqrt(detg);
         /* Upper metric */
         const smat<CCTK_REAL, 3> ug_avg = calc_inv(g_avg, detg);
-
-        /* Derivatives of the lapse, shift and metric */
-        /* calc_fd_v2c takes vertex center input, computes edge-center
-         * derivatives along either dir=0, 1 or 2 using 2nd finite difference,
-         * i.e, at the four edges of the cube with p.I as starting point. The
-         * four edge-centered values are then interpolated to the cell-center
-         * using 2nd order interpolation */
-        const vec<CCTK_REAL, 3> d_alp([&](int k) ARITH_INLINE {
-          return calc_fd_v2c<FDORDER>(alp, p, k);
-        });
-        const vec<vec<CCTK_REAL, 3>, 3> d_beta([&](int k) ARITH_INLINE {
-          return vec<CCTK_REAL, 3>([&](int i) ARITH_INLINE {
-            return calc_fd_v2c<FDORDER>(gf_beta(i), p, k);
-          });
-        });
-        const vec<smat<CCTK_REAL, 3>, 3> d_g([&](int k) ARITH_INLINE {
-          return smat<CCTK_REAL, 3>([&](int i, int j) ARITH_INLINE {
-            return calc_fd_v2c<FDORDER>(gf_g(i, j), p, k);
-          });
-        });
 
         /* Computing v_j */
         vec<CCTK_REAL, 3> v_up;
@@ -137,10 +110,119 @@ template <int FDORDER> void SourceTerms(CCTK_ARGUMENTS) {
             (rhoenthalpyW2 + bs2 * pow2(w_lorentz)) * v_low / alp_avg -
             bs_low * bs0;
 
+        /* Copy to GFs */
+        Ttt_pv(p.I) = t00;
+        Ttx_pv(p.I) = t0(0);
+        Tty_pv(p.I) = t0(1);
+        Ttz_pv(p.I) = t0(2);
+        Txx_pv(p.I) = t(0,0);
+        Txy_pv(p.I) = t(0,1);
+        Txz_pv(p.I) = t(0,2);
+        Tyy_pv(p.I) = t(1,1);
+        Tyz_pv(p.I) = t(1,2);
+        Tzz_pv(p.I) = t(2,2);
+
+        Tt_x_pv(p.I) = t0low(0);
+        Tt_y_pv(p.I) = t0low(1);
+        Tt_z_pv(p.I) = t0low(2);
+  });
+
+}
+
+template <int FDORDER> void SourceTerms(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_SourceTerms;
+  DECLARE_CCTK_PARAMETERS;
+
+  /* grid functions */
+  const vec<GF3D2<const CCTK_REAL>, 3> gf_beta{betax, betay, betaz};
+  const smat<GF3D2<const CCTK_REAL>, 3> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
+  const smat<GF3D2<const CCTK_REAL>, 3> gf_k{kxx, kxy, kxz, kyy, kyz, kzz};
+
+  const vec<GF3D2<const CCTK_REAL>, 3> gf_Tti{Ttx_pv, Tty_pv, Ttz_pv};
+  const vec<GF3D2<const CCTK_REAL>, 3> gf_Tt_i{Ttx_pv, Tty_pv, Ttz_pv};
+  const smat<GF3D2<const CCTK_REAL>, 3> gf_Tij{Txx_pv, Txy_pv, Txz_pv, Tyy_pv, Tyz_pv, Tzz_pv};
+
+  constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
+
+  /* Loop over the entire grid - n */
+  grid.loop_allmn_device<1, 1, 1>(
+    grid.nghostzones, local_spatial_order / 2,
+      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        /* Computing metric components at cell centers */
+        const CCTK_REAL alp_avg = calc_avg_v2c(alp, p);
+        const vec<CCTK_REAL, 3> beta_avg(
+            [&](int i) ARITH_INLINE { return calc_avg_v2c(gf_beta(i), p); });
+        const smat<CCTK_REAL, 3> g_avg([&](int i, int j) ARITH_INLINE {
+          return calc_avg_v2c(gf_g(i, j), p);
+        });
+        const smat<CCTK_REAL, 3> k_avg([&](int i, int j) ARITH_INLINE {
+          return calc_avg_v2c(gf_k(i, j), p);
+        });
+
+        /* Determinant of spatial metric */
+        const CCTK_REAL detg = calc_det(g_avg);
+        const CCTK_REAL sqrt_detg = sqrt(detg);
+        /* Upper metric */
+        const smat<CCTK_REAL, 3> ug_avg = calc_inv(g_avg, detg);
+
+        /* Derivatives of the lapse, shift and metric */
+        /* calc_fd_v2c takes vertex center input, computes edge-center
+         * derivatives along either dir=0, 1 or 2 using 2nd finite difference,
+         * i.e, at the four edges of the cube with p.I as starting point. The
+         * four edge-centered values are then interpolated to the cell-center
+         * using 2nd order interpolation */
+        const vec<CCTK_REAL, 3> d_alp([&](int k) ARITH_INLINE {
+          return calc_fd_v2c<FDORDER>(alp, p, k);
+        });
+        const vec<vec<CCTK_REAL, 3>, 3> d_beta([&](int k) ARITH_INLINE {
+          return vec<CCTK_REAL, 3>([&](int i) ARITH_INLINE {
+            return calc_fd_v2c<FDORDER>(gf_beta(i), p, k);
+          });
+        });
+        const vec<smat<CCTK_REAL, 3>, 3> d_g([&](int k) ARITH_INLINE {
+          return smat<CCTK_REAL, 3>([&](int i, int j) ARITH_INLINE {
+            return calc_fd_v2c<FDORDER>(gf_g(i, j), p, k);
+          });
+        });
+
         /* Contract the shift with the extrinsic curvature */
         const vec<CCTK_REAL, 3> shiftk = calc_contraction(k_avg, beta_avg);
         const CCTK_REAL shiftshiftk = calc_contraction(shiftk, beta_avg);
 
+        /* Computing T^{\mu\nu} */
+        // const CCTK_REAL t00 = ((rhoenthalpyW2 + bs2 * pow2(w_lorentz)) -
+        //                        (press(p.I) + 0.5 * bs2)) /
+        //                           pow2(alp_avg) -
+        //                       pow2(bs0);
+
+        // const vec<CCTK_REAL, 3> t0 =
+        //     (rhoenthalpyW2 + bs2 * pow2(w_lorentz)) * velshift / alp_avg +
+        //     (press(p.I) + 0.5 * bs2) * beta_avg / pow2(alp_avg) - bs0 * bs;
+
+        // const smat<CCTK_REAL, 3> t([&](int i, int j) ARITH_INLINE {
+        //   return (rhoenthalpyW2 + bs2 * pow2(w_lorentz)) * velshift(i) *
+        //              velshift(j) +
+        //          (press(p.I) + 0.5 * bs2) *
+        //              (ug_avg(i, j) -
+        //               beta_avg(i) * beta_avg(j) / pow2(alp_avg)) -
+        //          bs(i) * bs(j);
+        // });
+
+        // /* Computing T^0_i = (\rho * h + b^2) * u^0 * u_i -b^0 * b_i */
+        // const vec<CCTK_REAL, 3> t0low =
+        //     (rhoenthalpyW2 + bs2 * pow2(w_lorentz)) * v_low / alp_avg -
+        //     bs_low * bs0;
+
+        const CCTK_REAL thetac = (use_ho_fv && (LOflag(p.I) == 0.0));
+        const CCTK_REAL t00 = Ttt_pv(p.I) + thetac * one_over_24 * laplace_3d(Ttt_pv, p);
+        const vec<CCTK_REAL, 3> t0( 
+            [&](int i) ARITH_INLINE { return gf_Tti(i)(p.I) + thetac * one_over_24 * laplace_3d(gf_Tti(i), p); });
+        const vec<CCTK_REAL, 3> t0low(
+            [&](int i) ARITH_INLINE { return gf_Tt_i(i)(p.I)  + thetac * one_over_24 * laplace_3d(gf_Tt_i(i), p); });
+        const smat<CCTK_REAL, 3> t([&](int i, int j) ARITH_INLINE {
+            return gf_Tij(i, j)(p.I)  + thetac * one_over_24 * laplace_3d(gf_Tij(i, j), p);
+        });
+        
         /* Update term for tau */
         const CCTK_REAL tau_source =
             t00 * (shiftshiftk - calc_contraction(beta_avg, d_alp)) +
@@ -160,29 +242,11 @@ template <int FDORDER> void SourceTerms(CCTK_ARGUMENTS) {
         densrhs(p.I) = 0.0;
         DEntrhs(p.I) = 0.0;
         DYe_rhs(p.I) = 0.0;
-        if (use_ho_fv) {
-          momxrhs(p.I) = 0.0;
-          momyrhs(p.I) = 0.0;
-          momzrhs(p.I) = 0.0;
-          taurhs(p.I) = 0.0;
+        momxrhs(p.I) = alp_avg * sqrt_detg * mom_source(0);
+        momyrhs(p.I) = alp_avg * sqrt_detg * mom_source(1);
+        momzrhs(p.I) = alp_avg * sqrt_detg * mom_source(2);
+        taurhs(p.I) = alp_avg * sqrt_detg * tau_source;
 
-          // Use HydroBaseX GFs as temporary helper
-          velx(p.I) = alp_avg * sqrt_detg * mom_source(0);
-          vely(p.I) = alp_avg * sqrt_detg * mom_source(1);
-          velz(p.I) = alp_avg * sqrt_detg * mom_source(2);
-          eps(p.I) = alp_avg * sqrt_detg * tau_source;
-        }
-        else {
-          momxrhs(p.I) = alp_avg * sqrt_detg * mom_source(0);
-          momyrhs(p.I) = alp_avg * sqrt_detg * mom_source(1);
-          momzrhs(p.I) = alp_avg * sqrt_detg * mom_source(2);
-          taurhs(p.I) = alp_avg * sqrt_detg * tau_source;
-
-          velx(p.I) = 0.0; 
-          vely(p.I) = 0.0; 
-          velz(p.I) = 0.0; 
-          eps(p.I) = 0.0;
-        }
       }); // end of loop over grid
 }
 
@@ -203,6 +267,7 @@ extern "C" void AsterX_SourceTerms(CCTK_ARGUMENTS) {
   }
 }
 
+/*
 extern "C" void AsterX_CellAvgSourceTerms(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_CellAvgSourceTerms;
   DECLARE_CCTK_PARAMETERS;
@@ -220,5 +285,6 @@ extern "C" void AsterX_CellAvgSourceTerms(CCTK_ARGUMENTS) {
   });
 
 }
+*/
 
 } // namespace AsterX
