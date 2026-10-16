@@ -86,6 +86,16 @@ CCTK_REAL eta_thresh "Threshold for shock detection measure (see Berta+ 2025, Ki
   *:* :: "Large number (eg. 1e100) to force H.O., negative to force L.O."
 } 0.005
 
+CCTK_REAL dtemp_thresh "For activating LOflag when EOS gradients are high" STEERABLE=always
+{
+  0:* :: "Larger than zero"
+} 0.25
+
+CCTK_REAL pvdens_frac "How much point value Dens to blend in for CA->PV reflag" STEERABLE=always
+{
+  0:1 :: "Between 0 and 1"
+} 0.75
+
 CCTK_REAL loworder_rho_thresh "Set low-order flag to 0 below density threshold" STEERABLE=always
 {
   0:* :: "Larger than zero"

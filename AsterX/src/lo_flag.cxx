@@ -55,18 +55,39 @@ template <typename EOSType> void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p) {
   // const vec<GF3D2<const CCTK_REAL>, dim> gf_Bvecs{Bvecx, Bvecy, Bvecz};
   // const smat<GF3D2<const CCTK_REAL>, dim> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
 
-  // Loop over the grid
+  constexpr CCTK_REAL one_over_24 = CCTK_REAL(1) / CCTK_REAL(24);
+
   grid.loop_allmn_device<1, 1, 1>(
       grid.nghostzones, 2,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
 
-        // Grading rho
+        // Auto flag in atmosphere
         const CCTK_REAL radial_distance = sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
         CCTK_REAL rho_atm = (radial_distance > r_atmo)
                 ? (rho_abs_min * pow((r_atmo / radial_distance), n_rho_atmo))
                 : rho_abs_min;
         rho_atm = std::max(eos_3p->rgrho.min, rho_atm);
         if (rho(p.I) <= rho_atm * (1.0 + atmo_tol)) {
+          etac(p.I) = eta_thresh * 1.001;
+          return;
+        }
+
+        // Check for steep gradients in the EOS
+        const CCTK_REAL Drho = one_over_24 * laplace_3d(rho, p);
+        const CCTK_REAL Deps = one_over_24 * laplace_3d(eps, p);
+        CCTK_REAL epsPVp = eps(p.I) - Deps;
+        CCTK_REAL epsCA = eps(p.I) + Deps;
+        const CCTK_REAL DYe = one_over_24 * laplace_3d(Ye, p);
+
+        const CCTK_REAL temp_PVprimeL = eos_3p->temp_from_rho_eps_ye(rho(p.I) - Drho, epsPVp, Ye(p.I) - DYe);
+        // const CCTK_REAL temp_CAreavgL = eos_3p->temp_from_rho_eps_ye(rho(p.I) + (1 - pvdens_frac) * Drho, epsCA, Ye(p.I) + DYe);
+        const CCTK_REAL itemp = 1.0 / temperature(p.I);
+
+        // temp_PVprime(p.I) = temp_PVprimeL;
+        // temp_CAreavg(p.I) = temp_CAreavgL;
+        const CCTK_REAL dtemp_PVprime = itemp * abs(temperature(p.I) - temp_PVprimeL);
+        // const CCTK_REAL dtemp_CAreavg = itemp * abs(temperature(p.I) - temp_CAreavgL);
+        if (dtemp_PVprime > dtemp_thresh) {
           etac(p.I) = eta_thresh * 1.001;
           return;
         }
@@ -141,6 +162,36 @@ template <typename EOSType> void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p) {
         etac(p.I) = 0.0; // set eta_c = 0 here to mark as valid
       });
 }
+
+/*
+extern "C" void AsterX_LOFlagDiagnostics(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_LOFlagDiagnostics;
+  DECLARE_CCTK_PARAMETERS;
+
+  constexpr CCTK_REAL one_over_24 = CCTK_REAL(1) / CCTK_REAL(24);
+  auto eos_3p = global_eos_3p_tab3d;
+
+  grid.loop_int_device<1, 1, 1>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p)
+          CCTK_ATTRIBUTE_ALWAYS_INLINE { 
+          const CCTK_REAL Drho = one_over_24 * laplace_3d(rho, p);
+          const CCTK_REAL Deps = one_over_24 * laplace_3d(eps, p);
+          CCTK_REAL epsPVp = eps(p.I) - Deps;
+          CCTK_REAL epsCA = eps(p.I) + Deps;
+          const CCTK_REAL DYe = one_over_24 * laplace_3d(Ye, p);
+
+          const CCTK_REAL temp_PVprimeL = eos_3p->temp_from_rho_eps_ye(rho(p.I) - Drho, epsPVp, Ye(p.I) - DYe);
+          const CCTK_REAL temp_CAreavgL = eos_3p->temp_from_rho_eps_ye(rho(p.I) + Drho, epsCA, Ye(p.I) + DYe);
+          const CCTK_REAL itemp = 1.0 / temperature(p.I);
+
+          temp_PVprime(p.I) = temp_PVprimeL;
+          temp_CAreavg(p.I) = temp_CAreavgL;
+          dtemp_PVprime(p.I) = itemp * abs(temperature(p.I) - temp_PVprimeL);
+          dtemp_CAreavg(p.I) = itemp * abs(temperature(p.I) - temp_CAreavgL);
+  });
+}
+*/
 
 extern "C" void AsterX_SetLOeta(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_SetLOeta;

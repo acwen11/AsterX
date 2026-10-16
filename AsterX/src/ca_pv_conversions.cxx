@@ -124,45 +124,71 @@ extern "C" void AsterX_CopySavedPrims(CCTK_ARGUMENTS) {
       });
 }
 
-extern "C" void AsterX_PVConsPostStep(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_AsterX_PVConsPostStep;
+extern "C" void AsterX_AdjustCA(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_AdjustCA;
   DECLARE_CCTK_PARAMETERS;
 
-  constexpr CCTK_REAL one_over_24 = CCTK_REAL(1) / CCTK_REAL(24);
+  if (cctk_iteration > 0) {
+    constexpr CCTK_REAL one_over_24 = CCTK_REAL(1) / CCTK_REAL(24);
 
-  grid.loop_int_device<1, 1, 1>(grid.nghostzones,
-      [=] CCTK_DEVICE(const PointDesc &p)
-          CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        bool reavg = false;
-        for (int dir = 0; dir < 3; dir++) {
-          for (int step = -1; step <= 1; step++) {
-            const auto idx = p.I + step * p.DI[dir];
-            reavg = reavg || (LOflag(idx) < LOflag_p(idx));
+    grid.loop_all_device<1, 1, 1>(grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p)
+            CCTK_ATTRIBUTE_ALWAYS_INLINE {
+          if (LOflag(p.I) > LOflag_p(p.I)) {
+            dens(p.I) = pvdens_frac * dens_pv(p.I)  + (1.0 - pvdens_frac) * dens(p.I) ;
+            momx(p.I) = momx_pv(p.I);
+            momy(p.I) = momy_pv(p.I);
+            momz(p.I) = momz_pv(p.I);
+            tau(p.I) = tau_pv(p.I);
+            DYe(p.I) = DYe_pv(p.I);
+            DEnt(p.I) = DEnt_pv(p.I);
           }
-        }
-        reavg = reavg && (LOflag(p.I) == 0.0);
-        if (LOflag(p.I) > LOflag_p(p.I)) {
-          dens(p.I) = dens_pv(p.I);
-          momx(p.I) = momx_pv(p.I);
-          momy(p.I) = momy_pv(p.I);
-          momz(p.I) = momz_pv(p.I);
-          tau(p.I) = tau_pv(p.I);
-          DYe(p.I) = DYe_pv(p.I);
-          DEnt(p.I) = DEnt_pv(p.I);
-        }
-        else if (reavg) {
-          dens_pv(p.I) = dens(p.I) - one_over_24 * laplace_3d(dens, p);
-          momx_pv(p.I) = momx(p.I) - one_over_24 * laplace_3d(momx, p);
-          momy_pv(p.I) = momy(p.I) - one_over_24 * laplace_3d(momy, p);
-          momz_pv(p.I) = momz(p.I) - one_over_24 * laplace_3d(momz, p);
-          tau_pv(p.I) = tau(p.I) - one_over_24 * laplace_3d(tau, p);
-          DYe_pv(p.I) = DYe(p.I) - one_over_24 * laplace_3d(DYe, p);
-          DEnt_pv(p.I) = DEnt(p.I) - one_over_24 * laplace_3d(DEnt, p);
-        }
-          
-      });
+        });
+  }
 }
 
+extern "C" void AsterX_AdjustPV(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_AdjustPV;
+  DECLARE_CCTK_PARAMETERS;
+
+  if (cctk_iteration > 0) {
+    constexpr CCTK_REAL one_over_24 = CCTK_REAL(1) / CCTK_REAL(24);
+
+    grid.loop_int_device<1, 1, 1>(grid.nghostzones,
+        [=] CCTK_DEVICE(const PointDesc &p)
+            CCTK_ATTRIBUTE_ALWAYS_INLINE {
+          // bool reavg = false;
+          // for (int dir = 0; dir < 3; dir++) {
+          //   for (int step = -1; step <= 1; step++) {
+          //     const auto idx = p.I + step * p.DI[dir];
+          //     reavg = reavg || (LOflag(idx) < LOflag_p(idx));
+          //   }
+          // }
+          // reavg = reavg && (LOflag(p.I) == 0.0);
+          if (LOflag(p.I) > LOflag_p(p.I)) {
+            dens_pv(p.I) = dens(p.I);
+            momx_pv(p.I) = momx(p.I);
+            momy_pv(p.I) = momy(p.I);
+            momz_pv(p.I) = momz(p.I);
+            tau_pv(p.I) = tau(p.I);
+            DYe_pv(p.I) = DYe(p.I);
+            DEnt_pv(p.I) = DEnt(p.I);
+          }
+          else if (LOflag(p.I) < LOflag_p(p.I)) {
+            dens_pv(p.I) = dens(p.I) - one_over_24 * laplace_3d(dens, p);
+            momx_pv(p.I) = momx(p.I) - one_over_24 * laplace_3d(momx, p);
+            momy_pv(p.I) = momy(p.I) - one_over_24 * laplace_3d(momy, p);
+            momz_pv(p.I) = momz(p.I) - one_over_24 * laplace_3d(momz, p);
+            tau_pv(p.I) = tau(p.I) - one_over_24 * laplace_3d(tau, p);
+            DYe_pv(p.I) = DYe(p.I) - one_over_24 * laplace_3d(DYe, p);
+            DEnt_pv(p.I) = DEnt(p.I) - one_over_24 * laplace_3d(DEnt, p);
+          }
+            
+        });
+  }
+}
+
+/*
 extern "C" void AsterX_PV2CAPostStep(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_PV2CAPostStep;
   DECLARE_CCTK_PARAMETERS;
@@ -280,7 +306,6 @@ extern "C" void AsterX_PV2CAPostStep(CCTK_ARGUMENTS) {
       });
 }
 
-/*
 extern "C" void AsterX_PV2CAPostStep(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_PV2CAPostStep;
   DECLARE_CCTK_PARAMETERS;
@@ -347,6 +372,7 @@ extern "C" void AsterX_PV2CAPostStep(CCTK_ARGUMENTS) {
       });
 }
 */
+
 extern "C" void AsterX_ReAvgConsPostStep(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_ReAvgConsPostStep;
   DECLARE_CCTK_PARAMETERS;
@@ -355,8 +381,9 @@ extern "C" void AsterX_ReAvgConsPostStep(CCTK_ARGUMENTS) {
   grid.loop_int_device<1, 1, 1>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        bool reavg = false;
         bool c2pflag_stencil = false;
+        /*
+        bool reavg = false;
         for (int dk = -2; dk <= 2; dk++) {
           for (int dj = -2; dj <= 2; dj++) {
             for (int di = -2; di <= 2; di++) {
@@ -370,9 +397,21 @@ extern "C" void AsterX_ReAvgConsPostStep(CCTK_ARGUMENTS) {
             }
           }
         }
-        reavg = reavg && (LOflag(p.I) == 0.0);
+        */
+        for (int dk = -1; dk <= 1; dk++) {
+          for (int dj = -1; dj <= 1; dj++) {
+            for (int di = -1; di <= 1; di++) {
+              auto idx = p.I + di * p.DI[0] + dj * p.DI[1] + dk * p.DI[2];
+              if (abs(dk) + abs(dj) + abs(di) <= 1) 
+                c2pflag_stencil = c2pflag_stencil || (con2prim_flag(idx) >= 6);
+              else
+                continue;
+            }
+          }
+        }
+        // reavg = reavg && (LOflag(p.I) == 0.0);
         c2pflag_stencil = c2pflag_stencil && (LOflag(p.I) == 0.0);
-        if (reavg || c2pflag_stencil) {
+        if (c2pflag_stencil) {
           // Re-average cells that are no longer flagged
           dens(p.I) = dens_pv(p.I) + one_over_24 * laplace_3d(dens_pv, p);
           momx(p.I) = momx_pv(p.I) + one_over_24 * laplace_3d(momx_pv, p);
