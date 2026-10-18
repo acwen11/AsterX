@@ -140,8 +140,8 @@ extern "C" void AsterX_AdjustCA(CCTK_ARGUMENTS) {
             momy(p.I) = momy_pv(p.I);
             momz(p.I) = momz_pv(p.I);
             tau(p.I) = tau_pv(p.I);
-            DYe(p.I) = DYe_pv(p.I);
-            DEnt(p.I) = DEnt_pv(p.I);
+            DYe(p.I) =  pvdens_frac * DYe_pv(p.I)  + (1.0 - pvdens_frac) * DYe(p.I) ;
+            DEnt(p.I) =  pvdens_frac * DEnt_pv(p.I)  + (1.0 - pvdens_frac) * DEnt(p.I) ;
           }
         });
   }
