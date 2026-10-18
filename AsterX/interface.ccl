@@ -50,6 +50,16 @@ CCTK_REAL rhs_vector TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "RHSs of con
   densrhs, momxrhs, momyrhs, momzrhs, taurhs, DYe_rhs, DEntrhs
 } "Conserved density, momenta, internal energy, electron fraction and entropy RHS"
 
+CCTK_REAL Tmunu_pv TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
+{
+  Ttt_pv, Ttx_pv, Tty_pv, Ttz_pv, Txx_pv, Txy_pv, Txz_pv, Tyy_pv, Tyz_pv, Tzz_pv 
+} "Point values of T^munu used for source term"
+
+CCTK_REAL Tt_i_pv TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
+{
+  Tt_x_pv, Tt_y_pv, Tt_z_pv 
+} "Point values of T^t_i used for source term"
+
 # DEnt is the conserved "evolved" entropy.
 # The corresponding primitive is stored in HydroBaseX::entropy.
 # However, note that this gf stores the "evolved" entropy which is 
@@ -152,11 +162,18 @@ CCTK_REAL Psi_rhs TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"' "t-component of
 # node is bit-for-bit the gauge integral int G dt that this level applied to
 # the edges touching the node. It is excluded from the driver's automatic
 # restriction (restrict="no") so the coarse ledger survives until AsterX
-# compares it with the fine one. The prolongation settings mirror Psi.
+# compares it with the fine one. Its refinement-boundary ghosts are not
+# exempt: under subcycling the driver re-prolongates them from the parent
+# after each restriction, as for every evolved group. The prolongation
+# settings mirror Psi.
 CCTK_REAL IG TYPE=gf CENTERING={vvv} TAGS='rhs="IG_rhs" restrict="no" prolongation_type="hermite" prolongation_order=5' "Nodal gauge register: int G dt applied by this level"
 
 CCTK_REAL IG_rhs TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"' "RHS of IG (= G when the gauge register is active, 0 otherwise)"
 
+# IGr is scratch for the reconcile. restrict="no" keeps the driver from
+# restricting it on either of its paths (end of step, SYNC);
+# AsterX_GaugeRestrictIGr restricts it explicitly through
+# CarpetX::RestrictNoPoison, which ignores the tag.
 CCTK_REAL IGr TYPE=gf CENTERING={vvv} TAGS='checkpoint="no" restrict="no"' "Scratch: IG restricted from the time-aligned child level"
 
 CCTK_REAL Fbeta TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"'

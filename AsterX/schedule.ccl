@@ -7,6 +7,7 @@ STORAGE: Avec_z[timelevels]
 STORAGE: Psi[timelevels]
 
 STORAGE: rhs_vector Avec_x_rhs Avec_y_rhs Avec_z_rhs Psi_rhs
+STORAGE: Tmunu_pv Tt_i_pv
 STORAGE: flux_x flux_y flux_z
 
 # Nodal gauge register. Storage is unconditional: ODESolvers dereferences
@@ -455,7 +456,7 @@ SCHEDULE AsterX_Sync AT post_recover_variables BEFORE ODESolvers_PostStep
 # window to every level at the current time and immediately before it
 # restricts. The group applies the coarse-edge gauge shift there; the driver's
 # own Restrict then resets every fine-owned coarse edge from the fine level and
-# its ProlongateRestrictedGFs refills the fine Avec ghost halo from the
+# its ProlongateAfterRestriction refills the fine Avec ghost halo from the
 # corrected coarse level, so the register issues no Avec transfer of its own.
 # ODESolvers_PostStep in CCTK_POSTRESTRICT runs after those transfers, so this
 # pass's B, con2prim and output, and the fluxes, G and E of the next RHS, see
@@ -795,31 +796,40 @@ SCHEDULE AsterX_RestrictAuxTermsForAvecPsiRHS IN AsterX_FluxGroup AFTER AsterX_C
 } "Restrict the auxiliary gauge term G for the rhs of Avec"
 }
 
-SCHEDULE AsterX_SourceTerms IN AsterX_RHSGroup AFTER AsterX_FluxGroup
+SCHEDULE AsterX_TmunuSource IN AsterX_RHSGroup AFTER AsterX_FluxGroup
+{
+  LANG: C
+  READS: ADMBaseX::metric(everywhere)
+  READS: ADMBaseX::lapse(everywhere)
+  READS: ADMBaseX::shift(everywhere)
+  READS: HydroBaseX::rho(everywhere) HydroBaseX::press(everywhere) HydroBaseX::eps(everywhere)
+  READS: HydroBaseX::vel(everywhere)
+  READS: zvec_x(everywhere), zvec_y(everywhere), zvec_z(everywhere)
+  READS: svec_x(everywhere), svec_y(everywhere), svec_z(everywhere)
+  READS: HydroBaseX::Bvec(everywhere)
+  WRITES: Tmunu_pv(everywhere) Tt_i_pv(everywhere)
+} "Calculate the source terms and compute the RHS of the hydro equations"
+
+SCHEDULE AsterX_SourceTerms IN AsterX_RHSGroup AFTER AsterX_TmunuSource
 {
   LANG: C
   READS: ADMBaseX::metric(everywhere)
   READS: ADMBaseX::lapse(everywhere)
   READS: ADMBaseX::shift(everywhere)
   READS: ADMBaseX::curv(everywhere)
-  READS: HydroBaseX::rho(everywhere) HydroBaseX::press(everywhere) HydroBaseX::eps(everywhere)
-  READS: HydroBaseX::vel(everywhere)
-  READS: zvec_x(everywhere), zvec_y(everywhere), zvec_z(everywhere)
-  READS: svec_x(everywhere), svec_y(everywhere), svec_z(everywhere)
-  READS: HydroBaseX::Bvec(everywhere)
+  READS: LOflag(everywhere)
+  READS: Tmunu_pv(everywhere) Tt_i_pv(everywhere)
   WRITES: rhs_vector(everywhere)
-  WRITES: HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere)
 } "Calculate the source terms and compute the RHS of the hydro equations"
 
-if (use_ho_fv) {
-  SCHEDULE AsterX_CellAvgSourceTerms IN AsterX_RHSGroup AFTER AsterX_SourceTerms BEFORE AsterX_RHS
-  {
-    LANG: C
-    READS: LOflag(interior)
-    READS: HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere)
-    WRITES: rhs_vector(interior)
-  } "Cell average source term"
-}
+# if (use_ho_fv) {
+#   SCHEDULE AsterX_CellAvgSourceTerms IN AsterX_RHSGroup AFTER AsterX_SourceTerms BEFORE AsterX_RHS
+#   {
+#     LANG: C
+#     READS: HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere)
+#     WRITES: rhs_vector(interior)
+#   } "Cell average source term"
+# }
 
 SCHEDULE AsterX_RHS IN AsterX_RHSGroup AFTER AsterX_SourceTerms
 {
