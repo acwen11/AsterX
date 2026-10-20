@@ -216,13 +216,14 @@ extern "C" void AsterX_AdjustPrimsPostStep(CCTK_ARGUMENTS) {
           const smat<CCTK_REAL, 3> g{calc_avg_v2c(gxx, p), calc_avg_v2c(gxy, p),
                                      calc_avg_v2c(gxz, p), calc_avg_v2c(gyy, p),
                                      calc_avg_v2c(gyz, p), calc_avg_v2c(gzz, p)};
-          const CCTK_REAL sqrt_detg = sqrt(calc_det(g));
+          // const CCTK_REAL sqrt_detg = sqrt(calc_det(g));
 
           prim pv;
           pv.Bvec(0) = Bvecx(p.I);
           pv.Bvec(1) = Bvecy(p.I);
           pv.Bvec(2) = Bvecz(p.I);
 
+          /*
           // Rescale v^i to preserve v^2, W
           vec<CCTK_REAL, 3> v_up{velx(p.I), vely(p.I), velz(p.I)};
           const vec<CCTK_REAL, 3> s_v_up{saved_velx(p.I), saved_vely(p.I), saved_velz(p.I)};
@@ -245,18 +246,23 @@ extern "C" void AsterX_AdjustPrimsPostStep(CCTK_ARGUMENTS) {
           pv.vel(0) = v_up(0);
           pv.vel(1) = v_up(1);
           pv.vel(2) = v_up(2);
+          */
+          pv.vel(0) = velx(p.I);
+          pv.vel(1) = vely(p.I);
+          pv.vel(2) = velz(p.I);
 
           // Set prims from T00 or kinetic energy
-          const CCTK_REAL s_rho = saved_rho(p.I);
-          const CCTK_REAL s_temp = saved_eps(p.I);
-          const CCTK_REAL s_Ye = saved_Ye(p.I);
-          const CCTK_REAL s_eps = eos_3p->eps_from_rho_temp_ye(s_rho, s_temp, s_Ye);
-          const CCTK_REAL s_press = eos_3p->press_from_rho_temp_ye(s_rho, s_temp, s_Ye);
+          const CCTK_REAL s_rho = rho(p.I);
+          const CCTK_REAL s_eps = eps(p.I);
+          const CCTK_REAL s_press = press(p.I);
           const CCTK_REAL s_rhoh = s_rho + s_rho * s_eps + s_press;
+
+          const CCTK_REAL s_temp = saved_eps(p.I);
+          const CCTK_REAL s_Ye = Ye(p.I);
 
           // Option 1: Fix T, Ye; adjust rho
           const CCTK_REAL tempL = s_temp;
-          const CCTK_REAL YeL = Ye(p.I); //s_Ye;
+          const CCTK_REAL YeL = s_Ye;
           const CCTK_REAL rhoL = eos_3p->rho_from_rhoh_temp_ye(s_rhoh, tempL, YeL);
           // Option 2: Fix Dens, Ye; adjust temp
           // const CCTK_REAL rhoL = dens(p.I) / (w_lorentz * sqrt_detg);
@@ -289,13 +295,6 @@ extern "C" void AsterX_AdjustPrimsPostStep(CCTK_ARGUMENTS) {
           // Recalculate cons from prims
           cons cv;
           prim2con(g, pv, cv);
-          // dens(p.I) = cv.dens;
-          // momx(p.I) = cv.mom(0);
-          // momy(p.I) = cv.mom(1);
-          // momz(p.I) = cv.mom(2);
-          // tau(p.I) = cv.tau;
-          // DYe(p.I) = cv.DYe;
-          // DEnt(p.I) = cv.DEnt;
 
           dens_pv(p.I) = cv.dens;
           momx_pv(p.I) = cv.mom(0);
