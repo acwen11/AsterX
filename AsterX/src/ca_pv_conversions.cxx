@@ -124,6 +124,7 @@ extern "C" void AsterX_CopySavedPrims(CCTK_ARGUMENTS) {
       });
 }
 
+/*
 extern "C" void AsterX_AdjustCA(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_AdjustCA;
   DECLARE_CCTK_PARAMETERS;
@@ -146,6 +147,7 @@ extern "C" void AsterX_AdjustCA(CCTK_ARGUMENTS) {
         });
   }
 }
+*/
 
 extern "C" void AsterX_AdjustPV(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_AdjustPV;
@@ -188,9 +190,9 @@ extern "C" void AsterX_AdjustPV(CCTK_ARGUMENTS) {
   }
 }
 
-/*
-extern "C" void AsterX_PV2CAPostStep(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_AsterX_PV2CAPostStep;
+/* KEEP KE = rho*h*(Wv)^2 CONSTANT */
+extern "C" void AsterX_AdjustPrimsPostStep(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_AdjustPrimsPostStep;
   DECLARE_CCTK_PARAMETERS;
 
   constexpr CCTK_REAL one_over_24 = CCTK_REAL(1) / CCTK_REAL(24);
@@ -198,8 +200,8 @@ extern "C" void AsterX_PV2CAPostStep(CCTK_ARGUMENTS) {
   // auto eos_1p = global_eos_1p_poly;
   auto eos_3p = global_eos_3p_tab3d;
 
-  grid.loop_all_device<1, 1, 1>(
-      grid.nghostzones,
+  grid.loop_allmn_device<1, 1, 1>(
+      grid.nghostzones, 1,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         bool reavg = false;
         for (int dir = 0; dir < 3; dir++) {
@@ -209,7 +211,7 @@ extern "C" void AsterX_PV2CAPostStep(CCTK_ARGUMENTS) {
           }
         }
         reavg = reavg && (LOflag(p.I) == 0.0);
-        if (reavg) {
+        if (reavg || (LOflag(p.I) > LOflag_p(p.I))) {
           // Recalculate point value cons from prims in neighbors of newly unflagged cells
           const smat<CCTK_REAL, 3> g{calc_avg_v2c(gxx, p), calc_avg_v2c(gxy, p),
                                      calc_avg_v2c(gxz, p), calc_avg_v2c(gyy, p),
@@ -279,7 +281,7 @@ extern "C" void AsterX_PV2CAPostStep(CCTK_ARGUMENTS) {
           vely(p.I) = pv.vel(1);
           velz(p.I) = pv.vel(2);
           temperature(p.I) = tempL;
-          Ye(p.I) = YeL;
+          // Ye(p.I) = YeL;
           press(p.I) = pv.press;
           eps(p.I) = pv.eps;
           entropy(p.I) = pv.entropy;
@@ -306,8 +308,9 @@ extern "C" void AsterX_PV2CAPostStep(CCTK_ARGUMENTS) {
       });
 }
 
-extern "C" void AsterX_PV2CAPostStep(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_AsterX_PV2CAPostStep;
+/* KEEP ALL C2P OUTPUT, RESET TEMPERATURE
+extern "C" void AsterX_AdjustPrimsPostStep(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_AdjustPrimsPostStep;
   DECLARE_CCTK_PARAMETERS;
 
   constexpr CCTK_REAL one_over_24 = CCTK_REAL(1) / CCTK_REAL(24);
@@ -321,17 +324,17 @@ extern "C" void AsterX_PV2CAPostStep(CCTK_ARGUMENTS) {
         for (int dir = 0; dir < 3; dir++) {
           for (int step = -1; step <= 1; step++) {
             const auto idx = p.I + step * p.DI[dir];
-            reavg = reavg || (LOflag(idx) != LOflag_p(idx));
+            reavg = reavg || (LOflag(idx) < LOflag_p(idx));
           }
         }
         reavg = reavg && (LOflag(p.I) == 0.0);
-        if (reavg) {
+        if (reavg || (LOflag(p.I) > LOflag_p(p.I))) {
           const smat<CCTK_REAL, 3> g{calc_avg_v2c(gxx, p), calc_avg_v2c(gxy, p),
                                      calc_avg_v2c(gxz, p), calc_avg_v2c(gyy, p),
                                      calc_avg_v2c(gyz, p), calc_avg_v2c(gzz, p)};
-          // Recalculate point value cons from prims in newly unflagged cells
-          // while keeping dens fixed
-          const CCTK_REAL sqrt_detg = sqrt(calc_det(g));
+          // // Recalculate point value cons from prims in newly unflagged cells
+          // // while keeping dens fixed
+          // const CCTK_REAL sqrt_detg = sqrt(calc_det(g));
 
           prim pv;
           pv.vel(0) = velx(p.I);
@@ -340,28 +343,24 @@ extern "C" void AsterX_PV2CAPostStep(CCTK_ARGUMENTS) {
           pv.Bvec(0) = Bvecx(p.I);
           pv.Bvec(1) = Bvecy(p.I);
           pv.Bvec(2) = Bvecz(p.I);
-          const vec<CCTK_REAL, 3> &v_up = pv.vel;
-          const vec<CCTK_REAL, 3> v_low = calc_contraction(g, v_up);
-          const CCTK_REAL w_lorentz = calc_wlorentz(v_low, v_up);
-
-          // Recalculate prims from dens_pv
-          const CCTK_REAL rhoL = dens_pv(p.I) / (sqrt_detg * w_lorentz);
-          const CCTK_REAL tempL = temperature(p.I);
-          const CCTK_REAL YeL = Ye(p.I);
-          pv.rho = rhoL;
-          pv.eps = eos_3p->eps_from_rho_temp_ye(rhoL, tempL, YeL);
-          pv.press = eos_3p->press_from_rho_temp_ye(rhoL, tempL, YeL);
-          pv.entropy = eos_3p->entropy_from_rho_temp_ye(rhoL, tempL, YeL);
+          pv.rho = rho(p.I);
           pv.Ye = Ye(p.I);
-          rho(p.I) = pv.rho;
-          press(p.I) = pv.press;
+          // Recalculate prims from saved temperature
+          const CCTK_REAL tempL = exp(saved_T_frac * log(saved_eps(p.I)) + (1.0 - saved_T_frac) * temperature(p.I));
+          // const CCTK_REAL tempL = saved_eps(p.I);
+          pv.eps = eos_3p->eps_from_rho_temp_ye(pv.rho, tempL, pv.Ye);
+          pv.press = eos_3p->press_from_rho_temp_ye(pv.rho, tempL, pv.Ye);
+          pv.entropy = eos_3p->entropy_from_rho_temp_ye(pv.rho, tempL, pv.Ye);
+
+          temperature(p.I) = tempL;
           eps(p.I) = pv.eps;
+          press(p.I) = pv.press;
           entropy(p.I) = pv.entropy;
 
           // Recalculate PV cons from prims
           cons cv;
           prim2con(g, pv, cv);
-          // dens_pv(p.I) = cv.dens;
+          dens_pv(p.I) = cv.dens;
           momx_pv(p.I) = cv.mom(0);
           momy_pv(p.I) = cv.mom(1);
           momz_pv(p.I) = cv.mom(2);
@@ -382,13 +381,12 @@ extern "C" void AsterX_ReAvgConsPostStep(CCTK_ARGUMENTS) {
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         bool c2pflag_stencil = false;
-        /*
         bool reavg = false;
         for (int dk = -2; dk <= 2; dk++) {
           for (int dj = -2; dj <= 2; dj++) {
             for (int di = -2; di <= 2; di++) {
               auto idx = p.I + di * p.DI[0] + dj * p.DI[1] + dk * p.DI[2];
-              if (abs(dk) + abs(dj) + abs(di) <= 1) 
+              if (abs(dk) + abs(dj) + abs(di) <= 1)
                 c2pflag_stencil = c2pflag_stencil || (con2prim_flag(idx) >= 6);
               if (abs(dk) + abs(dj) + abs(di) <= 2) 
                 reavg = reavg || (LOflag(idx) < LOflag_p(idx));
@@ -397,21 +395,9 @@ extern "C" void AsterX_ReAvgConsPostStep(CCTK_ARGUMENTS) {
             }
           }
         }
-        */
-        for (int dk = -1; dk <= 1; dk++) {
-          for (int dj = -1; dj <= 1; dj++) {
-            for (int di = -1; di <= 1; di++) {
-              auto idx = p.I + di * p.DI[0] + dj * p.DI[1] + dk * p.DI[2];
-              if (abs(dk) + abs(dj) + abs(di) <= 1) 
-                c2pflag_stencil = c2pflag_stencil || (con2prim_flag(idx) >= 6);
-              else
-                continue;
-            }
-          }
-        }
-        // reavg = reavg && (LOflag(p.I) == 0.0);
+        reavg = reavg && (LOflag(p.I) == 0.0);
         c2pflag_stencil = c2pflag_stencil && (LOflag(p.I) == 0.0);
-        if (c2pflag_stencil) {
+        if (reavg || c2pflag_stencil) {
           // Re-average cells that are no longer flagged
           dens(p.I) = dens_pv(p.I) + one_over_24 * laplace_3d(dens_pv, p);
           momx(p.I) = momx_pv(p.I) + one_over_24 * laplace_3d(momx_pv, p);
@@ -421,6 +407,16 @@ extern "C" void AsterX_ReAvgConsPostStep(CCTK_ARGUMENTS) {
           DYe(p.I) = DYe_pv(p.I) + one_over_24 * laplace_3d(DYe_pv, p);
           DEnt(p.I) = DEnt_pv(p.I) + one_over_24 * laplace_3d(DEnt_pv, p);
         } 
+        else if (LOflag(p.I) > LOflag_p(p.I)) {
+          dens(p.I) = dens_pv(p.I);
+          momx(p.I) = momx_pv(p.I);
+          momy(p.I) = momy_pv(p.I);
+          momz(p.I) = momz_pv(p.I);
+          tau(p.I) = tau_pv(p.I);
+          DYe(p.I) = DYe_pv(p.I);
+          DEnt(p.I) = DEnt_pv(p.I);
+        }
+
       });
 }
 
