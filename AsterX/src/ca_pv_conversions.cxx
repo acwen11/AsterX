@@ -265,27 +265,27 @@ extern "C" void AsterX_AdjustPrimsPostStep(CCTK_ARGUMENTS) {
 
           // Set prims from tau_pv
 
-          /* Computing B_j */
-          const vec<CCTK_REAL, 3> &B_up = pv.Bvec;
-          const vec<CCTK_REAL, 3> B_low = calc_contraction(g, B_up);
+          // /* Computing B_j */
+          // const vec<CCTK_REAL, 3> &B_up = pv.Bvec;
+          // const vec<CCTK_REAL, 3> B_low = calc_contraction(g, B_up);
 
-          /* Computing b^t : this is b^0 * alp */
-          const CCTK_REAL bst = w_lorentz * calc_contraction(B_up, v_low);
+          // /* Computing b^t : this is b^0 * alp */
+          // const CCTK_REAL bst = w_lorentz * calc_contraction(B_up, v_low);
 
-          /* Computing b^mu b_mu */
-          const CCTK_REAL bs2 =
-              (calc_contraction(B_up, B_low) + bst * bst) / (w_lorentz * w_lorentz);
+          // /* Computing b^mu b_mu */
+          // const CCTK_REAL bs2 =
+          //     (calc_contraction(B_up, B_low) + bst * bst) / (w_lorentz * w_lorentz);
 
-          const CCTK_REAL tau_target = (tau_pv(p.I) / sqrt_detg) - bs2 * w_lorentz * w_lorentz + 0.5 * bs2 + bst * bst;
+          // const CCTK_REAL tau_target = (tau_pv(p.I) / sqrt_detg) - bs2 * w_lorentz * w_lorentz + 0.5 * bs2 + bst * bst;
 
           // Option 1: Fix T, Ye; adjust rho
-          const CCTK_REAL tempL = temperature(p.I);
+          // const CCTK_REAL tempL = temperature(p.I);
+          // const CCTK_REAL YeL = Ye(p.I);
+          // const CCTK_REAL rhoL = eos_3p->rho_from_tautarget_temp_ye(tau_target, w_lorentz, tempL, YeL);
+          // Option 2: Fix Dens, Ye, temp
+          const CCTK_REAL rhoL = dens_pv(p.I) / (w_lorentz * sqrt_detg);
           const CCTK_REAL YeL = Ye(p.I);
-          const CCTK_REAL rhoL = eos_3p->rho_from_tautarget_temp_ye(tau_target, w_lorentz, tempL, YeL);
-          // Option 2: Fix Dens, Ye; adjust temp
-          // const CCTK_REAL rhoL = dens(p.I) / (w_lorentz * sqrt_detg);
-          // const CCTK_REAL YeL = s_Ye;
-          // const CCTK_REAL tempL = eos_3p->temp_from_rhoh_rho_ye(s_rhoh, rhoL, YeL);
+          const CCTK_REAL tempL = temperature(p.I);
           // Option 3: Fix rho, Ye; adjust temp
           // const CCTK_REAL rhoL = 0.5 * (s_rho + dens(p.I) / (w_lorentz * sqrt_detg));
           // const CCTK_REAL YeL = s_Ye;
