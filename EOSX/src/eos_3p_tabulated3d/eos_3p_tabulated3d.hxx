@@ -402,6 +402,44 @@ public:
   }
 
   CCTK_HOST CCTK_DEVICE inline CCTK_REAL
+  rho_from_tautarget_temp_ye(const CCTK_REAL tautarget, const CCTK_REAL wlor, const CCTK_REAL temp, 
+                                const CCTK_REAL ye) const {
+    // bound inputs
+    CCTK_REAL t = std::fmin(std::fmax(temp, rgtemp.min), rgtemp.max);
+    CCTK_REAL lt = std::log(t);
+
+    // table‐edge clamp
+    const CCTK_REAL rhomin = exp(interptable->xmin<0>());
+    const CCTK_REAL epsmin = eps_from_rho_temp_ye(rhomin, t, ye);
+    const CCTK_REAL pressmin = press_from_rho_temp_ye(rhomin, t, ye);
+    const CCTK_REAL tautarget_min = rhomin * wlor * (wlor - 1.0)
+          + pressmin * (wlor * wlor - 1.0) + rhomin * epsmin * wlor * wlor;
+
+    const CCTK_REAL rhomax = exp(interptable->xmax<0>());
+    const CCTK_REAL epsmax = eps_from_rho_temp_ye(rhomax, t, ye);
+    const CCTK_REAL pressmax = press_from_rho_temp_ye(rhomax, t, ye);
+    const CCTK_REAL tautarget_max = rhomax * wlor * (wlor - 1.0)
+          + pressmax * (wlor * wlor - 1.0) + rhomax * epsmax * wlor * wlor;
+    if (tautarget <= tautarget_min)
+      return rhomin;
+    if (tautarget >= tautarget_max)
+      return rhomax;
+
+    // root‐find for logrho
+    auto func = [&](CCTK_REAL &lrho) {
+      CCTK_REAL vrho = exp(lrho);
+      CCTK_REAL veps = eps_from_rho_temp_ye(vrho, t, ye);
+      CCTK_REAL vpress = press_from_rho_temp_ye(vrho, t, ye);
+      CCTK_REAL val = vrho * wlor * (wlor - 1.0)
+            + vpress * (wlor * wlor - 1.0) + vrho * veps * wlor * wlor;
+      return tautarget - val;
+    };
+    const CCTK_REAL out_lrho = zero_brent(interptable->xmin<0>(), interptable->xmax<0>(), 1.e-14,
+                      func);
+    return exp(out_lrho);
+  }
+
+  CCTK_HOST CCTK_DEVICE inline CCTK_REAL
   rho_from_rhoh_temp_ye(const CCTK_REAL rhoh, const CCTK_REAL temp, 
                                 const CCTK_REAL ye) const {
     // bound inputs

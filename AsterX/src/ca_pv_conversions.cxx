@@ -107,6 +107,7 @@ extern "C" void AsterX_InitPointValues(CCTK_ARGUMENTS) {
       });
 }
 
+/*
 extern "C" void AsterX_CopySavedPrims(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_CopySavedPrims;
   DECLARE_CCTK_PARAMETERS;
@@ -124,7 +125,6 @@ extern "C" void AsterX_CopySavedPrims(CCTK_ARGUMENTS) {
       });
 }
 
-/*
 extern "C" void AsterX_AdjustCA(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_AdjustCA;
   DECLARE_CCTK_PARAMETERS;
@@ -216,7 +216,7 @@ extern "C" void AsterX_AdjustPrimsPostStep(CCTK_ARGUMENTS) {
           const smat<CCTK_REAL, 3> g{calc_avg_v2c(gxx, p), calc_avg_v2c(gxy, p),
                                      calc_avg_v2c(gxz, p), calc_avg_v2c(gyy, p),
                                      calc_avg_v2c(gyz, p), calc_avg_v2c(gzz, p)};
-          // const CCTK_REAL sqrt_detg = sqrt(calc_det(g));
+          const CCTK_REAL sqrt_detg = sqrt(calc_det(g));
 
           prim pv;
           pv.Bvec(0) = Bvecx(p.I);
@@ -250,20 +250,38 @@ extern "C" void AsterX_AdjustPrimsPostStep(CCTK_ARGUMENTS) {
           pv.vel(0) = velx(p.I);
           pv.vel(1) = vely(p.I);
           pv.vel(2) = velz(p.I);
+          vec<CCTK_REAL, 3> v_up{velx(p.I), vely(p.I), velz(p.I)};
+          const vec<CCTK_REAL, 3> v_low = calc_contraction(g, v_up);
+          const CCTK_REAL w_lorentz = calc_wlorentz(v_low, v_up);
 
           // Set prims from T00 or kinetic energy
-          const CCTK_REAL s_rho = rho(p.I);
-          const CCTK_REAL s_eps = eps(p.I);
-          const CCTK_REAL s_press = press(p.I);
-          const CCTK_REAL s_rhoh = s_rho + s_rho * s_eps + s_press;
+          // const CCTK_REAL s_rho = rho(p.I);
+          // const CCTK_REAL s_eps = eps(p.I);
+          // const CCTK_REAL s_press = press(p.I);
+          // const CCTK_REAL s_rhoh = s_rho + s_rho * s_eps + s_press;
 
-          const CCTK_REAL s_temp = saved_eps(p.I);
-          const CCTK_REAL s_Ye = Ye(p.I);
+          // const CCTK_REAL s_temp = saved_eps(p.I);
+          // const CCTK_REAL s_Ye = Ye(p.I);
+
+          // Set prims from tau_pv
+
+          /* Computing B_j */
+          const vec<CCTK_REAL, 3> &B_up = pv.Bvec;
+          const vec<CCTK_REAL, 3> B_low = calc_contraction(g, B_up);
+
+          /* Computing b^t : this is b^0 * alp */
+          const CCTK_REAL bst = w_lorentz * calc_contraction(B_up, v_low);
+
+          /* Computing b^mu b_mu */
+          const CCTK_REAL bs2 =
+              (calc_contraction(B_up, B_low) + bst * bst) / (w_lorentz * w_lorentz);
+
+          const CCTK_REAL tau_target = (tau_pv(p.I) / sqrt_detg) - bs2 * w_lorentz * w_lorentz + 0.5 * bs2 + bst * bst;
 
           // Option 1: Fix T, Ye; adjust rho
-          const CCTK_REAL tempL = s_temp;
-          const CCTK_REAL YeL = s_Ye;
-          const CCTK_REAL rhoL = eos_3p->rho_from_rhoh_temp_ye(s_rhoh, tempL, YeL);
+          const CCTK_REAL tempL = temperature(p.I);
+          const CCTK_REAL YeL = Ye(p.I);
+          const CCTK_REAL rhoL = eos_3p->rho_from_tautarget_temp_ye(tau_target, w_lorentz, tempL, YeL);
           // Option 2: Fix Dens, Ye; adjust temp
           // const CCTK_REAL rhoL = dens(p.I) / (w_lorentz * sqrt_detg);
           // const CCTK_REAL YeL = s_Ye;
@@ -379,14 +397,14 @@ extern "C" void AsterX_ReAvgConsPostStep(CCTK_ARGUMENTS) {
   grid.loop_int_device<1, 1, 1>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        bool c2pflag_stencil = false;
+        // bool c2pflag_stencil = false;
         bool reavg = false;
         for (int dk = -2; dk <= 2; dk++) {
           for (int dj = -2; dj <= 2; dj++) {
             for (int di = -2; di <= 2; di++) {
               auto idx = p.I + di * p.DI[0] + dj * p.DI[1] + dk * p.DI[2];
-              if (abs(dk) + abs(dj) + abs(di) <= 1)
-                c2pflag_stencil = c2pflag_stencil || (con2prim_flag(idx) >= 6);
+              // if (abs(dk) + abs(dj) + abs(di) <= 1)
+              //   c2pflag_stencil = c2pflag_stencil || (con2prim_flag(idx) >= 6);
               if (abs(dk) + abs(dj) + abs(di) <= 2) 
                 reavg = reavg || (LOflag(idx) < LOflag_p(idx));
               else
@@ -395,8 +413,8 @@ extern "C" void AsterX_ReAvgConsPostStep(CCTK_ARGUMENTS) {
           }
         }
         reavg = reavg && (LOflag(p.I) == 0.0);
-        c2pflag_stencil = c2pflag_stencil && (LOflag(p.I) == 0.0);
-        if (reavg || c2pflag_stencil) {
+        // c2pflag_stencil = c2pflag_stencil && (LOflag(p.I) == 0.0);
+        if (reavg) {
           // Re-average cells that are no longer flagged
           dens(p.I) = dens_pv(p.I) + one_over_24 * laplace_3d(dens_pv, p);
           momx(p.I) = momx_pv(p.I) + one_over_24 * laplace_3d(momx_pv, p);
