@@ -147,7 +147,6 @@ extern "C" void AsterX_AdjustCA(CCTK_ARGUMENTS) {
         });
   }
 }
-*/
 
 extern "C" void AsterX_AdjustPV(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_AdjustPV;
@@ -189,6 +188,7 @@ extern "C" void AsterX_AdjustPV(CCTK_ARGUMENTS) {
         });
   }
 }
+*/
 
 /* KEEP KE = rho*h*(Wv)^2 CONSTANT */
 extern "C" void AsterX_AdjustPrimsPostStep(CCTK_ARGUMENTS) {
@@ -416,7 +416,7 @@ extern "C" void AsterX_ReAvgConsPostStep(CCTK_ARGUMENTS) {
         // c2pflag_stencil = c2pflag_stencil && (LOflag(p.I) == 0.0);
         if (reavg) {
           // Re-average cells that are no longer flagged
-          dens(p.I) = dens_pv(p.I) + one_over_24 * laplace_3d(dens_pv, p);
+          // dens(p.I) = dens_pv(p.I) + one_over_24 * laplace_3d(dens_pv, p);
           momx(p.I) = momx_pv(p.I) + one_over_24 * laplace_3d(momx_pv, p);
           momy(p.I) = momy_pv(p.I) + one_over_24 * laplace_3d(momy_pv, p);
           momz(p.I) = momz_pv(p.I) + one_over_24 * laplace_3d(momz_pv, p);
@@ -425,7 +425,7 @@ extern "C" void AsterX_ReAvgConsPostStep(CCTK_ARGUMENTS) {
           DEnt(p.I) = DEnt_pv(p.I) + one_over_24 * laplace_3d(DEnt_pv, p);
         } 
         else if (LOflag(p.I) > LOflag_p(p.I)) {
-          dens(p.I) = dens_pv(p.I);
+          // dens(p.I) = dens_pv(p.I);
           momx(p.I) = momx_pv(p.I);
           momy(p.I) = momy_pv(p.I);
           momz(p.I) = momz_pv(p.I);

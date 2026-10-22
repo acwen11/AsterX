@@ -270,16 +270,16 @@ if (use_deriv_shock_detector)
     # } "Save prims before post-flag update C2P"
 
     # Convert cell-averages to point values at 4th order
-    # SCHEDULE AsterX_SetConsIter IN AsterX_AdjustConsPostStepGroup BEFORE AsterX_PVConsSolve
-    # {
-    #   LANG: C
-    #   OPTIONS: global
-    #   WRITES: cons_pv_iter(everywhere)
-    # } "Start counter for PV cons iterative calculation"
+    SCHEDULE AsterX_SetConsIter IN AsterX_AdjustConsPostStepGroup BEFORE AsterX_PVConsSolve
+    {
+      LANG: C
+      OPTIONS: global
+      WRITES: cons_pv_iter(everywhere)
+    } "Start counter for PV cons iterative calculation"
 
-    # SCHEDULE GROUP AsterX_PVConsSolve IN AsterX_AdjustConsPostStepGroup AFTER AsterX_SetConsIter WHILE AsterX::cons_pv_iter
-    # {
-    # } "Iteratively calculate point valued cons"
+    SCHEDULE GROUP AsterX_PVConsSolve IN AsterX_AdjustConsPostStepGroup AFTER AsterX_SetConsIter WHILE AsterX::cons_pv_iter
+    {
+    } "Iteratively calculate point valued cons"
 
     # SCHEDULE AsterX_AdjustCA IN AsterX_AdjustConsPostStepGroup BEFORE AsterX_AdjustPV
     # {
@@ -288,13 +288,13 @@ if (use_deriv_shock_detector)
     #   WRITES: cons_vector(everywhere)
     # } "Adjust cell averages after flag update"
 
-    SCHEDULE AsterX_AdjustPV IN AsterX_AdjustConsPostStepGroup BEFORE AsterX_Con2Prim
-    {
-      LANG: C
-      READS: cons_vector(everywhere) LOflag(everywhere) LOflag_p(everywhere)
-      WRITES: cons_vector_pv(interior)
-      SYNC: cons_vector_pv
-    } "Adjust point values after flag update"
+    # SCHEDULE AsterX_AdjustPV IN AsterX_AdjustConsPostStepGroup BEFORE AsterX_Con2Prim
+    # {
+    #   LANG: C
+    #   READS: cons_vector(everywhere) LOflag(everywhere) LOflag_p(everywhere)
+    #   WRITES: cons_vector_pv(interior)
+    #   SYNC: cons_vector_pv
+    # } "Adjust point values after flag update"
 
     # SCHEDULE AsterX_Con2Prim IN AsterX_AdjustConsPostStepGroup
     # {
