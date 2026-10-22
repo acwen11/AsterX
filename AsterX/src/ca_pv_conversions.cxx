@@ -147,7 +147,6 @@ extern "C" void AsterX_AdjustCA(CCTK_ARGUMENTS) {
         });
   }
 }
-*/
 
 extern "C" void AsterX_AdjustPV(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_AdjustPV;
@@ -189,6 +188,7 @@ extern "C" void AsterX_AdjustPV(CCTK_ARGUMENTS) {
         });
   }
 }
+*/
 
 /* KEEP KE = rho*h*(Wv)^2 CONSTANT */
 extern "C" void AsterX_AdjustPrimsPostStep(CCTK_ARGUMENTS) {
@@ -276,7 +276,7 @@ extern "C" void AsterX_AdjustPrimsPostStep(CCTK_ARGUMENTS) {
           const CCTK_REAL bs2 =
               (calc_contraction(B_up, B_low) + bst * bst) / (w_lorentz * w_lorentz);
 
-          const CCTK_REAL tau_target = (tau_pv(p.I) / sqrt_detg) - bs2 * w_lorentz * w_lorentz + 0.5 * bs2 + bst * bst;
+          const CCTK_REAL tau_target = ((tau_pv(p.I) + dens_pv(p.I)) / sqrt_detg) - bs2 * w_lorentz * w_lorentz + 0.5 * bs2 + bst * bst;
 
           // Option 1: Fix T, Ye; adjust rho
           const CCTK_REAL tempL = temperature(p.I);

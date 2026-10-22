@@ -412,13 +412,13 @@ public:
     const CCTK_REAL rhomin = exp(interptable->xmin<0>());
     const CCTK_REAL epsmin = eps_from_rho_temp_ye(rhomin, t, ye);
     const CCTK_REAL pressmin = press_from_rho_temp_ye(rhomin, t, ye);
-    const CCTK_REAL tautarget_min = rhomin * wlor * (wlor - 1.0)
+    const CCTK_REAL tautarget_min = rhomin * wlor * wlor
           + pressmin * (wlor * wlor - 1.0) + rhomin * epsmin * wlor * wlor;
 
     const CCTK_REAL rhomax = exp(interptable->xmax<0>());
     const CCTK_REAL epsmax = eps_from_rho_temp_ye(rhomax, t, ye);
     const CCTK_REAL pressmax = press_from_rho_temp_ye(rhomax, t, ye);
-    const CCTK_REAL tautarget_max = rhomax * wlor * (wlor - 1.0)
+    const CCTK_REAL tautarget_max = rhomax * wlor * wlor
           + pressmax * (wlor * wlor - 1.0) + rhomax * epsmax * wlor * wlor;
     if (tautarget <= tautarget_min)
       return rhomin;
@@ -430,7 +430,7 @@ public:
       CCTK_REAL vrho = exp(lrho);
       CCTK_REAL veps = eps_from_rho_temp_ye(vrho, t, ye);
       CCTK_REAL vpress = press_from_rho_temp_ye(vrho, t, ye);
-      CCTK_REAL val = vrho * wlor * (wlor - 1.0)
+      CCTK_REAL val = vrho * wlor * wlor
             + vpress * (wlor * wlor - 1.0) + vrho * veps * wlor * wlor;
       return tautarget - val;
     };
