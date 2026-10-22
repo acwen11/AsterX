@@ -188,9 +188,8 @@ extern "C" void AsterX_AdjustPV(CCTK_ARGUMENTS) {
         });
   }
 }
-*/
 
-/* KEEP KE = rho*h*(Wv)^2 CONSTANT */
+/* KEEP KE = rho*h*(Wv)^2 CONSTANT
 extern "C" void AsterX_AdjustPrimsPostStep(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_AdjustPrimsPostStep;
   DECLARE_CCTK_PARAMETERS;
@@ -223,30 +222,29 @@ extern "C" void AsterX_AdjustPrimsPostStep(CCTK_ARGUMENTS) {
           pv.Bvec(1) = Bvecy(p.I);
           pv.Bvec(2) = Bvecz(p.I);
 
-          /*
           // Rescale v^i to preserve v^2, W
-          vec<CCTK_REAL, 3> v_up{velx(p.I), vely(p.I), velz(p.I)};
-          const vec<CCTK_REAL, 3> s_v_up{saved_velx(p.I), saved_vely(p.I), saved_velz(p.I)};
-          const CCTK_REAL vnorm = sqrt(calc_norm(v_up, g));
-          const CCTK_REAL s_vnorm = sqrt(calc_norm(s_v_up, g));
-          const CCTK_REAL fac = s_vnorm / (vnorm + 1e-15);
-          if (vnorm > 0.0) {
-            for (int ii = 0; ii < 3; ii++) {
-              v_up(ii) *= fac;
-            }
-          }
-          else {
-            for (int ii = 0; ii < 3; ii++) {
-              v_up(ii) = s_v_up(ii);
-            }
-          }
-          const vec<CCTK_REAL, 3> v_low = calc_contraction(g, v_up);
-          const CCTK_REAL w_lorentz = calc_wlorentz(v_low, v_up);
-          const CCTK_REAL vsq = calc_contraction(v_low, v_up);
-          pv.vel(0) = v_up(0);
-          pv.vel(1) = v_up(1);
-          pv.vel(2) = v_up(2);
-          */
+          // vec<CCTK_REAL, 3> v_up{velx(p.I), vely(p.I), velz(p.I)};
+          // const vec<CCTK_REAL, 3> s_v_up{saved_velx(p.I), saved_vely(p.I), saved_velz(p.I)};
+          // const CCTK_REAL vnorm = sqrt(calc_norm(v_up, g));
+          // const CCTK_REAL s_vnorm = sqrt(calc_norm(s_v_up, g));
+          // const CCTK_REAL fac = s_vnorm / (vnorm + 1e-15);
+          // if (vnorm > 0.0) {
+          //   for (int ii = 0; ii < 3; ii++) {
+          //     v_up(ii) *= fac;
+          //   }
+          // }
+          // else {
+          //   for (int ii = 0; ii < 3; ii++) {
+          //     v_up(ii) = s_v_up(ii);
+          //   }
+          // }
+          // const vec<CCTK_REAL, 3> v_low = calc_contraction(g, v_up);
+          // const CCTK_REAL w_lorentz = calc_wlorentz(v_low, v_up);
+          // const CCTK_REAL vsq = calc_contraction(v_low, v_up);
+          // pv.vel(0) = v_up(0);
+          // pv.vel(1) = v_up(1);
+          // pv.vel(2) = v_up(2);
+
           pv.vel(0) = velx(p.I);
           pv.vel(1) = vely(p.I);
           pv.vel(2) = velz(p.I);
@@ -265,14 +263,14 @@ extern "C" void AsterX_AdjustPrimsPostStep(CCTK_ARGUMENTS) {
 
           // Set prims from tau_pv
 
-          /* Computing B_j */
+          // Computing B_j
           const vec<CCTK_REAL, 3> &B_up = pv.Bvec;
           const vec<CCTK_REAL, 3> B_low = calc_contraction(g, B_up);
 
-          /* Computing b^t : this is b^0 * alp */
+          // Computing b^t : this is b^0 * alp
           const CCTK_REAL bst = w_lorentz * calc_contraction(B_up, v_low);
 
-          /* Computing b^mu b_mu */
+          // Computing b^mu b_mu
           const CCTK_REAL bs2 =
               (calc_contraction(B_up, B_low) + bst * bst) / (w_lorentz * w_lorentz);
 
@@ -324,6 +322,7 @@ extern "C" void AsterX_AdjustPrimsPostStep(CCTK_ARGUMENTS) {
         } 
       });
 }
+*/
 
 /* KEEP ALL C2P OUTPUT, RESET TEMPERATURE
 extern "C" void AsterX_AdjustPrimsPostStep(CCTK_ARGUMENTS) {
@@ -387,7 +386,6 @@ extern "C" void AsterX_AdjustPrimsPostStep(CCTK_ARGUMENTS) {
         } 
       });
 }
-*/
 
 extern "C" void AsterX_ReAvgConsPostStep(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_ReAvgConsPostStep;
@@ -397,7 +395,7 @@ extern "C" void AsterX_ReAvgConsPostStep(CCTK_ARGUMENTS) {
   grid.loop_int_device<1, 1, 1>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        // bool c2pflag_stencil = false;
+        bool c2pflag_stencil = false;
         bool reavg = false;
         for (int dk = -2; dk <= 2; dk++) {
           for (int dj = -2; dj <= 2; dj++) {
@@ -436,6 +434,7 @@ extern "C" void AsterX_ReAvgConsPostStep(CCTK_ARGUMENTS) {
 
       });
 }
+*/
 
 /* BEGIN ITERATIVE POINT VALUED CONSERVATIVES CALCULATION */
 extern "C" void AsterX_SetConsIter(CCTK_ARGUMENTS) {
