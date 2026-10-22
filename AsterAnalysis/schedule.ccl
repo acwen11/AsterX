@@ -17,6 +17,7 @@ if (compute_MHD) {
     READS: AsterX::B_norm(everywhere)
     READS: AsterX::b2small(everywhere)
     READS: AsterX::w_lorentz(everywhere)
+    READS: AsterX::cons_vector(interior)
     READS: AsterX::Avec_x(everywhere)
     READS: AsterX::Avec_y(everywhere)
     READS: AsterX::Avec_z(everywhere)

@@ -101,6 +101,8 @@ extern "C" void AsterAnalysis_MHD(CCTK_ARGUMENTS) {
         const CCTK_REAL rhoH = rho(p.I) + rho(p.I) * eps(p.I) + press(p.I);
         kinetic_energy(p.I) = 0.5 * rhoH * v2 * w_lorentz(p.I) * sqrt_detg;
 
+        total_energy(p.I) = dens(p.I) + tau(p.I);
+
         /* ⟨|B|⟩ */
         mean_B_numerator(p.I) =
             rho(p.I) * B_norm(p.I) * w_lorentz(p.I) * sqrt_detg;
