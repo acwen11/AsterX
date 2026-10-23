@@ -23,7 +23,7 @@ STORAGE: a_xface a_yface a_zface
 STORAGE: con2prim_flag diagnostics
 STORAGE: saved_prims
 STORAGE: zvec svec
-STORAGE: LOflag[2] etac
+STORAGE: LOflag[2] etac #flag_diagnostics
 
 # STORAGE: theta_x theta_y theta_z theta_tot
 
@@ -230,6 +230,13 @@ if (use_deriv_shock_detector)
     SYNC: LOflag
   } "Flag points with high eta"
 
+  # SCHEDULE AsterX_LOFlagDiagnostics IN AsterX_LOFlagGroup
+  # {
+  #   LANG: C
+  #   READS: HydroBaseX::rho(everywhere) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::temperature(interior) HydroBaseX::Ye(interior) #HydroBaseX::Bvec(interior)
+  #   WRITES:flag_diagnostics(everywhere)
+  # } "Flag points with high eta"
+
   SCHEDULE AsterX_LOFlagCopyTLs IN AsterX_InitialGroup AFTER AsterX_LOFlagGroup
   {
     LANG: C
@@ -255,48 +262,33 @@ if (use_deriv_shock_detector)
   {
     SCHEDULE GROUP AsterX_AdjustConsPostStepGroup IN CCTK_POSTSTEP AFTER AsterX_LOFlagGroup
     {
-    } "Adjust cons s.t. Dens and temperature_pv are constant"
+    } "Recalculate PV cons and prims"
 
     SCHEDULE GROUP AsterX_AdjustConsPostStepGroup IN CCTK_POSTREGRID AFTER AsterX_LOFlagGroup
     {
-    } "Adjust cons s.t. Dens and temperature_pv are constant"
-
-    # SCHEDULE AsterX_CopySavedPrims IN AsterX_AdjustConsPostStepGroup BEFORE AsterX_Con2Prim
-    # {
-    #   LANG: C
-    #   READS: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere) 
-    #   READS: HydroBaseX::temperature(everywhere) HydroBaseX::entropy(everywhere) HydroBaseX::Ye(everywhere)
-    #   WRITES: saved_prims(everywhere)
-    # } "Save prims before post-flag update C2P"
+    } "Recalculate PV cons and prims"
 
     # Convert cell-averages to point values at 4th order
-    SCHEDULE AsterX_SetConsIter IN AsterX_AdjustConsPostStepGroup BEFORE AsterX_PVConsSolve
+    # SCHEDULE AsterX_SetConsIter IN AsterX_AdjustConsPostStepGroup BEFORE AsterX_PVConsSolve
+    # {
+    #   LANG: C
+    #   OPTIONS: global
+    #   WRITES: cons_pv_iter(everywhere)
+    # } "Start counter for PV cons iterative calculation"
+
+    # SCHEDULE GROUP AsterX_PVConsSolve IN AsterX_AdjustConsPostStepGroup AFTER AsterX_SetConsIter WHILE AsterX::cons_pv_iter
+    # {
+    # } "Iteratively calculate point valued cons"
+
+    SCHEDULE AsterX_AdjustPV IN AsterX_AdjustConsPostStepGroup BEFORE AsterX_Con2Prim
     {
       LANG: C
-      OPTIONS: global
-      WRITES: cons_pv_iter(everywhere)
-    } "Start counter for PV cons iterative calculation"
+      READS: cons_vector(everywhere) LOflag(everywhere) LOflag_p(everywhere)
+      WRITES: cons_vector_pv(interior)
+      SYNC: cons_vector_pv
+    } "Adjust point values after flag update"
 
-    SCHEDULE GROUP AsterX_PVConsSolve IN AsterX_AdjustConsPostStepGroup AFTER AsterX_SetConsIter WHILE AsterX::cons_pv_iter
-    {
-    } "Iteratively calculate point valued cons"
-
-    # SCHEDULE AsterX_AdjustCA IN AsterX_AdjustConsPostStepGroup BEFORE AsterX_AdjustPV
-    # {
-    #   LANG: C
-    #   READS: cons_vector(everywhere) cons_vector_pv(everywhere) LOflag(everywhere) LOflag_p(everywhere)
-    #   WRITES: cons_vector(everywhere)
-    # } "Adjust cell averages after flag update"
-
-    # SCHEDULE AsterX_AdjustPV IN AsterX_AdjustConsPostStepGroup BEFORE AsterX_Con2Prim
-    # {
-    #   LANG: C
-    #   READS: cons_vector(everywhere) LOflag(everywhere) LOflag_p(everywhere)
-    #   WRITES: cons_vector_pv(interior)
-    #   SYNC: cons_vector_pv
-    # } "Adjust point values after flag update"
-
-    SCHEDULE AsterX_Con2Prim IN AsterX_AdjustConsPostStepGroup
+    SCHEDULE AsterX_Con2Prim IN AsterX_AdjustConsPostStepGroup AFTER AsterX_PVConsSolve
     {
       LANG: C
       READS: AsterMasks::aster_mask_vc(everywhere)
@@ -318,34 +310,13 @@ if (use_deriv_shock_detector)
       WRITES: cons_vector(everywhere) cons_vector_pv(everywhere) dB(everywhere)
     } "Calculate primitive variables from conservative variables"
 
-    # SCHEDULE AsterX_AdjustPrimsPostStep IN AsterX_AdjustConsPostStepGroup AFTER AsterX_Con2Prim
-    # {
-    #   LANG: C
-    #   READS: ADMBaseX::metric(everywhere)
-    #   READS: LOflag(everywhere) LOflag_p(everywhere)
-    #   READS: cons_vector_pv(everywhere)
-    #   READS: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::Bvec(everywhere) HydroBaseX::temperature(everywhere) HydroBaseX::Ye(everywhere)
-    #   WRITES: cons_vector_pv(everywhere)
-    #   WRITES: HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::entropy(interior) HydroBaseX::temperature(interior)
-    #   WRITES: HydroBaseX::vel(interior) HydroBaseX::rho(interior)
-    #   SYNC: HydroBaseX::eps HydroBaseX::press HydroBaseX::entropy HydroBaseX::temperature HydrobaseX::vel HydroBaseX::rho
-    # } "Adjust CA with point value in newly flagged points"
-
-    SCHEDULE AsterX_SetCellAverage IN AsterX_AdjustConsPostStepGroup AFTER AsterX_CA2PVPostStep
+    SCHEDULE AsterX_SetCellAverage IN AsterX_AdjustConsPostStepGroup AFTER AsterX_Con2Prim
     {
       LANG: C
       READS: cons_vector_pv(everywhere) 
       READS: LOflag(everywhere) con2prim_flag(everywhere)
       WRITES: cons_vector(everywhere)
     } "Recompute cell-averages of conserved variables if values were adjusted in C2P"
-
-    # SCHEDULE AsterX_ReAvgConsPostStep IN AsterX_AdjustConsPostStepGroup AFTER AsterX_AdjustPrimsPostStep
-    # {
-    #   LANG: C
-    #   READS: LOflag(interior) LOflag_p(interior) con2prim_flag(everywhere)
-    #   READS: cons_vector_pv(everywhere)
-    #   WRITES: cons_vector(interior) 
-    # } "Reaverage cons near newly unflagged points, or if values were adjusted in C2P"
 
     SCHEDULE GROUP TmunuBaseX_SetTmunuVars IN AsterX_AdjustConsPostStepGroup AFTER AsterX_AdjustPrimsPostStep
     {

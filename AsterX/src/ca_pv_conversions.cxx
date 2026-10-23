@@ -147,6 +147,7 @@ extern "C" void AsterX_AdjustCA(CCTK_ARGUMENTS) {
         });
   }
 }
+*/
 
 extern "C" void AsterX_AdjustPV(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_AdjustPV;

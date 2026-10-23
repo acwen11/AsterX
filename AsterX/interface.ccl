@@ -115,6 +115,10 @@ CCTK_REAL flux_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
 
 CCTK_REAL LOflag TYPE=gf TIMELEVELS=2 CENTERING={ccc} TAGS='checkpoint="yes" evolve="no" prolongation_type="minmod" prolongation_order=1' "Shock detector switch"
 CCTK_REAL etac TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Shock detector measure"
+# CCTK_REAL flag_diagnostics TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
+# {
+#   temp_PVprime, temp_CAreavg, dtemp_PVprime, dtemp_CAreavg, drho, deps
+# } "Diagnostic grid functions"
 
 # ----- staggered vector potential (edges)
 

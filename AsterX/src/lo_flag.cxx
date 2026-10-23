@@ -72,7 +72,6 @@ template <typename EOSType> void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p) {
           return;
         }
 
-        /*
         // Check for steep gradients in the EOS
         const CCTK_REAL Drho = one_over_24 * laplace_3d(rho, p);
         const CCTK_REAL Deps = one_over_24 * laplace_3d(eps, p);
@@ -81,18 +80,15 @@ template <typename EOSType> void CalcLOFlag(CCTK_ARGUMENTS, EOSType *eos_3p) {
         const CCTK_REAL DYe = one_over_24 * laplace_3d(Ye, p);
 
         const CCTK_REAL temp_PVprimeL = eos_3p->temp_from_rho_eps_ye(rho(p.I) - Drho, epsPVp, Ye(p.I) - DYe);
-        // const CCTK_REAL temp_CAreavgL = eos_3p->temp_from_rho_eps_ye(rho(p.I) + (1 - pvdens_frac) * Drho, epsCA, Ye(p.I) + DYe);
+        const CCTK_REAL temp_CAreavgL = eos_3p->temp_from_rho_eps_ye(rho(p.I) + Drho, epsCA, Ye(p.I) + DYe);
         const CCTK_REAL itemp = 1.0 / temperature(p.I);
 
-        // temp_PVprime(p.I) = temp_PVprimeL;
-        // temp_CAreavg(p.I) = temp_CAreavgL;
         const CCTK_REAL dtemp_PVprime = itemp * abs(temperature(p.I) - temp_PVprimeL);
-        // const CCTK_REAL dtemp_CAreavg = itemp * abs(temperature(p.I) - temp_CAreavgL);
-        if (dtemp_PVprime > dtemp_thresh) { // || (dtemp_CAreavg > dtemp_thresh)) {
+        const CCTK_REAL dtemp_CAreavg = itemp * abs(temperature(p.I) - temp_CAreavgL);
+        if ((dtemp_PVprime > dtemp_thresh) || (dtemp_CAreavg > dtemp_thresh)) {
           etac(p.I) = eta_thresh * 1.001;
           return;
         }
-        */
 
         // Store largest etac as diagnostic. Note that this is only truly the
         // largest if all checks pass.
@@ -191,6 +187,8 @@ extern "C" void AsterX_LOFlagDiagnostics(CCTK_ARGUMENTS) {
           temp_CAreavg(p.I) = temp_CAreavgL;
           dtemp_PVprime(p.I) = itemp * abs(temperature(p.I) - temp_PVprimeL);
           dtemp_CAreavg(p.I) = itemp * abs(temperature(p.I) - temp_CAreavgL);
+          drho(p.I) = Drho;
+          deps(p.I) = Deps;
   });
 }
 */
