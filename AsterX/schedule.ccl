@@ -206,7 +206,7 @@ if (use_deriv_shock_detector)
   {
   } "Detect shocks, flag for low-order recon fallback"
 
-  SCHEDULE GROUP AsterX_LOFlagGroup IN CCTK_POSTSTEP
+  SCHEDULE GROUP AsterX_LOFlagGroup IN CCTK_EVOL BEFORE ODESolvers_Solve
   {
   } "Detect shocks, flag for low-order recon fallback"
 
@@ -229,13 +229,6 @@ if (use_deriv_shock_detector)
     WRITES: LOflag(interior)
     SYNC: LOflag
   } "Flag points with high eta"
-
-  # SCHEDULE AsterX_LOFlagDiagnostics IN AsterX_LOFlagGroup
-  # {
-  #   LANG: C
-  #   READS: HydroBaseX::rho(everywhere) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::temperature(interior) HydroBaseX::Ye(interior) #HydroBaseX::Bvec(interior)
-  #   WRITES:flag_diagnostics(everywhere)
-  # } "Flag points with high eta"
 
   SCHEDULE AsterX_LOFlagCopyTLs IN AsterX_InitialGroup AFTER AsterX_LOFlagGroup
   {
@@ -260,25 +253,13 @@ if (use_deriv_shock_detector)
 
   if (use_ho_fv && shock_pv_fallback)
   {
-    SCHEDULE GROUP AsterX_AdjustConsPostStepGroup IN CCTK_POSTSTEP AFTER AsterX_LOFlagGroup
+    SCHEDULE GROUP AsterX_AdjustConsPostStepGroup IN CCTK_EVOL AFTER AsterX_LOFlagGroup BEFORE ODESolvers_Solve
     {
     } "Recalculate PV cons and prims"
 
     SCHEDULE GROUP AsterX_AdjustConsPostStepGroup IN CCTK_POSTREGRID AFTER AsterX_LOFlagGroup
     {
     } "Recalculate PV cons and prims"
-
-    # Convert cell-averages to point values at 4th order
-    # SCHEDULE AsterX_SetConsIter IN AsterX_AdjustConsPostStepGroup BEFORE AsterX_PVConsSolve
-    # {
-    #   LANG: C
-    #   OPTIONS: global
-    #   WRITES: cons_pv_iter(everywhere)
-    # } "Start counter for PV cons iterative calculation"
-
-    # SCHEDULE GROUP AsterX_PVConsSolve IN AsterX_AdjustConsPostStepGroup AFTER AsterX_SetConsIter WHILE AsterX::cons_pv_iter
-    # {
-    # } "Iteratively calculate point valued cons"
 
     SCHEDULE AsterX_AdjustPV IN AsterX_AdjustConsPostStepGroup BEFORE AsterX_Con2Prim
     {

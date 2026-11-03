@@ -532,6 +532,6 @@ extern "C" void AsterX_DecConsIter(CCTK_ARGUMENTS) {
       SyncGroupsByDirI(cctkGH, groups.size(), groups.data(), nullptr);
   }
 }
-/* END ITERATIVE POINT VALUED CONSERVATIVE VECTORY CALCULATION */
+/* END ITERATIVE POINT VALUED CONSERVATIVE VECTOR CALCULATION */
 
 } // namespace AsterX
