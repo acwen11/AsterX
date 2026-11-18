@@ -31,11 +31,11 @@ extern "C" void AsterX_GaugeRegisterInit(CCTK_ARGUMENTS) {
 // The reconcile, AsterX_GaugeRegisterGroup IN CarpetX_PreRestrict
 //
 // CarpetX traverses CarpetX_PreRestrict once per time-aligned pass, with
-// active_levels widened to every level that is at the current time,
+// the active window widened to every level that is at the current time,
 // immediately before it restricts the evolved variables fine-to-coarse. The
 // group applies the gauge shift on the coarse levels there, and the driver's
 // own transfers that follow do the rest: its Restrict resets every fine-owned
-// coarse edge from the fine level, and its ProlongateRestrictedGFs refills
+// coarse edge from the fine level, and its ProlongateAfterRestriction refills
 // the fine Avec_* ghost halo from the corrected coarse interior. Nothing in
 // this group moves Avec_* across levels. ODESolvers_PostStep in
 // CCTK_POSTRESTRICT runs after those transfers, so everything downstream on
@@ -108,8 +108,8 @@ extern "C" void AsterX_GaugeCopyIGr(CCTK_ARGUMENTS) {
 extern "C" void AsterX_GaugeRestrictIGr(CCTK_ARGUMENTS) {
   static const std::vector<int> groups = {CCTK_GroupIndex("AsterX::IGr")};
 
-  RestrictFromAlignedChildren(cctkGH, groups);
-  SyncGhostsOnly(cctkGH, groups);
+  RestrictFromAlignedChildren(groups);
+  SyncGhostsOnly(groups);
 }
 
 // A_i -= D_i (IGr - IG) on every interior edge of every active level. This is
