@@ -50,10 +50,10 @@ CCTK_REAL rhs_vector TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "RHSs of con
   densrhs, momxrhs, momyrhs, momzrhs, taurhs, DYe_rhs, DEntrhs
 } "Conserved density, momenta, internal energy, electron fraction and entropy RHS"
 
-CCTK_REAL Tmunu_pv TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
-{
-  Ttt_pv, Ttx_pv, Tty_pv, Ttz_pv, Txx_pv, Txy_pv, Txz_pv, Tyy_pv, Tyz_pv, Tzz_pv 
-} "Point values of T^munu used for source term"
+# CCTK_REAL Tmunu_pv TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
+# {
+#   Ttt_pv, Ttx_pv, Tty_pv, Ttz_pv, Txx_pv, Txy_pv, Txz_pv, Tyy_pv, Tyz_pv, Tzz_pv 
+# } "Point values of T^munu used for source term"
 
 CCTK_REAL Tt_i_pv TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
 {
@@ -115,10 +115,6 @@ CCTK_REAL flux_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
 
 CCTK_REAL LOflag TYPE=gf TIMELEVELS=2 CENTERING={ccc} TAGS='checkpoint="yes" evolve="no" prolongation_type="minmod" prolongation_order=1' "Shock detector switch"
 CCTK_REAL etac TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Shock detector measure"
-# CCTK_REAL flag_diagnostics TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
-# {
-#   temp_PVprime, temp_CAreavg, dtemp_PVprime, dtemp_CAreavg, drho, deps
-# } "Diagnostic grid functions"
 
 # ----- staggered vector potential (edges)
 

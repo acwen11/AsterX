@@ -203,8 +203,8 @@ template <int dir> void ComputeStaggeredPointValB(CCTK_ARGUMENTS) {
                                             !(dir == 2)};
 
   constexpr CCTK_REAL one_over_24 = CCTK_REAL(1) / CCTK_REAL(24);
-  grid.loop_allm1_device<face_centred[0], face_centred[1], face_centred[2]>(
-      grid.nghostzones,
+  grid.loop_imix_allmn_device<face_centred[0], face_centred[1], face_centred[2]>(
+      grid.nghostzones, 1,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         if (dir == 0) {
           dBx_stag(p.I) = dBx_stag_fa(p.I) - amin_xface(p.I) * one_over_24 *

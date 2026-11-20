@@ -111,16 +111,18 @@ extern "C" void AsterX_TmunuSource(CCTK_ARGUMENTS) {
             bs_low * bs0;
 
         /* Copy to GFs */
-        Ttt_pv(p.I) = t00;
-        Ttx_pv(p.I) = t0(0);
-        Tty_pv(p.I) = t0(1);
-        Ttz_pv(p.I) = t0(2);
-        Txx_pv(p.I) = t(0,0);
-        Txy_pv(p.I) = t(0,1);
-        Txz_pv(p.I) = t(0,2);
-        Tyy_pv(p.I) = t(1,1);
-        Tyz_pv(p.I) = t(1,2);
-        Tzz_pv(p.I) = t(2,2);
+        // Note that TmunuBaseX GFs are vertex centered. This is okay, as long as the next
+        // function where averaging is performed is consistent in how indexing is done.
+        eTtt(p.I) = t00;
+        eTtx(p.I) = t0(0);
+        eTty(p.I) = t0(1);
+        eTtz(p.I) = t0(2);
+        eTxx(p.I) = t(0,0);
+        eTxy(p.I) = t(0,1);
+        eTxz(p.I) = t(0,2);
+        eTyy(p.I) = t(1,1);
+        eTyz(p.I) = t(1,2);
+        eTzz(p.I) = t(2,2);
 
         Tt_x_pv(p.I) = t0low(0);
         Tt_y_pv(p.I) = t0low(1);
@@ -138,9 +140,9 @@ template <int FDORDER> void SourceTerms(CCTK_ARGUMENTS) {
   const smat<GF3D2<const CCTK_REAL>, 3> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
   const smat<GF3D2<const CCTK_REAL>, 3> gf_k{kxx, kxy, kxz, kyy, kyz, kzz};
 
-  const vec<GF3D2<const CCTK_REAL>, 3> gf_Tti{Ttx_pv, Tty_pv, Ttz_pv};
+  const vec<GF3D2<const CCTK_REAL>, 3> gf_Tti{eTtx, eTty, eTtz};
   const vec<GF3D2<const CCTK_REAL>, 3> gf_Tt_i{Tt_x_pv, Tt_y_pv, Tt_z_pv};
-  const smat<GF3D2<const CCTK_REAL>, 3> gf_Tij{Txx_pv, Txy_pv, Txz_pv, Tyy_pv, Tyz_pv, Tzz_pv};
+  const smat<GF3D2<const CCTK_REAL>, 3> gf_Tij{eTxx, eTxy, eTxz, eTyy, eTyz, eTzz};
 
   constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
 
@@ -214,7 +216,7 @@ template <int FDORDER> void SourceTerms(CCTK_ARGUMENTS) {
         //     bs_low * bs0;
 
         const CCTK_REAL thetac = (use_ho_fv && (LOflag(p.I) == 0.0));
-        const CCTK_REAL t00 = Ttt_pv(p.I) + thetac * one_over_24 * laplace_3d(Ttt_pv, p);
+        const CCTK_REAL t00 = eTtt(p.I) + thetac * one_over_24 * laplace_3d(eTtt, p);
         const vec<CCTK_REAL, 3> t0( 
             [&](int i) ARITH_INLINE { return gf_Tti(i)(p.I) + thetac * one_over_24 * laplace_3d(gf_Tti(i), p); });
         const vec<CCTK_REAL, 3> t0low(
@@ -266,25 +268,5 @@ extern "C" void AsterX_SourceTerms(CCTK_ARGUMENTS) {
     CCTK_VERROR("local_spatial_order must be set to 2 or 4.");
   }
 }
-
-/*
-extern "C" void AsterX_CellAvgSourceTerms(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_AsterX_CellAvgSourceTerms;
-  DECLARE_CCTK_PARAMETERS;
-
-  constexpr CCTK_REAL one_over_24 = CCTK_REAL(1)/CCTK_REAL(24);
-  grid.loop_int_device<1, 1, 1>(
-      grid.nghostzones,
-      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        const CCTK_REAL thetac = (LOflag(p.I) > 0.0) ? 0.0 : 1.0;
-        // Use HydroBaseX GFs as temporary helper
-        momxrhs(p.I) = velx(p.I) + thetac * one_over_24 * laplace_3d(velx, p);
-        momyrhs(p.I) = vely(p.I) + thetac * one_over_24 * laplace_3d(vely, p);
-        momzrhs(p.I) = velz(p.I) + thetac * one_over_24 * laplace_3d(velz, p);
-        taurhs(p.I) = eps(p.I) + thetac * one_over_24 * laplace_3d(eps, p);
-  });
-
-}
-*/
 
 } // namespace AsterX
