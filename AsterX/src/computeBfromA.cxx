@@ -26,7 +26,7 @@ template <int dir> void ComputeStaggeredB(CCTK_ARGUMENTS) {
   constexpr array<int, dim> face_centred = {!(dir == 0), !(dir == 1),
                                             !(dir == 2)};
   const int nloop = (mag_correction_order - 2) / 2;
-  grid.loop_allmn_device<face_centred[0], face_centred[1], face_centred[2]>(
+  grid.loop_imix_allmn_device<face_centred[0], face_centred[1], face_centred[2]>(
       grid.nghostzones, nloop,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         if (dir == 0) {
@@ -51,7 +51,7 @@ template <int dir> void ComputeStaggeredB(CCTK_ARGUMENTS) {
 
   // Calculate Bstag in boundaries/ghosts with lower order
   if (nloop != 0) {
-    grid.loop_outer_n_device<face_centred[0], face_centred[1], face_centred[2]>(
+    grid.loop_imix_outer_n_device<face_centred[0], face_centred[1], face_centred[2]>(
         grid.nghostzones, nloop,
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
           if (dir == 0) {
